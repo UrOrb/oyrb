@@ -175,7 +175,7 @@ export default function HomePage() {
               { stat: "10 min", label: "Average setup time" },
               { stat: "40%", label: "More repeat bookings" },
               { stat: "$0", label: "Per-booking fees" },
-              { stat: "3", label: "Designer templates" },
+              { stat: "48", label: "Designer templates" },
             ].map((item) => (
               <div key={item.label} className="text-center">
                 <p className="font-display text-3xl font-medium tracking-tight text-[#0A0A0A] md:text-4xl">
@@ -187,6 +187,72 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* ── Template Gallery Preview ── */}
+      <section className="border-t border-[#E7E5E4] py-24 md:py-32">
+        <div className="mx-auto max-w-[1200px] px-6">
+          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-sm font-medium text-[#B8896B]">Template gallery</p>
+              <h2 className="font-display mt-3 text-3xl font-medium tracking-[-0.02em] md:text-5xl">
+                48 templates.<br className="hidden md:block" /> Your signature style.
+              </h2>
+              <p className="mt-4 max-w-lg text-[#525252]">
+                From soft & feminine to bold editorial to streetwear-inspired. Every template is fully
+                responsive — mobile-first, beautiful on every screen.
+              </p>
+            </div>
+            <Link
+              href="/templates"
+              className="mt-6 inline-flex items-center gap-2 rounded-md border border-[#E7E5E4] px-5 py-2.5 text-sm font-medium text-[#0A0A0A] transition-colors hover:bg-[#F5F5F4] md:mt-0 md:shrink-0"
+            >
+              Browse all templates <ArrowRight size={14} />
+            </Link>
+          </div>
+
+          {/* Preview grid — 4 theme teasers */}
+          <div className="mt-12 grid grid-cols-2 gap-3 md:grid-cols-4">
+            {[
+              { id: "aura",    heroId: "1570172619644-bfd9a5847c35", name: "Aura",    bg: "#F5EDE4", accent: "#D9B5A4", layout: "studio" },
+              { id: "luxe",    heroId: "1522337360426-a1af4b2b9f90", name: "Luxe",    bg: "#0E0B0A", accent: "#C9A35B", layout: "luxe" },
+              { id: "street",  heroId: "1503951458645-643d3701e0b0", name: "Street",  bg: "#0A0A0A", accent: "#C6FF3D", layout: "bold" },
+              { id: "minimal", heroId: "1604654894610-df63bc536371", name: "Minimal", bg: "#FAFAF7", accent: "#181716", layout: "clean" },
+            ].map((t) => (
+              <Link
+                key={t.id}
+                href={`/templates/preview/${t.layout}/${t.id}`}
+                className="group relative overflow-hidden rounded-xl border border-[#E7E5E4] transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                style={{ aspectRatio: "3/4" }}
+              >
+                <Image
+                  src={`https://images.unsplash.com/photo-${t.heroId}?auto=format&fit=crop&w=400&q=80`}
+                  alt={`${t.name} template`}
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                />
+                <div className="absolute inset-0" style={{ background: `linear-gradient(to top, ${t.bg}ee, transparent 50%)` }} />
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <p className="text-sm font-semibold text-white">{t.name}</p>
+                  <p className="text-xs text-white/60">4 layouts available</p>
+                </div>
+                <div className="absolute right-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-[#0A0A0A] opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
+                  Preview →
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          <div className="mt-8 text-center">
+            <Link
+              href="/templates"
+              className="inline-flex items-center gap-2 text-sm font-medium text-[#B8896B] hover:underline"
+            >
+              See all 48 templates <ArrowRight size={13} />
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* ── Scroll features ── */}
       <ScrollFeatures />

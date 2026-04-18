@@ -21,6 +21,9 @@ export function Nav() {
           <Link href="/features" className="hover:text-[#0A0A0A] transition-colors">
             Features
           </Link>
+          <Link href="/templates" className="hover:text-[#0A0A0A] transition-colors">
+            Templates
+          </Link>
           <Link href="/pricing" className="hover:text-[#0A0A0A] transition-colors">
             Pricing
           </Link>
@@ -54,6 +57,7 @@ export function Nav() {
         <div className="border-t border-[#E7E5E4] bg-[#FAFAF9] px-6 pb-6 pt-4 md:hidden">
           <nav className="flex flex-col gap-4 text-sm">
             <Link href="/features" onClick={() => setOpen(false)}>Features</Link>
+            <Link href="/templates" onClick={() => setOpen(false)}>Templates</Link>
             <Link href="/pricing" onClick={() => setOpen(false)}>Pricing</Link>
             <Link href="/login" onClick={() => setOpen(false)}>Sign in</Link>
             <Link
