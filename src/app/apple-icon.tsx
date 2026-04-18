@@ -12,24 +12,33 @@ export default function AppleIcon() {
           width: 180,
           height: 180,
           borderRadius: 40,
-          background: "#0A0A0A",
+          background: "linear-gradient(135deg, #FF6EC7 0%, #D946EF 50%, #A855F7 100%)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          boxShadow: "0 8px 32px rgba(217,70,239,0.6)",
         }}
       >
-        <svg
-          width="108"
-          height="108"
-          viewBox="0 0 20 20"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path d="M2 14h16l-2-7-4 4-2-6-2 6-4-4-2 7z" fill="#B8896B" />
-          <circle cx="2" cy="7" r="1.5" fill="#B8896B" />
-          <circle cx="10" cy="4" r="1.5" fill="#C9A35B" />
-          <circle cx="18" cy="7" r="1.5" fill="#B8896B" />
-          <rect x="2" y="14.5" width="16" height="1.5" rx="0.75" fill="#B8896B" />
+        <svg width="100" height="100" viewBox="0 0 18 18" fill="none">
+          <path
+            d="M9 1 C9 1 9.8 5.5 9 9 C8.2 12.5 9 17 9 17 C9 17 9.8 12.5 9 9 C8.2 5.5 9 1 9 1Z"
+            fill="white"
+          />
+          <path
+            d="M1 9 C1 9 5.5 9.8 9 9 C12.5 8.2 17 9 17 9 C17 9 12.5 9.8 9 9 C5.5 8.2 1 9 1 9Z"
+            fill="white"
+          />
+          <path
+            d="M3.5 3.5 C3.5 3.5 6.8 6.8 9 9 C11.2 11.2 14.5 14.5 14.5 14.5 C14.5 14.5 11.2 11.2 9 9 C6.8 6.8 3.5 3.5 3.5 3.5Z"
+            fill="white"
+            opacity="0.5"
+          />
+          <path
+            d="M14.5 3.5 C14.5 3.5 11.2 6.8 9 9 C6.8 11.2 3.5 14.5 3.5 14.5 C3.5 14.5 6.8 11.2 9 9 C11.2 6.8 14.5 3.5 14.5 3.5Z"
+            fill="white"
+            opacity="0.5"
+          />
+          <circle cx="9" cy="9" r="2" fill="white" />
         </svg>
       </div>
     ),
