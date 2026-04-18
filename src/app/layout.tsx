@@ -17,9 +17,17 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "OYRB — Build your site. Run your business. Own your brand",
+  title: "OYRB — Own Your Reality Brand",
   description:
     "OYRB is a booking and website platform built for beauty professionals. Go from signup to a published, stylish booking site in under 10 minutes.",
+  icons: {
+    icon: [
+      { url: "/icon", type: "image/png", sizes: "32x32" },
+    ],
+    apple: [
+      { url: "/apple-icon", type: "image/png", sizes: "180x180" },
+    ],
+  },
 };
 
 export default function RootLayout({
