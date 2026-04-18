@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OYRB — Own Your Reality Brand
 
-## Getting Started
+A booking and website platform for beauty professionals. Built with Next.js 14+, Supabase, Stripe, and Tailwind CSS.
 
-First, run the development server:
+## What it is
+
+OYRB lets beauty professionals (hair stylists, lash techs, nail techs, estheticians, braiders, MUAs) go from signup to a published, stylish booking site in under 10 minutes.
+
+**Live:** https://oyrb.space
+
+## Tech stack
+
+- **Framework:** Next.js 16 (App Router, TypeScript)
+- **Styling:** Tailwind CSS v4 + shadcn/ui
+- **Auth + DB:** Supabase (email/password + Google OAuth, Postgres, RLS)
+- **Payments:** Stripe (subscriptions + Connect for Phase 3)
+- **Email:** Resend
+- **Hosting:** Vercel
+- **Package manager:** pnpm
+
+## Local development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.local.example .env.local  # fill in your keys
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+For local Stripe webhooks:
+```bash
+stripe listen --forward-to localhost:3000/api/stripe/webhook
+```
+Update `STRIPE_WEBHOOK_SECRET` in `.env.local` with the CLI-provided secret.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment variables
 
-## Learn More
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server only) |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key |
+| `STRIPE_SECRET_KEY` | Stripe secret key (server only) |
+| `STRIPE_PRICE_STARTER` | Stripe Price ID — Starter ($24/mo) |
+| `STRIPE_PRICE_STUDIO` | Stripe Price ID — Studio ($49/mo) |
+| `STRIPE_PRICE_SCALE` | Stripe Price ID — Scale ($89/mo) |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
+| `RESEND_API_KEY` | Resend API key |
+| `NEXT_PUBLIC_APP_URL` | Public base URL |
 
-To learn more about Next.js, take a look at the following resources:
+## Database setup
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Run `supabase/migrations/001_initial_schema.sql` in the Supabase SQL editor. Creates: `profiles`, `businesses`, `services`, `clients`, `bookings` with RLS policies.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Pricing tiers
 
-## Deploy on Vercel
+| Plan | Price | Key features |
+|---|---|---|
+| Starter | $24/mo | 1 staff, 1 template, booking + payments |
+| Studio | $49/mo | 3 staff, all templates, deposits, SMS |
+| Scale | $89/mo | Unlimited staff, custom domain, multi-location |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## What's done (Phase 1)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Marketing site (/, /features, /pricing)
+- Auth: email/password + Google OAuth via Supabase
+- Stripe subscription checkout + webhook handler
+- Dashboard shell with sidebar nav
+- Route protection via Next.js proxy
+
+## What's next
+
+**Phase 2:** Three distinct booking site templates, template picker, site editor, public `/s/[slug]` routes.
+
+**Phase 3:** Real-time booking calendar, Stripe Connect for beauty pros, deposit collection, Resend email confirmations.

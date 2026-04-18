@@ -121,7 +121,7 @@ export default function PricingPage() {
                 a: "Yes, upgrade or downgrade anytime. Changes take effect at the start of your next billing cycle.",
               },
               {
-                q: "Does GlamStack take a cut of my bookings?",
+                q: "Does OYRB take a cut of my bookings?",
                 a: "No. You pay a flat monthly fee. All client payments go directly to you via Stripe.",
               },
               {

@@ -17,9 +17,9 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "GlamStack — Booking & Website Platform for Beauty Professionals",
+  title: "OYRB — Build your site. Run your business. Own your brand.",
   description:
-    "A booking and website platform built for beauty professionals. Go from signup to a published, stylish booking site in under 10 minutes.",
+    "OYRB is a booking and website platform built for beauty professionals. Go from signup to a published, stylish booking site in under 10 minutes.",
 };
 
 export default function RootLayout({

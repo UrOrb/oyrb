@@ -42,7 +42,7 @@ export default function FeaturesPage() {
             Everything a beauty professional needs.
           </h1>
           <p className="mx-auto mt-4 max-w-lg text-[#525252]">
-            GlamStack is built around how beauty professionals actually work —
+            OYRB is built around how beauty professionals actually work —
             not how a generic SaaS tool thinks you work.
           </p>
         </div>

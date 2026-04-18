@@ -1,4 +1,4 @@
-# Design System — GlamStack
+# Design System — OYRB
 
 **Save this file to `.claude/skills/design-system/SKILL.md` in your project root so Claude Code can read it as a skill.**
 

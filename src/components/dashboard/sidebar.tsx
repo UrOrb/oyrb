@@ -27,7 +27,7 @@ export function Sidebar() {
     <aside className="hidden w-60 shrink-0 flex-col border-r border-[#E7E5E4] bg-[#FAFAF9] md:flex">
       <div className="flex h-14 items-center border-b border-[#E7E5E4] px-6">
         <Link href="/" className="font-display text-base font-medium tracking-tight">
-          GlamStack
+          OYRB
         </Link>
       </div>
 

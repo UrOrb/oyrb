@@ -14,7 +14,7 @@ export function Nav() {
           href="/"
           className="font-display text-lg font-medium tracking-tight"
         >
-          GlamStack
+          OYRB
         </Link>
 
         <nav className="hidden items-center gap-8 text-sm text-[#525252] md:flex">

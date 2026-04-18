@@ -7,7 +7,7 @@ export function Footer() {
         <div className="flex flex-col gap-8 md:flex-row md:justify-between">
           <div className="max-w-xs">
             <Link href="/" className="font-display text-lg font-medium">
-              GlamStack
+              OYRB
             </Link>
             <p className="mt-3 text-sm text-[#737373]">
               A booking and website platform built for beauty professionals.
@@ -29,7 +29,7 @@ export function Footer() {
         </div>
 
         <div className="mt-12 border-t border-[#E7E5E4] pt-6 text-xs text-[#A3A3A3]">
-          © {new Date().getFullYear()} GlamStack. All rights reserved.
+          © {new Date().getFullYear()} OYRB. All rights reserved.
         </div>
       </div>
     </footer>

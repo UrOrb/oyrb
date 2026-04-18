@@ -55,7 +55,7 @@ export default function HomePage() {
               A booking site as polished as your work.
             </h1>
             <p className="mt-6 max-w-md text-base text-[#525252] md:text-lg">
-              GlamStack gives beauty professionals a stunning booking site and
+              OYRB gives beauty professionals a stunning booking site and
               the tools to run their business — without the learning curve.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -129,7 +129,7 @@ export default function HomePage() {
       {/* Features */}
       <section className="py-24 md:py-32">
         <div className="mx-auto max-w-[1200px] px-6">
-          <p className="text-sm font-medium text-[#B8896B]">Why GlamStack</p>
+          <p className="text-sm font-medium text-[#B8896B]">Why OYRB</p>
           <h2 className="font-display mt-3 text-3xl font-medium tracking-[-0.02em] md:text-5xl">
             Built for the way you work.
           </h2>
@@ -226,7 +226,7 @@ export default function HomePage() {
             Ready to elevate your booking experience?
           </h2>
           <p className="mx-auto mt-4 max-w-md text-[#525252]">
-            Join beauty professionals who use GlamStack to run their business
+            Join beauty professionals who use OYRB to run their business
             and impress their clients.
           </p>
           <div className="mt-8 flex justify-center gap-3">
