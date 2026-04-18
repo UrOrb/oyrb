@@ -544,6 +544,7 @@ export const LAYOUT_TYPES = [
   { id: "clean", name: "Clean", description: "Minimal header + service list + sidebar" },
   { id: "studio", name: "Studio", description: "Warm serif + service grid" },
   { id: "luxe", name: "Luxe", description: "Full-bleed hero + centered layout" },
+  { id: "original", name: "Original", description: "Faithful port of the original zip file designs" },
 ] as const;
 
 export type LayoutType = typeof LAYOUT_TYPES[number]["id"];

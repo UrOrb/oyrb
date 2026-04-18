@@ -5,6 +5,7 @@ import { BoldTemplate } from "@/components/templates/bold";
 import { CleanTemplate } from "@/components/templates/clean";
 import { StudioTemplate } from "@/components/templates/studio";
 import { LuxeTemplate } from "@/components/templates/luxe";
+import { ZipTemplate } from "@/components/templates/zip";
 
 interface Props {
   params: Promise<{ layout: string; theme: string }>;
@@ -91,6 +92,7 @@ export default async function TemplatePreviewPage({ params }: Props) {
       {layout === "clean" && <CleanTemplate {...templateProps} />}
       {layout === "studio" && <StudioTemplate {...templateProps} />}
       {layout === "luxe" && <LuxeTemplate {...templateProps} />}
+      {layout === "original" && <ZipTemplate {...templateProps} />}
     </>
   );
 }

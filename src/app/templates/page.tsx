@@ -12,7 +12,7 @@ const THEME_LIST = Object.values(TEMPLATE_THEMES);
 
 export const metadata = {
   title: "Template Gallery — OYRB",
-  description: "Choose from 48 stunning booking page templates for beauty professionals. 4 layouts × 12 themes.",
+  description: "Choose from 60 stunning booking page templates for beauty professionals. 5 layouts × 12 themes.",
 };
 
 export default function TemplatesPage() {
@@ -23,7 +23,7 @@ export default function TemplatesPage() {
       {/* ── Hero ── */}
       <section className="border-b border-[#E7E5E4] bg-white px-6 py-20 text-center">
         <p className="mb-4 text-sm font-medium text-[#B8896B]">
-          48 templates · 4 layouts · 12 themes
+          60 templates · 5 layouts · 12 themes
         </p>
         <h1 className="font-display text-4xl font-medium tracking-[-0.02em] text-[#0A0A0A] md:text-6xl">
           Find your signature style.
