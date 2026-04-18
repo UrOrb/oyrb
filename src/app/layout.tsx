@@ -1,0 +1,40 @@
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import { Fraunces } from "next/font/google";
+import "./globals.css";
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
+
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  style: ["normal", "italic"],
+});
+
+export const metadata: Metadata = {
+  title: "GlamStack — Booking & Website Platform for Beauty Professionals",
+  description:
+    "A booking and website platform built for beauty professionals. Go from signup to a published, stylish booking site in under 10 minutes.",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html
+      lang="en"
+      className={`${inter.variable} ${fraunces.variable} h-full antialiased`}
+    >
+      <body className="min-h-full flex flex-col bg-[#FAFAF9] text-[#0A0A0A]">
+        {children}
+      </body>
+    </html>
+  );
+}
