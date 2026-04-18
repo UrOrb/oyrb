@@ -52,7 +52,7 @@ export default function HomePage() {
               For hair stylists, lash techs, estheticians &amp; more
             </p>
             <h1 className="font-display text-5xl font-medium leading-[1.1] tracking-[-0.02em] md:text-7xl">
-              A booking site as polished as your work.
+              Build your site. Run your business. Own your brand
             </h1>
             <p className="mt-6 max-w-md text-base text-[#525252] md:text-lg">
               OYRB gives beauty professionals a stunning booking site and
