@@ -689,7 +689,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(503) 555-0392",
       email: "care@lindenstudio.co",
       category: "Holistic Skincare & Wellness",
-      heroImageId: "1620916566398-39f1143ab7be",
+      heroImageId: "/linden-hero.avif",
       profileImageId: "1531746020798-e6953c6e8e04",
       galleryIds: [
         "1620916566398-39f1143ab7be","1608248597279-f99d160bfcbc",
