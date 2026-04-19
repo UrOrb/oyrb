@@ -1,15 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
+import { isDemoMode } from "@/lib/demo";
 
 // Creates a Stripe Customer Portal session. Users manage subscription,
 // update payment method, download invoices, and cancel — all self-service
 // (FTC "click to cancel" compliance).
+//
+// Accepts both GET and POST so a plain <Link href="/api/stripe/portal">
+// from the Settings page works (GET, issues a 302 to the portal URL) and
+// a fetch("...", { method: "POST" }) from the Settings form also works
+// (POST, returns { url } JSON for the client to follow).
+export async function GET(request: NextRequest) {
+  const result = await createPortalSession(request);
+  if ("error" in result) {
+    return NextResponse.redirect(
+      new URL(`/dashboard/settings?portal_error=${encodeURIComponent(result.error)}`, request.url)
+    );
+  }
+  return NextResponse.redirect(result.url);
+}
+
 export async function POST(request: NextRequest) {
+  const result = await createPortalSession(request);
+  if ("error" in result) {
+    return NextResponse.json({ error: result.error }, { status: result.status ?? 500 });
+  }
+  return NextResponse.json({ url: result.url });
+}
+
+async function createPortalSession(request: NextRequest): Promise<
+  | { url: string }
+  | { error: string; status?: number }
+> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!user) return { error: "unauthorized", status: 401 };
+
+  // Demo mode: bounce straight back to settings — no real Stripe customer
+  // to open a portal for.
+  if (isDemoMode()) {
+    const origin = new URL(request.url).origin;
+    return { url: `${origin}/dashboard/settings?portal_error=${encodeURIComponent("Stripe Customer Portal is disabled in demo mode.")}` };
   }
 
   const { data: business } = await supabase
@@ -19,10 +51,7 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (!business?.stripe_customer_id) {
-    return NextResponse.json(
-      { error: "No subscription to manage. Subscribe first." },
-      { status: 404 }
-    );
+    return { error: "No subscription to manage. Subscribe first.", status: 404 };
   }
 
   const origin = new URL(request.url).origin;
@@ -32,16 +61,13 @@ export async function POST(request: NextRequest) {
       customer: business.stripe_customer_id,
       return_url: `${origin}/dashboard/settings`,
     });
-
-    return NextResponse.json({ url: session.url });
+    return { url: session.url };
   } catch (err) {
     console.error("Customer Portal error:", err);
-    return NextResponse.json(
-      {
-        error:
-          "Customer Portal not configured yet. Admin must enable it in Stripe Dashboard → Billing → Customer Portal.",
-      },
-      { status: 500 }
-    );
+    return {
+      error:
+        "Customer Portal not configured yet. Admin must enable it in Stripe Dashboard → Billing → Customer Portal.",
+      status: 500,
+    };
   }
 }
