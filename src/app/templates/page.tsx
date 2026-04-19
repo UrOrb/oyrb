@@ -1,18 +1,18 @@
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Nav } from "@/components/marketing/nav";
 import { Footer } from "@/components/marketing/footer";
 import { TEMPLATE_THEMES, LAYOUT_TYPES } from "@/lib/template-themes";
-import { unsplash } from "@/lib/template-images";
-
-const FILTER_TAGS = ["All", "Feminine", "Editorial", "Natural", "Bold", "Minimal", "Street"];
+import { TemplateAccordion } from "@/components/templates/template-accordion";
 
 const THEME_LIST = Object.values(TEMPLATE_THEMES);
+const THEME_COUNT = THEME_LIST.length;
+const LAYOUT_COUNT = LAYOUT_TYPES.length;
+const TEMPLATE_COUNT = THEME_COUNT * LAYOUT_COUNT;
 
 export const metadata = {
-  title: "Template Gallery — OYRB",
-  description: "Choose from 60 stunning booking page templates for beauty professionals. 5 layouts × 12 themes.",
+  title: "Templates",
+  description: `Choose from ${TEMPLATE_COUNT} stunning booking page templates for beauty professionals. ${LAYOUT_COUNT} layouts × ${THEME_COUNT} themes.`,
 };
 
 export default function TemplatesPage() {
@@ -23,7 +23,7 @@ export default function TemplatesPage() {
       {/* ── Hero ── */}
       <section className="border-b border-[#E7E5E4] bg-white px-6 py-20 text-center">
         <p className="mb-4 text-sm font-medium text-[#B8896B]">
-          60 templates · 5 layouts · 12 themes
+          {TEMPLATE_COUNT} templates · {LAYOUT_COUNT} layouts · {THEME_COUNT} themes
         </p>
         <h1 className="font-display text-4xl font-medium tracking-[-0.02em] text-[#0A0A0A] md:text-6xl">
           Find your signature style.
@@ -39,39 +39,17 @@ export default function TemplatesPage() {
           >
             Start free trial <ArrowRight size={14} />
           </Link>
-          <p className="text-xs text-[#A3A3A3]">14 days free · No card required</p>
+          <p className="text-xs text-[#A3A3A3]">14 days free · Card required, no charge until day 15</p>
         </div>
       </section>
 
-      {/* ── Template grid by layout ── */}
-      <div className="mx-auto max-w-[1300px] px-6 py-16">
-        {LAYOUT_TYPES.map((layout) => (
-          <section key={layout.id} className="mb-20">
-            {/* Layout header */}
-            <div className="mb-8 flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-widest text-[#B8896B]">Layout</p>
-                <h2 className="font-display mt-1 text-2xl font-medium tracking-[-0.02em] text-[#0A0A0A] md:text-3xl">
-                  {layout.name}
-                </h2>
-                <p className="mt-1 text-sm text-[#737373]">{layout.description}</p>
-              </div>
-              <Link
-                href={`/templates/preview/${layout.id}/aura`}
-                className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-[#0A0A0A] hover:underline md:mt-0"
-              >
-                Preview all {layout.name} templates <ArrowRight size={13} />
-              </Link>
-            </div>
-
-            {/* Theme cards grid */}
-            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              {THEME_LIST.map((theme) => (
-                <TemplateCard key={theme.id} layout={layout.id} theme={theme} />
-              ))}
-            </div>
-          </section>
-        ))}
+      {/* ── Accordion of layouts ── */}
+      <div className="mx-auto w-full max-w-[1300px] px-6 py-16">
+        <TemplateAccordion
+          layouts={LAYOUT_TYPES}
+          themes={THEME_LIST}
+          defaultLayout="bold"
+        />
       </div>
 
       {/* ── CTA ── */}
@@ -96,77 +74,5 @@ export default function TemplatesPage() {
 
       <Footer />
     </div>
-  );
-}
-
-function TemplateCard({ layout, theme }: { layout: string; theme: (typeof TEMPLATE_THEMES)[string] }) {
-  const heroId = theme.business.heroImageId;
-
-  return (
-    <Link
-      href={`/templates/preview/${layout}/${theme.id}`}
-      className="group relative overflow-hidden rounded-xl border border-[#E7E5E4] bg-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
-    >
-      {/* Thumbnail */}
-      <div className="relative h-44 w-full overflow-hidden">
-        {/* Color swatch overlay to hint at theme palette */}
-        <div
-          className="absolute inset-0 z-10"
-          style={{
-            background: `linear-gradient(135deg, ${theme.bg}dd 0%, ${theme.surface}00 60%)`,
-          }}
-        />
-        <Image
-          src={unsplash(heroId, 600, 80)}
-          alt={`${theme.name} template preview`}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-          sizes="320px"
-        />
-        {/* Palette dots */}
-        <div className="absolute bottom-3 left-3 z-20 flex gap-1.5">
-          {[theme.bg, theme.accent, theme.ink].map((color, i) => (
-            <div
-              key={i}
-              className="h-3 w-3 rounded-full border border-white/40 shadow"
-              style={{ backgroundColor: color }}
-            />
-          ))}
-        </div>
-        {/* Preview badge */}
-        <div className="absolute right-3 top-3 z-20 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-[#0A0A0A] opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
-          Preview →
-        </div>
-      </div>
-
-      {/* Info */}
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <p className="font-semibold text-[#0A0A0A]">{theme.name}</p>
-            <p className="mt-0.5 text-xs text-[#737373]">{theme.vibe}</p>
-          </div>
-          <span
-            className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium capitalize"
-            style={{
-              backgroundColor: `${theme.accent}22`,
-              color: theme.accent,
-            }}
-          >
-            {theme.category}
-          </span>
-        </div>
-        <div className="mt-3 flex flex-wrap gap-1">
-          {theme.tags.slice(0, 3).map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full border border-[#E7E5E4] px-2 py-0.5 text-[10px] text-[#737373]"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      </div>
-    </Link>
   );
 }

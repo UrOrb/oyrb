@@ -26,6 +26,8 @@ export type Business = {
   loyalty_threshold?: number;
   loyalty_reward_text?: string | null;
   template_content?: Record<string, string> | null;
+  custom_domain?: string | null;
+  custom_domain_verified?: boolean;
   is_published: boolean;
   city: string | null;
   state: string | null;

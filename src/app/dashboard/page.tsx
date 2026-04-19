@@ -16,9 +16,9 @@ export default async function DashboardPage({
 
   if (!user) redirect("/login");
 
-  // Pull every business owned by this user — today there's almost always one,
-  // but the View Site row maps over the array so multi-site is a UI-only swap
-  // when the rest of the app is ready for it.
+  // List every site this user has purchased. Each appears as its own card.
+  // The active-site cookie + /api/dashboard/active-site keep editor pages
+  // pointed at the right one when the user navigates between them.
   const { data: businesses } = await supabase
     .from("businesses")
     .select("*")
@@ -65,7 +65,7 @@ export default async function DashboardPage({
               tier: "scale" as const,
               name: "Scale",
               price: "$89",
-              features: ["Unlimited staff", "Custom domain", "Multi-location", "Unlimited SMS reminders", "Priority support", "Everything in Studio"],
+              features: ["Unlimited staff", "Custom domain", "Unlimited SMS reminders", "Priority support", "Everything in Studio"],
               highlight: false,
             },
           ].map((t) => (
@@ -222,6 +222,7 @@ export default async function DashboardPage({
 // keeps multiple cards from racing to render full-page templates at once.
 function SiteCard({ business }: { business: { id: string; business_name: string; slug: string; is_published: boolean } }) {
   const siteUrl = `/s/${business.slug}`;
+  const editUrl = `/dashboard/site?siteId=${encodeURIComponent(business.id)}`;
   return (
     <div className="overflow-hidden rounded-lg border border-[#E7E5E4] bg-white transition-colors hover:border-[#B8896B]">
       <a href={siteUrl} target="_blank" rel="noreferrer" className="group block" aria-label={`View ${business.business_name} live`}>
@@ -259,7 +260,7 @@ function SiteCard({ business }: { business: { id: string; business_name: string;
           <p className="truncate text-[11px] text-[#737373]">View Site</p>
         </div>
         <Link
-          href="/dashboard/site"
+          href={editUrl}
           className="inline-flex items-center gap-1 rounded-md border border-[#E7E5E4] px-2.5 py-1 text-[11px] font-medium hover:bg-[#F5F5F4]"
         >
           <Pencil size={11} /> Edit

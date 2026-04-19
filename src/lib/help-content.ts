@@ -374,7 +374,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
           { text: "Go to Dashboard → Settings → Payments and click View Stripe Status." },
           { text: "Stripe will show you exactly what information is still needed (usually a document upload or bank account confirmation)." },
           { text: "Complete all required fields in your Stripe dashboard." },
-          { text: "Return to OYRB — the error should clear within a few minutes once Stripe verifies your info.", note: "If it still shows after 24 hours, email support@oyrb.co with your account email." },
+          { text: "Return to OYRB — the error should clear within a few minutes once Stripe verifies your info.", note: "If it still shows after 24 hours, email support@oyrb.space with your account email." },
         ],
       },
       {
@@ -407,7 +407,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
           { text: "Check that you're using the correct link format: oyrb.co/book/your-handle (find it in Dashboard → My Page)." },
           { text: "Make sure your account is active — if your trial expired, your page goes offline. Go to Dashboard → Settings → Billing to renew." },
           { text: "If using a custom domain, verify your DNS records are still pointed correctly (Dashboard → Settings → Domain → DNS Guide)." },
-          { text: "Try opening the link in an incognito/private browser window to rule out a cache issue.", note: "If your page is down for a reason not listed here, email support@oyrb.co — we respond within 2 hours." },
+          { text: "Try opening the link in an incognito/private browser window to rule out a cache issue.", note: "If your page is down for a reason not listed here, email support@oyrb.space — we respond within 2 hours." },
         ],
       },
       {
@@ -419,7 +419,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
           { text: "Enter the email address you signed up with." },
           { text: "Check your inbox for the reset email (check spam too).", note: "The reset link expires after 1 hour — request a new one if it doesn't arrive." },
           { text: "Click the link, enter a new password, and log in." },
-          { text: "If you don't remember which email you used, contact support@oyrb.co from any email and we'll look it up." },
+          { text: "If you don't remember which email you used, contact support@oyrb.space from any email and we'll look it up." },
         ],
       },
       {

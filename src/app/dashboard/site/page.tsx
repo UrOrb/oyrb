@@ -3,17 +3,20 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { SiteBuilder } from "./site-builder";
 import type { Business, BusinessHours } from "@/lib/types";
+import { getCurrentBusiness } from "@/lib/current-site";
+import { PersistActiveSite } from "./persist-active-site";
 
-export default async function SitePage() {
+interface Props {
+  searchParams: Promise<{ siteId?: string }>;
+}
+
+export default async function SitePage({ searchParams }: Props) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: business } = await supabase
-    .from("businesses")
-    .select("*")
-    .eq("owner_id", user.id)
-    .single();
+  const { siteId } = await searchParams;
+  const business = await getCurrentBusiness(siteId);
 
   if (!business) {
     return (
@@ -42,11 +45,14 @@ export default async function SitePage() {
   const origin = `${protocol}://${host}`;
 
   return (
-    <SiteBuilder
-      business={business as Business}
-      hours={(hours ?? []) as BusinessHours[]}
-      services={services ?? []}
-      origin={origin}
-    />
+    <>
+      <PersistActiveSite siteId={business.id} />
+      <SiteBuilder
+        business={business as Business}
+        hours={(hours ?? []) as BusinessHours[]}
+        services={services ?? []}
+        origin={origin}
+      />
+    </>
   );
 }

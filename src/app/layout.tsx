@@ -18,7 +18,10 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "OYRB — Own Your Reality Brand",
+  title: {
+    default: "Own Your Brand",
+    template: "%s — OYRB",
+  },
   description:
     "OYRB is a booking and website platform built for beauty professionals. Go from signup to a published, stylish booking site in under 10 minutes.",
   icons: {

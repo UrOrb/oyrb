@@ -2,6 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentBusiness, listMySites } from "@/lib/current-site";
+import { SiteSwitcher } from "./site-switcher";
 
 export const metadata = {
   title: "Dashboard",
@@ -27,15 +29,13 @@ export default async function DashboardLayout({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  let profileImageUrl: string | null = null;
-  if (user) {
-    const { data: business } = await supabase
-      .from("businesses")
-      .select("profile_image_url")
-      .eq("owner_id", user.id)
-      .maybeSingle();
-    profileImageUrl = business?.profile_image_url ?? null;
-  }
+  // Load every site the user owns so the switcher in the header can show
+  // them all. The cookie-driven getCurrentBusiness picks the active one.
+  const [activeBusiness, mySites] = await Promise.all([
+    user ? getCurrentBusiness() : Promise.resolve(null),
+    user ? listMySites() : Promise.resolve([]),
+  ]);
+  const profileImageUrl = activeBusiness?.profile_image_url ?? null;
 
   const fullName = (user?.user_metadata?.full_name as string | undefined) ?? null;
   const initial = initialFor(fullName, user?.email);
@@ -47,7 +47,17 @@ export default async function DashboardLayout({
       <div className="flex flex-1 flex-col overflow-y-auto">
         <header className="flex h-14 shrink-0 items-center border-b border-[#E7E5E4] px-6">
           <div className="flex flex-1 items-center justify-between">
-            <div />
+            <div className="flex items-center gap-2 text-xs text-[#737373]">
+              {mySites.length > 1 && activeBusiness && (
+                <>
+                  <span className="hidden sm:inline">Editing</span>
+                  <SiteSwitcher
+                    sites={mySites}
+                    activeId={activeBusiness.id}
+                  />
+                </>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <Link
                 href="/dashboard/settings"

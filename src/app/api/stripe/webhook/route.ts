@@ -36,6 +36,7 @@ export async function POST(request: Request) {
       const session = event.data.object as Stripe.Checkout.Session;
       const userId = session.metadata?.supabase_user_id;
       const tier = session.metadata?.tier;
+      const addNewSite = session.metadata?.add_new_site === "true";
 
       if (!userId || !tier) break;
 
@@ -49,14 +50,18 @@ export async function POST(request: Request) {
           ? session.subscription
           : session.subscription?.id ?? "";
 
-      // Upsert business record
-      const { data: existing } = await supabase
+      // The user already has at least one business — only update the
+      // existing row when this is the *first* checkout. Subsequent purchases
+      // (add_new_site=true) always insert a new business owned by the same
+      // user, each tied to its own Stripe subscription.
+      const { data: existingRows } = await supabase
         .from("businesses")
         .select("id")
-        .eq("owner_id", userId)
-        .single();
+        .eq("owner_id", userId);
+      const isFirst = !existingRows || existingRows.length === 0;
 
-      if (existing) {
+      if (!isFirst && !addNewSite) {
+        // Re-purchase / upgrade on the original site.
         await supabase
           .from("businesses")
           .update({
@@ -65,22 +70,35 @@ export async function POST(request: Request) {
             subscription_tier: tier,
             subscription_status: "active",
           })
-          .eq("owner_id", userId);
+          .eq("owner_id", userId)
+          .eq("id", existingRows![0].id);
       } else {
-        // Get user email for slug generation
+        // First checkout OR explicit add-new-site purchase → insert a new
+        // business row tied to its own subscription.
         const { data: { user } } = await supabase.auth.admin.getUserById(userId);
         const baseSlug = (user?.email?.split("@")[0] ?? "studio")
           .toLowerCase()
           .replace(/[^a-z0-9]/g, "-");
 
+        const featuredUntil = new Date(
+          Date.now() + 30 * 24 * 60 * 60 * 1000
+        ).toISOString();
+
+        const seq = (existingRows?.length ?? 0) + 1;
+        const defaultName = isFirst
+          ? user?.user_metadata?.full_name ?? "My Studio"
+          : `${user?.user_metadata?.full_name ?? "My Studio"} #${seq}`;
+
         await supabase.from("businesses").insert({
           owner_id: userId,
-          business_name: user?.user_metadata?.full_name ?? "My Studio",
+          business_name: defaultName,
           slug: `${baseSlug}-${Date.now().toString(36)}`,
           stripe_customer_id: customerId,
           stripe_subscription_id: subscriptionId,
           subscription_tier: tier,
           subscription_status: "active",
+          is_featured: true,
+          featured_until: featuredUntil,
         });
       }
       break;
@@ -91,14 +109,15 @@ export async function POST(request: Request) {
       const priceId = sub.items.data[0]?.price.id ?? "";
       const tier = TIER_MAP[priceId] ?? "starter";
 
+      // One customer can own multiple subscriptions (one per site). Only
+      // touch the business whose subscription_id matches.
       await supabase
         .from("businesses")
         .update({
           subscription_status: sub.status === "active" ? "active" : sub.status,
           subscription_tier: tier,
-          stripe_subscription_id: sub.id,
         })
-        .eq("stripe_customer_id", sub.customer as string);
+        .eq("stripe_subscription_id", sub.id);
       break;
     }
 
@@ -107,7 +126,7 @@ export async function POST(request: Request) {
       await supabase
         .from("businesses")
         .update({ subscription_status: "cancelled" })
-        .eq("stripe_customer_id", sub.customer as string);
+        .eq("stripe_subscription_id", sub.id);
       break;
     }
   }

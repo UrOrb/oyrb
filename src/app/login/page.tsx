@@ -2,6 +2,10 @@ import Link from "next/link";
 import { Nav } from "@/components/marketing/nav";
 import { LoginForm } from "./login-form";
 
+export const metadata = {
+  title: "Log in",
+};
+
 export default function LoginPage() {
   return (
     <div className="flex flex-col">

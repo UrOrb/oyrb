@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { getCurrentBusiness } from "@/lib/current-site";
 
 const STARTER_THEMES = ["aura", "minimal", "bold"];
 
@@ -19,11 +20,9 @@ export async function updateSite(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const { data: business } = await supabase
-    .from("businesses")
-    .select("id, slug, subscription_tier")
-    .eq("owner_id", user.id)
-    .single();
+  // Save into the *active* site (cookie-driven), not whichever row happens to
+  // be first in the table. Critical so that editing site B never overwrites A.
+  const business = await getCurrentBusiness();
   if (!business) return { error: "No business found" };
 
   const businessName = (formData.get("business_name") as string)?.trim();

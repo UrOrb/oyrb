@@ -3,6 +3,10 @@ import { Check } from "lucide-react";
 import { Nav } from "@/components/marketing/nav";
 import { Footer } from "@/components/marketing/footer";
 
+export const metadata = {
+  title: "Pricing",
+};
+
 const TIERS = [
   {
     name: "Starter",
@@ -14,6 +18,7 @@ const TIERS = [
       "Online booking page",
       "Stripe payments",
       "Email confirmations",
+      "Email booking reminders",
       "Basic analytics",
     ],
     highlight: false,
@@ -22,13 +27,18 @@ const TIERS = [
     name: "Studio",
     price: "$49",
     description: "For established pros and small teams.",
+    badge: "No-Show Protection",
     features: [
+      "Everything in Starter",
+      "✦ SMS booking reminders (24h before)",
+      "✦ Waitlist management",
+      "✦ Last-minute slot SMS alerts",
+      "✦ Deposit collection",
       "Up to 3 staff calendars",
-      "All 3 templates",
-      "Deposit collection",
+      "All designer templates",
       "Intake forms",
-      "SMS reminders",
       "Google Calendar sync",
+      "Marketing email campaigns",
       "Priority email support",
     ],
     highlight: true,
@@ -38,10 +48,10 @@ const TIERS = [
     price: "$89",
     description: "For multi-stylist shops and suite operators.",
     features: [
-      "Unlimited staff",
+      "Everything in Studio",
+      "✦ Unlimited SMS reminders",
+      "Unlimited staff calendars",
       "Custom domain",
-      "Multi-location",
-      "All Studio features",
       "White-label emails",
       "Priority phone support",
       "Early access to new features",
@@ -62,8 +72,11 @@ export default function PricingPage() {
             Simple, transparent pricing.
           </h1>
           <p className="mx-auto mt-4 max-w-lg text-[#525252]">
-            No hidden fees, no per-booking cuts, no surprises. Pay a flat monthly
-            rate and keep everything you earn.
+            We never take a cut of your bookings or tips. Pay one flat monthly
+            rate and keep 100% of what your clients pay you.
+          </p>
+          <p className="mx-auto mt-2 max-w-md text-xs text-[#A3A3A3]">
+            The price you see is exactly what you&apos;re billed each month. No surcharges, no per-booking fees — just applicable sales tax in states where required.
           </p>
         </div>
 
@@ -76,9 +89,16 @@ export default function PricingPage() {
               }`}
             >
               {tier.highlight && (
-                <span className="mb-4 w-fit rounded-full bg-[#B8896B]/10 px-3 py-1 text-xs font-medium text-[#B8896B]">
-                  Most popular
-                </span>
+                <div className="mb-4 flex flex-wrap gap-2">
+                  <span className="rounded-full bg-[#B8896B]/10 px-3 py-1 text-xs font-medium text-[#B8896B]">
+                    Most popular
+                  </span>
+                  {"badge" in tier && tier.badge && (
+                    <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
+                      ✦ {tier.badge}
+                    </span>
+                  )}
+                </div>
               )}
               <p className="font-medium">{tier.name}</p>
               <p className="font-display mt-2 text-5xl font-medium">
@@ -117,12 +137,16 @@ export default function PricingPage() {
           <div className="mt-8 grid gap-6 md:grid-cols-2">
             {[
               {
-                q: "Can I change my plan later?",
-                a: "Yes, upgrade or downgrade anytime. Changes take effect at the start of your next billing cycle.",
+                q: "Can I change or cancel my plan later?",
+                a: "Yes, upgrade, downgrade, or cancel anytime from your dashboard. Cancellation takes effect at the end of your current billing cycle — no partial refunds, but you keep full access through the period you already paid for.",
               },
               {
-                q: "Does OYRB take a cut of my bookings?",
-                a: "No. You pay a flat monthly fee. All client payments go directly to you via Stripe.",
+                q: "Does OYRB take a cut of my bookings or tips?",
+                a: "No. You pay a flat monthly fee, that's it. We don't touch client payments — they flow directly to your Stripe account. No per-booking fees, no tip cuts, no marketplace commission.",
+              },
+              {
+                q: "Are there any extra fees or surcharges?",
+                a: "No. The price you see on this page is exactly what you pay — no per-booking fees, no surcharges, no cut of your client bookings or tips. Any applicable sales tax is shown transparently at checkout.",
               },
               {
                 q: "What payment methods do clients use?",
@@ -130,7 +154,11 @@ export default function PricingPage() {
               },
               {
                 q: "Is there a free trial?",
-                a: "We offer a 14-day free trial on all plans. No credit card required to start.",
+                a: "We offer a 14-day free trial on all plans. Card required at signup, but no charge until day 15 — cancel anytime before then and you pay nothing.",
+              },
+              {
+                q: "Do you charge sales tax?",
+                a: "Sales tax may apply depending on your state — displayed transparently at checkout before you subscribe.",
               },
             ].map((item) => (
               <div key={item.q}>

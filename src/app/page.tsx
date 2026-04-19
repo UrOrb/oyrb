@@ -5,13 +5,19 @@ import { Nav } from "@/components/marketing/nav";
 import { Footer } from "@/components/marketing/footer";
 import { ScrollFeatures } from "@/components/marketing/scroll-features";
 import { ServiceCategories } from "@/components/marketing/service-categories";
+import { FeaturedCategory } from "@/components/marketing/featured-category";
 import { CheckoutButton } from "@/components/marketing/checkout-button";
+import { TEMPLATE_THEMES } from "@/lib/template-themes";
+
+export const metadata = {
+  title: { absolute: "Own Your Brand" },
+};
 
 // ─── Hero floating images ────────────────────────────────────────────────────
 const HERO_IMAGES = [
-  { id: "1522337360426-a1af4b2b9f90", alt: "Beauty professional styling hair", size: "large" },
-  { id: "1560066984-138daab7b9dd",    alt: "Nail technician detailing nails",   size: "small" },
-  { id: "1603217040831-61fa3e3e1cd8", alt: "Lash artist at work",               size: "small" },
+  { id: "1508214751196-bcfd4ca60f91", alt: "Beauty professional styling hair", size: "large" },
+  { id: "1519014816548-bf5fe059798b",    alt: "Nail technician detailing nails",   size: "small" },
+  { id: "1540555700478-4be289fbecef", alt: "Lash artist at work",               size: "small" },
 ];
 
 // ─── Testimonials ────────────────────────────────────────────────────────────
@@ -42,21 +48,21 @@ const TIERS = [
     tier: "starter" as const,
     name: "Starter",
     price: "$24",
-    features: ["1 staff calendar", "1 template", "Stripe payments", "Email confirmations"],
+    features: ["1 staff calendar", "1 template", "Stripe payments", "Email confirmations", "Email booking reminders"],
     highlight: false,
   },
   {
     tier: "studio" as const,
     name: "Studio",
     price: "$49",
-    features: ["Up to 3 staff", "All templates", "Deposits", "Intake forms", "SMS reminders"],
+    features: ["Up to 3 staff", "All templates", "Deposits", "Intake forms", "SMS reminders (24h before)", "Waitlist + last-min slot alerts", "Everything in Starter"],
     highlight: true,
   },
   {
     tier: "scale" as const,
     name: "Scale",
     price: "$89",
-    features: ["Unlimited staff", "Custom domain", "Multi-location", "Priority support"],
+    features: ["Unlimited staff", "Custom domain", "Unlimited SMS reminders", "Priority support", "Everything in Studio"],
     highlight: false,
   },
 ];
@@ -102,7 +108,7 @@ export default function HomePage() {
                 </Link>
               </div>
               <p className="mt-6 text-xs text-[#A3A3A3]">
-                14-day free trial · No credit card required
+                14-day free trial · Card required, no charge until day 15
               </p>
             </div>
 
@@ -112,8 +118,8 @@ export default function HomePage() {
               {/* Main large image */}
               <div className="absolute right-0 top-8 h-[420px] w-[300px] overflow-hidden rounded-2xl shadow-xl lg:h-[500px] lg:w-[340px]">
                 <Image
-                  src="https://images.unsplash.com/photo-1522337360426-a1af4b2b9f90?auto=format&fit=crop&w=680&q=85"
-                  alt="Beauty professional styling a client's hair"
+                  src="https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/hero-1-1776526722.jpg"
+                  alt="Beauty professional at work"
                   fill
                   className="object-cover"
                   priority
@@ -124,8 +130,8 @@ export default function HomePage() {
               {/* Second image — left, lower */}
               <div className="absolute left-0 bottom-12 h-[260px] w-[200px] overflow-hidden rounded-2xl shadow-lg lg:h-[300px] lg:w-[230px]">
                 <Image
-                  src="https://images.unsplash.com/photo-1519699047748-de8e457a634e?auto=format&fit=crop&w=460&q=85"
-                  alt="Client with beautifully done hair"
+                  src="https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/hero-1-1776525604.jpg"
+                  alt="Beauty professional at work"
                   fill
                   className="object-cover"
                   sizes="230px"
@@ -135,8 +141,8 @@ export default function HomePage() {
               {/* Third image — left, upper */}
               <div className="absolute left-16 top-10 h-[180px] w-[160px] overflow-hidden rounded-2xl shadow-md lg:h-[210px] lg:w-[190px]">
                 <Image
-                  src="https://images.unsplash.com/photo-1560066984-138daab7b9dd?auto=format&fit=crop&w=380&q=85"
-                  alt="Nail technician applying nail art"
+                  src="https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/hero-3-1776527115.jpg"
+                  alt="Beauty professional at work"
                   fill
                   className="object-cover"
                   sizes="190px"
@@ -175,7 +181,7 @@ export default function HomePage() {
               { stat: "10 min", label: "Average setup time" },
               { stat: "40%", label: "More repeat bookings" },
               { stat: "$0", label: "Per-booking fees" },
-              { stat: "48", label: "Designer templates" },
+              { stat: "80", label: "Designer templates" },
             ].map((item) => (
               <div key={item.label} className="text-center">
                 <p className="font-display text-3xl font-medium tracking-tight text-[#0A0A0A] md:text-4xl">
@@ -195,60 +201,86 @@ export default function HomePage() {
             <div>
               <p className="text-sm font-medium text-[#B8896B]">Template gallery</p>
               <h2 className="font-display mt-3 text-3xl font-medium tracking-[-0.02em] md:text-5xl">
-                48 templates.<br className="hidden md:block" /> Your signature style.
+                16 themes. 5 layouts.<br className="hidden md:block" /> Your signature style.
               </h2>
               <p className="mt-4 max-w-lg text-[#525252]">
-                From soft & feminine to bold editorial to streetwear-inspired. Every template is fully
-                responsive — mobile-first, beautiful on every screen.
+                From soft &amp; feminine to bold editorial to streetwear-inspired. 80 total combinations — pick a palette, pick a layout, launch in minutes.
               </p>
             </div>
-            <Link
-              href="/templates"
-              className="mt-6 inline-flex items-center gap-2 rounded-md border border-[#E7E5E4] px-5 py-2.5 text-sm font-medium text-[#0A0A0A] transition-colors hover:bg-[#F5F5F4] md:mt-0 md:shrink-0"
-            >
-              Browse all templates <ArrowRight size={14} />
-            </Link>
           </div>
 
-          {/* Preview grid — 4 theme teasers */}
-          <div className="mt-12 grid grid-cols-2 gap-3 md:grid-cols-4">
-            {[
-              { id: "aura",    heroId: "1570172619644-bfd9a5847c35", name: "Aura",    bg: "#F5EDE4", accent: "#D9B5A4", layout: "studio" },
-              { id: "luxe",    heroId: "1522337360426-a1af4b2b9f90", name: "Luxe",    bg: "#0E0B0A", accent: "#C9A35B", layout: "luxe" },
-              { id: "street",  heroId: "1503951458645-643d3701e0b0", name: "Street",  bg: "#0A0A0A", accent: "#C6FF3D", layout: "bold" },
-              { id: "minimal", heroId: "1604654894610-df63bc536371", name: "Minimal", bg: "#FAFAF7", accent: "#181716", layout: "clean" },
-            ].map((t) => (
-              <Link
-                key={t.id}
-                href={`/templates/preview/${t.layout}/${t.id}`}
-                className="group relative overflow-hidden rounded-xl border border-[#E7E5E4] transition-all hover:-translate-y-0.5 hover:shadow-lg"
-                style={{ aspectRatio: "3/4" }}
-              >
-                <Image
-                  src={`https://images.unsplash.com/photo-${t.heroId}?auto=format&fit=crop&w=400&q=80`}
-                  alt={`${t.name} template`}
-                  fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  sizes="(max-width: 768px) 50vw, 25vw"
-                />
-                <div className="absolute inset-0" style={{ background: `linear-gradient(to top, ${t.bg}ee, transparent 50%)` }} />
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <p className="text-sm font-semibold text-white">{t.name}</p>
-                  <p className="text-xs text-white/60">4 layouts available</p>
-                </div>
-                <div className="absolute right-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-[#0A0A0A] opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
-                  Preview →
-                </div>
-              </Link>
-            ))}
+          {/* 4 featured themes — palette dots only, responsive */}
+          <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {["aura", "sage", "y2k", "bold"].map((id) => {
+              const t = TEMPLATE_THEMES[id];
+              if (!t) return null;
+              return (
+                <Link
+                  key={t.id}
+                  href={`/templates/preview/bold/${t.id}`}
+                  className="group relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-[#E7E5E4] p-6 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                  style={{ backgroundColor: t.bg }}
+                >
+                  {/* Theme name in display font */}
+                  <div>
+                    <p
+                      className="text-3xl"
+                      style={{
+                        fontFamily: t.displayFont,
+                        fontWeight: t.displayWeight,
+                        color: t.ink,
+                        letterSpacing: `${t.displayTracking}em`,
+                      }}
+                    >
+                      {t.name}
+                    </p>
+                    <p
+                      className="mt-1 text-xs uppercase tracking-widest"
+                      style={{ color: t.muted }}
+                    >
+                      {t.category}
+                    </p>
+                  </div>
+
+                  {/* Vibe description */}
+                  <p className="text-sm leading-relaxed" style={{ color: t.muted }}>
+                    {t.vibe}
+                  </p>
+
+                  {/* Color palette dots */}
+                  <div className="mt-auto flex items-center gap-2 pt-4">
+                    {[t.bg, t.surface, t.ink, t.accent, t.accent2].map((color, i) => (
+                      <div
+                        key={i}
+                        className="h-4 w-4 rounded-full border shadow-sm"
+                        style={{
+                          backgroundColor: color,
+                          borderColor: color === t.bg ? t.border : "rgba(255,255,255,0.3)",
+                        }}
+                        title={color}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Hover preview indicator */}
+                  <div
+                    className="absolute right-4 top-4 rounded-full px-2.5 py-1 text-[10px] font-semibold opacity-0 shadow backdrop-blur-sm transition-opacity group-hover:opacity-100"
+                    style={{ backgroundColor: t.surface, color: t.ink }}
+                  >
+                    Preview →
+                  </div>
+                </Link>
+              );
+            })}
           </div>
 
-          <div className="mt-8 text-center">
+          {/* Browse templates CTA — centered, responsive */}
+          <div className="mt-10 flex justify-center md:mt-12">
             <Link
               href="/templates"
-              className="inline-flex items-center gap-2 text-sm font-medium text-[#B8896B] hover:underline"
+              className="inline-flex items-center gap-2 rounded-full bg-[#0A0A0A] px-6 py-3 text-sm font-medium text-white transition-opacity hover:opacity-80"
             >
-              See all 48 templates <ArrowRight size={13} />
+              Browse all 80 templates <ArrowRight size={14} />
             </Link>
           </div>
         </div>
@@ -259,6 +291,9 @@ export default function HomePage() {
 
       {/* ── Service categories ── */}
       <ServiceCategories />
+
+      {/* ── Featured in your area ── */}
+      <FeaturedCategory />
 
       {/* ── Testimonials ── */}
       <section className="border-t border-[#E7E5E4] bg-[#FFFFFF] py-24 md:py-32">
@@ -307,7 +342,8 @@ export default function HomePage() {
           <h2 className="font-display mt-3 text-3xl font-medium tracking-[-0.02em] md:text-5xl">
             Simple, transparent pricing.
           </h2>
-          <p className="mt-4 text-[#525252]">No hidden fees. No per-booking cuts. Cancel anytime.</p>
+          <p className="mt-4 text-[#525252]">One flat monthly price. We never take a cut of your bookings or tips — you keep 100% of what your clients pay you. Cancel anytime.</p>
+          <p className="mt-1 text-xs text-[#A3A3A3]">The price you see is exactly what you&apos;re billed each month (plus applicable sales tax in states where required).</p>
 
           <div className="mt-12 grid gap-4 md:grid-cols-3">
             {TIERS.map((t) => (
@@ -359,7 +395,7 @@ export default function HomePage() {
                 Ready to own your brand?
               </h2>
               <p className="mt-4 text-[#A3A3A3]">
-                14 days free. No credit card required. Your site live in under 10 minutes.
+                14 days free. Card required, no charge until day 15. Your site live in under 10 minutes.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
@@ -374,9 +410,9 @@ export default function HomePage() {
             {/* 3 portrait thumbnails */}
             <div className="flex justify-end gap-3">
               {[
-                "1542838132-92c53300491e",
+                "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/cta-1-1776537062.jpg",
                 "1531746020798-e6953c6e8e04",
-                "1519699047748-de8e457a634e",
+                "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/cta-3-1776536345.jpg",
               ].map((id, i) => (
                 <div
                   key={id}
@@ -386,7 +422,7 @@ export default function HomePage() {
                   style={{ marginTop: i === 1 ? "-16px" : "0" }}
                 >
                   <Image
-                    src={`https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=300&q=80`}
+                    src={id.startsWith("http") ? id : `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=300&q=80`}
                     alt="Beauty professional"
                     fill
                     className="object-cover"
