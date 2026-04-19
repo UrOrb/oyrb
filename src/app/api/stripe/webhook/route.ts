@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { stripe, tierFromPriceId, isAddonPriceId } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/server";
 import { recordTrialStart } from "@/lib/trial";
+import { sendTrialReminder } from "@/lib/trial-emails";
+import type { Tier, BillingCycle } from "@/lib/plans";
 import type Stripe from "stripe";
 
 /**
@@ -85,13 +87,50 @@ export async function POST(request: Request) {
       break;
     }
 
-    case "customer.subscription.updated":
-    case "customer.subscription.trial_will_end": {
+    case "customer.subscription.updated": {
       const sub = event.data.object as Stripe.Subscription;
       const userId = sub.metadata?.supabase_user_id;
       if (!userId) break;
       const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer?.id ?? "";
       await syncSubscriptionRow(supabase, userId, customerId, sub);
+      break;
+    }
+
+    case "customer.subscription.trial_will_end": {
+      const sub = event.data.object as Stripe.Subscription;
+      const userId = sub.metadata?.supabase_user_id;
+      if (!userId) break;
+      const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer?.id ?? "";
+      // Sync first so the local subscription state is fresh, then fire the
+      // 3-day reminder. Stripe fires this event ~3 days before trial_end.
+      await syncSubscriptionRow(supabase, userId, customerId, sub);
+
+      const trialEndUnix =
+        (sub as unknown as { trial_end?: number | null }).trial_end ??
+        (sub as unknown as { current_period_end?: number | null }).current_period_end ??
+        sub.items.data[0]?.current_period_end ??
+        null;
+      if (!trialEndUnix) break;
+
+      const { data: { user } } = await supabase.auth.admin.getUserById(userId);
+      if (!user?.email) break;
+
+      const tierMeta = (sub.metadata?.tier as Tier) ?? null;
+      const cycleMeta = (sub.metadata?.billing_cycle as BillingCycle) ?? "monthly";
+      if (!tierMeta) break;
+
+      try {
+        await sendTrialReminder({
+          reminderType: "3_day",
+          toEmail: user.email,
+          stripeSubscriptionId: sub.id,
+          tier: tierMeta,
+          billingCycle: cycleMeta,
+          trialEnd: new Date(trialEndUnix * 1000),
+        });
+      } catch (err) {
+        console.error("3-day reminder send failed:", err);
+      }
       break;
     }
 
