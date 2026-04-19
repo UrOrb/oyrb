@@ -1,18 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export function SignupForm() {
+  const searchParams = useSearchParams();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // If user arrived from a "Use this template" link, stash the choice so it
+  // survives email confirmation + Stripe checkout and can be applied to the
+  // business once the webhook has created it.
+  useEffect(() => {
+    const layout = searchParams.get("layout");
+    const theme = searchParams.get("theme");
+    if (layout || theme) {
+      try {
+        localStorage.setItem(
+          "oyrb_pending_template",
+          JSON.stringify({ layout: layout ?? null, theme: theme ?? null })
+        );
+      } catch {}
+    }
+  }, [searchParams]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!agreed) {
+      setError("You must agree to the Terms of Service and Privacy Policy to continue.");
+      return;
+    }
     setError("");
     setLoading(true);
 
@@ -37,6 +60,10 @@ export function SignupForm() {
   }
 
   async function handleGoogle() {
+    if (!agreed) {
+      setError("You must agree to the Terms of Service and Privacy Policy to continue.");
+      return;
+    }
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -104,9 +131,29 @@ export function SignupForm() {
         />
       </div>
 
+      <label className="mt-1 flex items-start gap-2 text-xs text-[#525252]">
+        <input
+          type="checkbox"
+          checked={agreed}
+          onChange={(e) => setAgreed(e.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0"
+        />
+        <span>
+          I agree to the{" "}
+          <a href="/terms" target="_blank" className="font-medium text-[#B8896B] underline">
+            Terms of Service
+          </a>{" "}
+          and{" "}
+          <a href="/privacy" target="_blank" className="font-medium text-[#B8896B] underline">
+            Privacy Policy
+          </a>
+          , including the auto-renewal and chargeback policies.
+        </span>
+      </label>
+
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || !agreed}
         className="mt-2 rounded-md bg-[#0A0A0A] py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-50"
       >
         {loading ? "Creating account…" : "Create account"}

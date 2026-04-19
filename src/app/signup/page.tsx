@@ -1,6 +1,11 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Nav } from "@/components/marketing/nav";
 import { SignupForm } from "./signup-form";
+
+export const metadata = {
+  title: "Create your site",
+};
 
 export default function SignupPage() {
   return (
@@ -12,12 +17,14 @@ export default function SignupPage() {
             Start your free trial.
           </h1>
           <p className="mt-2 text-sm text-[#737373]">
-            14 days free. No credit card required.{" "}
+            14 days free. Card required, no charge until day 15.{" "}
             <Link href="/login" className="text-[#B8896B] hover:underline">
               Already have an account?
             </Link>
           </p>
-          <SignupForm />
+          <Suspense fallback={null}>
+            <SignupForm />
+          </Suspense>
           <p className="mt-6 text-center text-xs text-[#A3A3A3]">
             By creating an account you agree to our{" "}
             <Link href="/terms" className="underline hover:text-[#525252]">Terms</Link>{" "}

@@ -1,16 +1,17 @@
-// "Zip" layout — faithful port of the original OYRB zip file designs.
+// "Original" layout — faithful port of the original OYRB zip-file designs.
 // 11 distinct themes, each with its own hero, service rows, and ornaments.
 // One component driven by theme ID, matching the original screens.jsx exactly.
 
 import Image from "next/image";
 import type { TemplateTheme } from "@/lib/template-themes";
 import { unsplash, SAMPLE_HOURS } from "@/lib/template-images";
-import type { SampleService, SampleHour } from "@/lib/sample-data";
+import type { SampleService, SampleHour, SampleBusiness } from "@/lib/sample-data";
 
-interface ZipTemplateProps {
+interface OriginalTemplateProps {
   theme: TemplateTheme;
   services?: SampleService[];
   hours?: SampleHour[];
+  business?: SampleBusiness;
 }
 
 function fmt$(cents: number) { return `$${(cents / 100).toFixed(0)}`; }
@@ -329,9 +330,20 @@ function ServiceRow({ t, svc, last, email }: { t: TemplateTheme; svc: SampleServ
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
-export function ZipTemplate({ theme: t, services = [], hours = SAMPLE_HOURS }: ZipTemplateProps) {
+export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS, business }: OriginalTemplateProps) {
   const biz = t.business;
   const email = `hello@${biz.name.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`;
+
+  // Instagram: prefer user-provided URL; fall back to a handle derived from business name
+  const igHandle = (business?.instagram_url?.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/$/, "") || biz.name.toLowerCase().replace(/[^a-z0-9]/g, ""));
+  const igUrl = business?.instagram_url || `https://instagram.com/${igHandle}`;
+
+  // Instagram grid: use uploaded gallery photos if present, else theme's sample gallery IDs via Unsplash
+  const galleryFromBiz: string[] = (business?.photos ?? []) as string[];
+  const galleryFromTheme: string[] = (biz.galleryIds ?? []).map(
+    (id: string) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=400&q=80`
+  );
+  const igPhotos: string[] = (galleryFromBiz.length > 0 ? galleryFromBiz : galleryFromTheme).slice(0, 6);
 
   const reviews = [
     { name: "Simone R.", body: "I've never been treated with this much care. My skin looked lit from inside for a week.", stars: 5 },
@@ -484,6 +496,67 @@ export function ZipTemplate({ theme: t, services = [], hours = SAMPLE_HOURS }: Z
                 <div style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: 1.5, color: t.accent, textTransform: "uppercase" as const, marginBottom: 4 }}>{p.title}</div>
                 <p style={{ fontFamily: t.bodyFont, fontSize: 13, color: t.muted, margin: 0, lineHeight: 1.55 }}>{p.body}</p>
               </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Instagram ── */}
+        <section style={{ padding: "32px 22px", background: t.surface }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 16 }}>
+            <div>
+              <Kicker id={t.id} mono="monospace" accent={t.accent} style={{ marginBottom: 4 }}>Instagram</Kicker>
+              <h3
+                style={{
+                  fontFamily: t.displayFont,
+                  fontWeight: t.displayWeight,
+                  fontSize: 20,
+                  color: t.ink,
+                  margin: 0,
+                  fontStyle: t.id === "aura" ? "italic" : "normal",
+                  letterSpacing: t.displayTracking,
+                }}
+              >
+                @{igHandle}
+              </h3>
+            </div>
+            <a
+              href={igUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontFamily: "monospace",
+                fontSize: 10,
+                letterSpacing: 1.5,
+                color: t.muted,
+                textTransform: "uppercase" as const,
+                textDecoration: "none",
+              }}
+            >
+              follow →
+            </a>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 3 }}>
+            {igPhotos.map((src, i) => (
+              <a
+                key={i}
+                href={igUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  position: "relative",
+                  aspectRatio: "1 / 1",
+                  overflow: "hidden",
+                  display: "block",
+                  backgroundColor: i % 2 === 0 ? t.accent : t.accent2,
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={src}
+                  alt={`Instagram post ${i + 1}`}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              </a>
             ))}
           </div>
         </section>

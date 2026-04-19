@@ -5,7 +5,7 @@ import { BoldTemplate } from "@/components/templates/bold";
 import { CleanTemplate } from "@/components/templates/clean";
 import { StudioTemplate } from "@/components/templates/studio";
 import { LuxeTemplate } from "@/components/templates/luxe";
-import { ZipTemplate } from "@/components/templates/zip";
+import { OriginalTemplate } from "@/components/templates/original";
 
 interface Props {
   params: Promise<{ layout: string; theme: string }>;
@@ -79,7 +79,7 @@ export default async function TemplatePreviewPage({ params }: Props) {
         <div className="flex items-center gap-2">
           <span className="opacity-50 hidden sm:inline">{theme.vibe}</span>
           <a
-            href="/signup"
+            href={`/signup?layout=${encodeURIComponent(layout)}&theme=${encodeURIComponent(themeId)}`}
             className="rounded bg-white px-3 py-1 text-xs font-semibold text-black hover:bg-gray-100"
           >
             Use this template →
@@ -92,7 +92,7 @@ export default async function TemplatePreviewPage({ params }: Props) {
       {layout === "clean" && <CleanTemplate {...templateProps} />}
       {layout === "studio" && <StudioTemplate {...templateProps} />}
       {layout === "luxe" && <LuxeTemplate {...templateProps} />}
-      {layout === "original" && <ZipTemplate {...templateProps} />}
+      {layout === "original" && <OriginalTemplate {...templateProps} />}
     </>
   );
 }
