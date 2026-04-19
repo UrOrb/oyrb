@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { Check, ExternalLink, RotateCcw, Save, Eye, Pencil } from "lucide-react";
+import { Check, ExternalLink, RotateCcw, Save } from "lucide-react";
 import { DAY_NAMES, type Business, type BusinessHours } from "@/lib/types";
 import { ImageUpload, GalleryUpload } from "@/components/dashboard/image-upload";
 import { StockPicker } from "@/components/dashboard/stock-picker";
@@ -287,7 +287,6 @@ export function SiteBuilder({ business, hours, services, origin }: Props) {
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [pickerMode, setPickerMode] = useState<"hero" | "profile" | "gallery" | null>(null);
-  const [mobilePane, setMobilePane] = useState<"edit" | "preview">("edit");
 
   const isDirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(saved), [draft, saved]);
 
@@ -408,33 +407,17 @@ export function SiteBuilder({ business, hours, services, origin }: Props) {
             </button>
           </div>
         </div>
-
-        {/* Mobile pane toggle — desktop always shows both */}
-        <div className="mt-3 flex gap-1 rounded-md border border-[#E7E5E4] bg-[#FAFAF9] p-0.5 text-xs md:hidden">
-          <button
-            type="button"
-            onClick={() => setMobilePane("edit")}
-            className={`flex-1 rounded-sm py-1.5 font-medium ${mobilePane === "edit" ? "bg-white shadow-sm" : "text-[#737373]"}`}
-          >
-            <Pencil size={11} className="-mt-0.5 mr-1 inline" /> Edit
-          </button>
-          <button
-            type="button"
-            onClick={() => setMobilePane("preview")}
-            className={`flex-1 rounded-sm py-1.5 font-medium ${mobilePane === "preview" ? "bg-white shadow-sm" : "text-[#737373]"}`}
-          >
-            <Eye size={11} className="-mt-0.5 mr-1 inline" /> Live preview
-          </button>
-        </div>
       </div>
 
-      {/* ── Split pane ── */}
-      <div className="flex flex-col md:flex-row">
+      {/* ── Split pane ──
+          Desktop (md+): editor left, preview right, side-by-side.
+          Mobile: preview stacked on top (sticky, fixed height), editor below.
+          `flex-col-reverse` on mobile flips the source order so the preview
+          (second child in the DOM) renders above the editor. */}
+      <div className="flex flex-col-reverse md:flex-row">
         {/* Editor panel */}
         <div
-          className={`w-full md:w-1/2 lg:w-[55%] md:border-r md:border-[#E7E5E4] ${
-            mobilePane === "preview" ? "hidden md:block" : "block"
-          }`}
+          className="w-full md:w-1/2 lg:w-[55%] md:border-r md:border-[#E7E5E4]"
         >
           <div className="space-y-5 px-4 py-5 md:px-6 md:py-6">
             {/* Business basics */}
@@ -832,18 +815,18 @@ export function SiteBuilder({ business, hours, services, origin }: Props) {
           </div>
         </div>
 
-        {/* Preview pane */}
+        {/* Preview pane — always visible. Sticky under the action bar so it
+            stays in view on mobile (stacked, top half) and on desktop (right
+            column, full remaining height). */}
         <div
-          className={`w-full md:w-1/2 lg:w-[45%] ${
-            mobilePane === "edit" ? "hidden md:block" : "block"
-          }`}
+          className="w-full border-b border-[#E7E5E4] bg-[#FAFAF9] md:w-1/2 md:border-b-0 md:bg-transparent lg:w-[45%]"
         >
-          <div className="sticky top-[116px] md:top-[72px]">
-            <div className="px-4 py-3 text-[11px] text-[#737373] md:px-6">
-              Live preview · updates as you edit
+          <div className="sticky top-[72px]">
+            <div className="flex items-center justify-between px-4 py-2 text-[11px] text-[#737373] md:px-6 md:py-3">
+              <span>Live preview · updates as you edit</span>
             </div>
             <div className="mx-4 overflow-hidden rounded-xl border border-[#E7E5E4] bg-white shadow-sm md:mx-6">
-              <div className="h-[calc(100vh-180px)] overflow-auto">
+              <div className="h-[45vh] overflow-auto md:h-[calc(100vh-180px)]">
                 <TemplatePreview
                   draft={draft}
                   services={services}
