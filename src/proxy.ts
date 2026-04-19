@@ -29,6 +29,20 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Demo-mode auto-login: any unauthenticated visitor gets signed in as
+  // the shared demo user and bounced to the site builder. Skip when the
+  // request is already the auto-login route itself (would loop).
+  if (
+    !user &&
+    process.env.DEMO_MODE === "true" &&
+    !request.nextUrl.pathname.startsWith("/api/demo/auto-login")
+  ) {
+    const dest = request.nextUrl.pathname + request.nextUrl.search;
+    const url = new URL("/api/demo/auto-login", request.url);
+    url.searchParams.set("dest", dest || "/dashboard/site");
+    return NextResponse.redirect(url);
+  }
+
   // Redirect unauthenticated users away from protected routes
   if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
     return NextResponse.redirect(new URL("/login", request.url));
@@ -43,5 +57,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/signup"],
+  matcher: ["/dashboard/:path*", "/login", "/signup", "/"],
 };

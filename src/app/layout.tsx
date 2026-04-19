@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Fraunces } from "next/font/google";
 import { HelpWidget } from "@/components/help/help-widget";
+import { DemoOverlay } from "@/components/demo/demo-overlay";
 import "./globals.css";
 
 const inter = Inter({
@@ -45,6 +46,7 @@ export default function RootLayout({
       className={`${inter.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#FAFAF9] text-[#0A0A0A]">
+        {process.env.NEXT_PUBLIC_DEMO_MODE === "true" && <DemoOverlay />}
         {children}
         <HelpWidget />
       </body>

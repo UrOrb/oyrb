@@ -1,8 +1,13 @@
 import { Resend } from "resend";
+import { isDemoMode } from "@/lib/demo";
 
-export const resend = process.env.RESEND_API_KEY
-  ? new Resend(process.env.RESEND_API_KEY)
-  : null;
+// In demo mode the Resend client is forced to null so every send() call is
+// a no-op (logged to console for debugging, never delivered). Production
+// behavior is unchanged.
+export const resend =
+  isDemoMode() || !process.env.RESEND_API_KEY
+    ? null
+    : new Resend(process.env.RESEND_API_KEY);
 
 const FROM =
   process.env.RESEND_FROM_EMAIL ?? "OYRB <bookings@oyrb.space>";

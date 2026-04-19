@@ -33,6 +33,11 @@ export async function sendSms({ to, body }: SendSmsParams): Promise<{
   ok: boolean;
   reason?: string;
 }> {
+  // Demo mode: never send real SMS. Log for debug only.
+  if (process.env.DEMO_MODE === "true") {
+    console.log(`[demo-mode] sendSms stub to=${to} body="${body.slice(0, 60)}…"`);
+    return { ok: false, reason: "demo_mode" };
+  }
   if (!hasTwilioCreds()) {
     return { ok: false, reason: "twilio_not_configured" };
   }

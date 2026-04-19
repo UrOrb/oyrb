@@ -14,6 +14,13 @@ const MIME_TO_EXT: Record<string, string> = {
 };
 
 export async function POST(request: NextRequest) {
+  if (process.env.DEMO_MODE === "true") {
+    return NextResponse.json(
+      { error: "File uploads disabled in demo. Try the real app to upload your own images." },
+      { status: 403 }
+    );
+  }
+
   const ip = ipFromRequest(request);
   const minute = rateLimit(`upload:m:${ip}`, 10, 60_000);
   if (!minute.ok) {
