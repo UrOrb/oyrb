@@ -3,7 +3,8 @@
 import Image from "next/image";
 import { MapPin, Phone, Link2, Clock } from "lucide-react";
 import type { TemplateTheme } from "@/lib/template-themes";
-import { unsplash, SAMPLE_HOURS } from "@/lib/template-images";
+import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
+import { StockBadge } from "@/components/templates/stock-badge";
 import type { SampleBusiness, SampleService, SampleHour } from "@/lib/sample-data";
 
 interface StudioTemplateProps {
@@ -12,6 +13,11 @@ interface StudioTemplateProps {
   hours?: SampleHour[];
   theme?: TemplateTheme;
   content?: Record<string, string> | null;
+  /** True when rendered inside the dashboard editor preview. Suppresses the
+   *  platform-enforced "Stock photo" badge + footer disclaimer so the pro
+   *  can see a clean design view. On PUBLISHED sites this is always false.
+   *  Required by Terms §22 — do not expose as a user-editable option. */
+  isEditorPreview?: boolean;
 }
 
 function formatPrice(cents: number) { return `$${(cents / 100).toFixed(0)}`; }
@@ -25,7 +31,7 @@ function formatTime(t: string) {
   return `${h % 12 || 12}:${m.toString().padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
 
-export function StudioTemplate({ business, services, hours, theme, content }: StudioTemplateProps) {
+export function StudioTemplate({ business, services, hours, theme, content, isEditorPreview }: StudioTemplateProps) {
   const c = (key: string, fallback: string): string => {
     const v = content?.[key];
     return typeof v === "string" && v.trim() ? v : fallback;
@@ -197,7 +203,8 @@ export function StudioTemplate({ business, services, hours, theme, content }: St
             <h2 className="mb-6 text-2xl font-semibold" style={{ fontFamily: displayFont }}>{c("section_gallery_title", "Portfolio")}</h2>
             <div className="columns-2 gap-3 md:columns-3">
               {galleryUrls.map((id, i) => (
-                <div key={i} className="mb-3 overflow-hidden" style={{ borderRadius: radius / 2 }}>
+                <div key={i} className="relative mb-3 overflow-hidden" style={{ borderRadius: radius / 2 }}>
+                  {!isEditorPreview && isStockImageUrl(id) && <StockBadge position="bottom-right" />}
                   <Image
                     src={id}
                     alt={`Portfolio ${i + 1}`}
@@ -230,11 +237,32 @@ export function StudioTemplate({ business, services, hours, theme, content }: St
         </div>
       </section>
 
-      {/* ── Footer ── */}
+      {/* ── Footer ──
+          The stock-photo disclaimer is platform-enforced (Terms §22) and
+          non-removable by the user. Shown only on published sites and only
+          when the site actually contains a stock photo. */}
       <footer className="py-8 px-6 text-center text-xs" style={{ borderTop: `1px solid ${border}`, color: muted }}>
         <p>{c("footer_text", `${bizName} · ${bizLocation}`)}</p>
         <p className="mt-1">{c("footer_credit", "Powered by OYRB")}</p>
+        {!isEditorPreview && hasAnyStockImage({
+          heroSrc,
+          profileSrc,
+          galleryUrls,
+        }) && (
+          <p className="mt-3 italic opacity-70 text-[10px]">
+            Some images on this site may be stock photos used for illustrative purposes. Actual service results may vary.
+          </p>
+        )}
       </footer>
     </div>
   );
+}
+
+// ── Shared helper: does this site render any stock photos? ──────────────────
+// Platform-enforced — do not expose as a user-editable flag. The footer
+// disclaimer only renders when this returns true, matching Terms §22.
+function hasAnyStockImage(sources: { heroSrc: string; profileSrc: string; galleryUrls: string[] }): boolean {
+  if (isStockImageUrl(sources.heroSrc)) return true;
+  if (isStockImageUrl(sources.profileSrc)) return true;
+  return sources.galleryUrls.some(isStockImageUrl);
 }

@@ -25,7 +25,14 @@ export default function TermsPage() {
             Last updated: {LAST_UPDATED}
           </p>
 
-          <div className="mt-6 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <div className="mt-6 rounded-md border border-amber-300 bg-amber-100 p-4 text-sm text-amber-900">
+            <strong>⚠️ Draft — pending legal review.</strong> This Terms of Service
+            is in draft form. Final language will be published before public
+            launch. Sections marked <span className="font-mono text-xs">[LAWYER REVIEW REQUIRED]</span>{" "}
+            contain scaffolded copy that is <em>not</em> the final agreement.
+          </div>
+
+          <div className="mt-4 rounded-md border border-[#E7E5E4] bg-[#FAFAF9] p-4 text-sm text-[#525252]">
             <strong>Important:</strong> Please read these Terms carefully before using {COMPANY_NAME}. By accessing or using our Platform, you agree to be bound by these Terms and our Privacy Policy. If you do not agree, do not use the Platform.
           </div>
 
@@ -352,7 +359,60 @@ export default function TermsPage() {
           </section>
 
           <section className="mt-8 space-y-4 text-[#2a2a2a]">
-            <h2 className="font-display text-2xl font-medium">21. Contact</h2>
+            <h2 className="font-display text-2xl font-medium">21. Image Use and User Representations</h2>
+            <p className="rounded bg-amber-50 px-2 py-1 text-xs font-mono text-amber-900">
+              [LAWYER REVIEW REQUIRED — DRAFT TEXT BELOW]
+            </p>
+            <p>
+              By uploading, selecting, or publishing any image on your site —
+              including stock photos sourced from third-party libraries such
+              as Unsplash — you represent and warrant that: (a) you have the
+              legal right to use the image; (b) you will not use stock photos
+              in a manner that misrepresents your services, results,
+              qualifications, or actual work product; (c) you will not imply
+              that any person, model, or subject depicted in a stock photo is
+              your client, has used your services, or endorses your business;
+              (d) you will comply with the licensing terms of any third-party
+              image source; (e) you acknowledge that stock photos are
+              illustrative only and do not represent guaranteed service
+              outcomes. You are solely responsible for all images displayed on
+              your site.
+            </p>
+          </section>
+
+          <section className="mt-8 space-y-4 text-[#2a2a2a]">
+            <h2 className="font-display text-2xl font-medium">22. Stock Photo Disclosure Requirement</h2>
+            <p className="rounded bg-amber-50 px-2 py-1 text-xs font-mono text-amber-900">
+              [LAWYER REVIEW REQUIRED — DRAFT TEXT BELOW]
+            </p>
+            <p>
+              When stock photos are used on your site, {COMPANY_NAME}
+              automatically displays a &ldquo;Stock Image&rdquo; label on the
+              photo and a disclaimer in the site footer. Removing, obscuring,
+              or modifying these platform-enforced disclosures is a violation
+              of these Terms and may result in account suspension.
+            </p>
+          </section>
+
+          <section className="mt-8 space-y-4 text-[#2a2a2a]">
+            <h2 className="font-display text-2xl font-medium">23. Indemnification (Image Use)</h2>
+            <p className="rounded bg-amber-50 px-2 py-1 text-xs font-mono text-amber-900">
+              [LAWYER REVIEW REQUIRED — DRAFT TEXT BELOW]
+            </p>
+            <p>
+              You agree to indemnify, defend, and hold harmless {COMPANY_NAME},
+              its owners, employees, and affiliates from any claims, damages,
+              losses, or expenses (including attorneys&apos; fees) arising
+              from: (a) your use of any image on your site; (b) any claim that
+              images on your site misrepresented your services or results;
+              (c) infringement of intellectual property, model release, or
+              publicity rights; (d) violation of third-party stock photo
+              licensing terms.
+            </p>
+          </section>
+
+          <section className="mt-8 space-y-4 text-[#2a2a2a]">
+            <h2 className="font-display text-2xl font-medium">24. Contact</h2>
             <p>
               Questions about these Terms? Email us at <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#B8896B] hover:underline">{CONTACT_EMAIL}</a>.
             </p>

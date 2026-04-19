@@ -87,6 +87,11 @@ export function TemplatePreview({ draft, services, hours }: Props) {
     hours: sampleHours,
     theme,
     content: draft.template_content,
+    // Suppresses the "Stock photo" badges and the footer disclaimer in the
+    // dashboard editor preview so the pro can see their design cleanly. The
+    // labels are platform-enforced only on PUBLISHED sites — see template
+    // files + Terms §22 for the policy note.
+    isEditorPreview: true,
   } as const;
 
   const layoutKey = draft.template_layout === "zip" ? "original" : draft.template_layout;

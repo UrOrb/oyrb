@@ -12,6 +12,19 @@ export function unsplash(id: string, w = 800, q = 85) {
   return `${UNSPLASH_BASE}${id}?auto=format&fit=crop&w=${w}&q=${q}`;
 }
 
+/**
+ * True when the URL points at a third-party stock photo (today: Unsplash).
+ * Used by the templates to render a "Stock Image" badge on top of stock
+ * photos in galleries / portfolios — required by the Terms (§21.2) so
+ * visitors can tell at a glance which images are illustrative vs actual
+ * client work. User-uploaded images (Supabase storage URLs, /public paths)
+ * are intentionally not flagged.
+ */
+export function isStockImageUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  return url.includes("images.unsplash.com");
+}
+
 // ── Hair Styling ──────────────────────────────────────────────────────────────
 export const HAIR_IMAGES = [
   "1508214751196-bcfd4ca60f91", // stylist working on client

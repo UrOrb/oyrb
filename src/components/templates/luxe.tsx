@@ -3,7 +3,8 @@
 import Image from "next/image";
 import { Link2, MapPin, Phone } from "lucide-react";
 import type { TemplateTheme } from "@/lib/template-themes";
-import { unsplash, SAMPLE_HOURS } from "@/lib/template-images";
+import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
+import { StockBadge } from "@/components/templates/stock-badge";
 import type { SampleBusiness, SampleService, SampleHour } from "@/lib/sample-data";
 
 interface LuxeTemplateProps {
@@ -12,6 +13,8 @@ interface LuxeTemplateProps {
   hours?: SampleHour[];
   theme?: TemplateTheme;
   content?: Record<string, string> | null;
+  /** See Studio template for policy note. */
+  isEditorPreview?: boolean;
 }
 
 function formatPrice(cents: number) { return `$${(cents / 100).toFixed(0)}`; }
@@ -25,7 +28,7 @@ function formatTime(t: string) {
   return `${h % 12 || 12}:${m.toString().padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
 
-export function LuxeTemplate({ business, services, hours, theme, content }: LuxeTemplateProps) {
+export function LuxeTemplate({ business, services, hours, theme, content, isEditorPreview }: LuxeTemplateProps) {
   const c = (key: string, fallback: string): string => {
     const v = content?.[key];
     return typeof v === "string" && v.trim() ? v : fallback;
@@ -198,6 +201,7 @@ export function LuxeTemplate({ business, services, hours, theme, content }: Luxe
                   }`}
                   style={radius > 0 ? { borderRadius: radius / 2 } : {}}
                 >
+                  {!isEditorPreview && isStockImageUrl(id) && <StockBadge position="bottom-right" />}
                   <Image
                     src={id}
                     alt={`${bizName} work ${i + 1}`}
@@ -242,6 +246,11 @@ export function LuxeTemplate({ business, services, hours, theme, content }: Luxe
       <footer className="py-10 text-center text-xs" style={{ borderTop: `1px solid ${border}`, color: `${muted}99` }}>
         <p>{c("footer_text", `${bizName} · ${bizLocation}`)}</p>
         <p className="mt-1">{c("footer_credit", "Powered by OYRB")}</p>
+        {!isEditorPreview && (isStockImageUrl(heroSrc) || isStockImageUrl(profileSrc) || galleryUrls.some(isStockImageUrl)) && (
+          <p className="mt-3 italic opacity-70 text-[10px]">
+            Some images on this site may be stock photos used for illustrative purposes. Actual service results may vary.
+          </p>
+        )}
       </footer>
     </div>
   );

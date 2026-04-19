@@ -4,7 +4,8 @@
 
 import Image from "next/image";
 import type { TemplateTheme } from "@/lib/template-themes";
-import { unsplash, SAMPLE_HOURS } from "@/lib/template-images";
+import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
+import { StockBadge } from "@/components/templates/stock-badge";
 import type { SampleService, SampleHour, SampleBusiness } from "@/lib/sample-data";
 
 interface OriginalTemplateProps {
@@ -16,6 +17,11 @@ interface OriginalTemplateProps {
   // "Template copy" section in /dashboard/site). When an entry is blank or
   // missing the code-level fallback passed to c() wins.
   content?: Record<string, string> | null;
+  /** True when rendered inside the dashboard editor preview. Suppresses
+   *  platform-enforced "Stock photo" badges + footer disclaimer so the
+   *  editor view stays clean. PUBLISHED sites always render them. Required
+   *  by Terms §22 — do not expose as a user-editable option. */
+  isEditorPreview?: boolean;
 }
 
 function fmt$(cents: number) { return `$${(cents / 100).toFixed(0)}`; }
@@ -342,7 +348,7 @@ function ServiceRow({ t, svc, last, bookHref }: { t: TemplateTheme; svc: SampleS
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
-export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS, business, content }: OriginalTemplateProps) {
+export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS, business, content, isEditorPreview }: OriginalTemplateProps) {
   // Pick a user-edited override for `key` if it's a non-blank string, else
   // fall back to the theme/layout's built-in copy. Keeps every edit optional.
   const c = (key: string, fallback: string): string => {
@@ -488,11 +494,15 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
               <Kicker id={t.id} mono="monospace" accent={t.accent}>{c("section_gallery_kicker", "recent work")}</Kicker>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {biz.galleryIds.slice(0, 6).map((id, i) => (
-                <div key={i} style={{ borderRadius: t.radius, overflow: "hidden", aspectRatio: (i === 0 || i === 3) ? "3/4" : "1/1" }}>
-                  <Image src={unsplash(id, 400)} alt={`Work ${i + 1}`} width={400} height={i === 0 || i === 3 ? 533 : 400} className="w-full object-cover h-full transition-transform duration-500 hover:scale-105" />
-                </div>
-              ))}
+              {biz.galleryIds.slice(0, 6).map((id, i) => {
+                const src = unsplash(id, 400);
+                return (
+                  <div key={i} style={{ borderRadius: t.radius, overflow: "hidden", aspectRatio: (i === 0 || i === 3) ? "3/4" : "1/1", position: "relative" }}>
+                    {!isEditorPreview && isStockImageUrl(src) && <StockBadge position="bottom-right" />}
+                    <Image src={src} alt={`Work ${i + 1}`} width={400} height={i === 0 || i === 3 ? 533 : 400} className="w-full object-cover h-full transition-transform duration-500 hover:scale-105" />
+                  </div>
+                );
+              })}
             </div>
           </section>
         )}
@@ -625,13 +635,34 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
           </div>
         </section>
 
-        {/* ── Footer ── */}
+        {/* ── Footer ──
+            Stock-photo disclaimer is platform-enforced (Terms §22) and
+            non-removable; renders only on published sites (not editor) and
+            only when at least one stock image is present on the site. */}
         <div style={{ padding: "28px 22px 48px", background: t.surface, textAlign: "center" }}>
           <div style={{ fontFamily: t.displayFont, fontWeight: t.displayWeight, fontSize: 18, color: t.ink, letterSpacing: t.displayTracking }}>{biz.name}</div>
           <div style={{ fontFamily: "monospace", fontSize: 10, color: t.muted, letterSpacing: 1.5, textTransform: "uppercase" as const, marginTop: 6 }}>© 2026 · Powered by OYRB</div>
+          {!isEditorPreview && originalHasAnyStock(biz) && (
+            <p style={{ fontFamily: t.bodyFont, fontSize: 10, fontStyle: "italic", color: t.muted, opacity: 0.7, marginTop: 14, lineHeight: 1.5 }}>
+              Some images on this site may be stock photos used for illustrative purposes. Actual service results may vary.
+            </p>
+          )}
         </div>
 
       </div>
     </div>
   );
+}
+
+// Check hero / profile / gallery for any stock-photo URL. Used only by
+// OriginalTemplate's footer to decide whether to render the disclaimer.
+function originalHasAnyStock(biz: { heroImageId: string; profileImageId: string; galleryIds: string[] }): boolean {
+  const hero = biz.heroImageId?.startsWith("http") ? biz.heroImageId : unsplash(biz.heroImageId, 100);
+  const profile = biz.profileImageId?.startsWith("http") ? biz.profileImageId : unsplash(biz.profileImageId, 100);
+  if (isStockImageUrl(hero) || isStockImageUrl(profile)) return true;
+  for (const id of biz.galleryIds ?? []) {
+    const url = id?.startsWith("http") ? id : unsplash(id, 100);
+    if (isStockImageUrl(url)) return true;
+  }
+  return false;
 }

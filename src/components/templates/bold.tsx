@@ -3,7 +3,8 @@
 import Image from "next/image";
 import { MapPin, Phone, Link2, Star, Clock } from "lucide-react";
 import type { TemplateTheme } from "@/lib/template-themes";
-import { unsplash, SAMPLE_HOURS } from "@/lib/template-images";
+import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
+import { StockBadge } from "@/components/templates/stock-badge";
 import type { SampleBusiness, SampleService, SampleHour } from "@/lib/sample-data";
 
 interface BoldTemplateProps {
@@ -12,6 +13,8 @@ interface BoldTemplateProps {
   hours?: SampleHour[];
   theme?: TemplateTheme;
   content?: Record<string, string> | null;
+  /** See Studio template for policy note. */
+  isEditorPreview?: boolean;
 }
 
 function formatPrice(cents: number) { return `$${(cents / 100).toFixed(0)}+`; }
@@ -25,7 +28,7 @@ function formatTime(t: string) {
   return `${h % 12 || 12}:${m.toString().padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
 
-export function BoldTemplate({ business, services, hours, theme, content }: BoldTemplateProps) {
+export function BoldTemplate({ business, services, hours, theme, content, isEditorPreview }: BoldTemplateProps) {
   const c = (key: string, fallback: string): string => {
     const v = content?.[key];
     return typeof v === "string" && v.trim() ? v : fallback;
@@ -200,6 +203,7 @@ export function BoldTemplate({ business, services, hours, theme, content }: Bold
                         minHeight: i === 0 ? "200px" : "auto",
                       }}
                     >
+                      {!isEditorPreview && isStockImageUrl(id) && <StockBadge position="bottom-right" />}
                       <Image
                         src={id}
                         alt={`Photo ${i + 1}`}
@@ -275,6 +279,11 @@ export function BoldTemplate({ business, services, hours, theme, content }: Bold
       <footer className="mt-8 px-6 py-8 text-center text-xs" style={{ borderTop: `1px solid ${border}`, backgroundColor: surface, color: muted }}>
         <p>{c("footer_text", `${bizName} · ${bizLocation}`)}</p>
         <p className="mt-1">{c("footer_credit", "Powered by OYRB")}</p>
+        {!isEditorPreview && (isStockImageUrl(heroSrc) || isStockImageUrl(profileSrc) || galleryUrls.some(isStockImageUrl)) && (
+          <p className="mt-3 italic opacity-70 text-[10px]">
+            Some images on this site may be stock photos used for illustrative purposes. Actual service results may vary.
+          </p>
+        )}
       </footer>
     </div>
   );
