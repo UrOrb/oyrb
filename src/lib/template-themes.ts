@@ -156,7 +156,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(805) 555-0263",
       email: "hello@fernandclay.com",
       category: "Holistic Skincare & Wellness",
-      heroImageId: "1608248597279-f99d160bfcbc",
+      heroImageId: "/earth-hero.avif",
       profileImageId: "1531746020798-e6953c6e8e04",
       galleryIds: [
         "1608248597279-f99d160bfcbc","1515377905703-c4788e51af15",
