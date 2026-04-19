@@ -74,7 +74,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(912) 555-0184",
       email: "hello@auraandoak.com",
       category: "Esthetics & Skincare",
-      heroImageId: "1552693673-1bf958298935",
+      heroImageId: "/aura-hero.jpeg",
       profileImageId: "1531746020798-e6953c6e8e04",
       galleryIds: [
         "1552693673-1bf958298935","1540555700478-4be289fbecef",
