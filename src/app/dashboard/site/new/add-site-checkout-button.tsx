@@ -1,41 +1,53 @@
 "use client";
 
 import { useState } from "react";
-import type { PriceTier } from "@/lib/stripe";
 
 type Props = {
-  tier: PriceTier;
+  /** "included" → just provision a free slot. "addon" → charge the add-on. */
+  mode: "included" | "addon";
   className?: string;
   children: React.ReactNode;
 };
 
-export function AddSiteCheckoutButton({ tier, className, children }: Props) {
+export function AddSiteCheckoutButton({ mode, className, children }: Props) {
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
-  async function start() {
+  async function go() {
+    setErr(null);
     setBusy(true);
     try {
-      const r = await fetch("/api/checkout", {
+      const r = await fetch("/api/dashboard/add-site", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier, addNew: true }),
+        body: JSON.stringify({ mode }),
       });
       const j = await r.json();
-      if (j?.url) {
-        window.location.href = j.url as string;
-      } else {
-        alert(j?.error ?? "Couldn't start checkout. Please try again.");
+      if (!r.ok) {
+        setErr(j?.error ?? "Couldn't add a new site.");
         setBusy(false);
+        return;
       }
+      // Server returns the newly created business id; jump into the editor
+      // with onboarding=1 so we can show a "pick a template first" hint.
+      const siteId = j?.siteId as string | undefined;
+      window.location.href = siteId
+        ? `/dashboard/site?siteId=${encodeURIComponent(siteId)}&onboarding=1`
+        : "/dashboard";
     } catch {
-      alert("Network error starting checkout. Please try again.");
+      setErr("Network error — please try again.");
       setBusy(false);
     }
   }
 
   return (
-    <button type="button" disabled={busy} onClick={start} className={className}>
-      {busy ? "Starting checkout…" : children}
-    </button>
+    <div>
+      <button type="button" onClick={go} disabled={busy} className={className}>
+        {busy ? "Working…" : children}
+      </button>
+      {err && (
+        <p className="mt-2 text-xs text-red-600">{err}</p>
+      )}
+    </div>
   );
 }

@@ -8,6 +8,8 @@ import {
   Scissors,
   CalendarDays,
   Users,
+  Clock,
+  Mail,
   Settings,
 } from "lucide-react";
 
@@ -16,7 +18,9 @@ const NAV = [
   { label: "Site", href: "/dashboard/site", icon: Globe },
   { label: "Services", href: "/dashboard/services", icon: Scissors },
   { label: "Bookings", href: "/dashboard/bookings", icon: CalendarDays },
+  { label: "Waitlist", href: "/dashboard/waitlist", icon: Clock },
   { label: "Clients", href: "/dashboard/clients", icon: Users },
+  { label: "Marketing", href: "/dashboard/marketing", icon: Mail },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 

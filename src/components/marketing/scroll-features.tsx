@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
 const FEATURES = [
@@ -10,8 +9,8 @@ const FEATURES = [
     label: "Booking",
     heading: "Your schedule, running itself.",
     body: "Clients book directly from your site — any time, any device. Set your hours, block time off, add buffers between appointments. No more back-and-forth texts.",
-    image: "1522337360426-a1af4b2b9f90",
-    alt: "Beauty professional reviewing her booking calendar",
+    image: "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/feature-01-1776535251.jpg",
+    alt: "Close-up of eyelashes with extensions applied",
   },
   {
     id: "site",
@@ -19,8 +18,8 @@ const FEATURES = [
     label: "Your Site",
     heading: "A booking site that actually looks like your brand.",
     body: "Choose from three editor-designed templates built for beauty pros. Go live in under 10 minutes — no designer, no developer needed.",
-    image: "1560066984-138daab7b9dd",
-    alt: "Nail technician showcasing beautifully styled nails",
+    image: "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/feature-02-1776535534.jpg",
+    alt: "Barber giving a fresh fade haircut",
   },
   {
     id: "payments",
@@ -28,8 +27,8 @@ const FEATURES = [
     label: "Payments",
     heading: "Collect deposits. Get paid instantly.",
     body: "Require deposits at booking to protect your time. All major cards, Apple Pay, Google Pay — funds land in your bank directly. We never touch your money.",
-    image: "1522338242992-e1d3aeac3b4a",
-    alt: "Beauty professional completing a client transaction",
+    image: "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/feature-03-1776535927.jpg",
+    alt: "Payment at salon counter",
   },
   {
     id: "clients",
@@ -37,115 +36,80 @@ const FEATURES = [
     label: "Clients",
     heading: "Every client. Every detail. One place.",
     body: "Automatic booking history, spend totals, notes, and contact info for every client. Know who's coming in before they walk through the door.",
-    image: "1594744803329-f9d9e2a0fc63",
-    alt: "Diverse beauty clients enjoying salon services",
+    image: "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/feature-04-1776535708.jpg",
+    alt: "Woman relaxing at spa with face mask",
   },
 ];
 
+function resolveSrc(val: string) {
+  return val.startsWith("http")
+    ? val
+    : `https://images.unsplash.com/photo-${val}?auto=format&fit=crop&w=800&q=80`;
+}
+
 export function ScrollFeatures() {
-  const [active, setActive] = useState(0);
-  const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-  useEffect(() => {
-    const observers = sectionRefs.current.map((ref, i) => {
-      if (!ref) return null;
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) setActive(i);
-        },
-        { threshold: 0.5 }
-      );
-      observer.observe(ref);
-      return observer;
-    });
-
-    return () => observers.forEach((o) => o?.disconnect());
-  }, []);
-
   return (
-    <section className="border-t border-[#E7E5E4] bg-[#FFFFFF] py-24 md:py-0">
+    <section className="border-t border-[#E7E5E4] bg-[#FFFFFF]">
       <div className="mx-auto max-w-[1200px] px-6">
-        <div className="pb-16 pt-24 text-center md:text-left">
+        {/* Section header */}
+        <div className="pb-10 pt-24 text-center md:pb-16 md:text-left">
           <p className="text-sm font-medium text-[#B8896B]">How it works</p>
           <h2 className="font-display mt-3 text-3xl font-medium tracking-[-0.02em] md:text-5xl">
             One system that runs your business.
           </h2>
         </div>
 
-        <div className="md:grid md:grid-cols-2 md:gap-16">
-          {/* Sticky image — desktop */}
-          <div className="hidden md:block">
-            <div className="sticky top-24 pb-24">
-              <div className="relative aspect-[4/5] w-full overflow-hidden rounded-xl">
-                {FEATURES.map((f, i) => (
-                  <div
-                    key={f.id}
-                    className={`absolute inset-0 transition-opacity duration-500 ${
-                      active === i ? "opacity-100" : "opacity-0"
-                    }`}
-                  >
-                    <Image
-                      src={`https://images.unsplash.com/photo-${f.image}?auto=format&fit=crop&w=800&q=80`}
-                      alt={f.alt}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 1200px) 50vw, 600px"
-                    />
-                  </div>
-                ))}
-
-                {/* Feature number overlay */}
-                <div className="absolute bottom-6 left-6 flex items-center gap-3 rounded-full bg-white/90 px-4 py-2 backdrop-blur-sm">
-                  <span className="text-xs font-medium text-[#B8896B]">
-                    {FEATURES[active].number}
-                  </span>
-                  <span className="text-xs font-medium text-[#0A0A0A]">
-                    {FEATURES[active].label}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Scrolling text */}
-          <div className="flex flex-col">
-            {FEATURES.map((f, i) => (
-              <div
+        {/* Each feature is its own side-by-side block */}
+        <div className="flex flex-col gap-24 pb-24 md:gap-32">
+          {FEATURES.map((f, i) => {
+            const imageFirst = i % 2 === 0; // alternate sides on desktop
+            return (
+              <article
                 key={f.id}
-                ref={(el) => { sectionRefs.current[i] = el; }}
-                className="py-16 md:py-24"
+                className="grid items-center gap-8 md:grid-cols-2 md:gap-16"
               >
-                {/* Mobile image */}
-                <div className="relative mb-8 aspect-video w-full overflow-hidden rounded-xl md:hidden">
+                {/* Image */}
+                <div
+                  className={`relative aspect-[4/5] w-full overflow-hidden rounded-2xl md:aspect-square ${
+                    imageFirst ? "md:order-1" : "md:order-2"
+                  }`}
+                >
                   <Image
-                    src={`https://images.unsplash.com/photo-${f.image}?auto=format&fit=crop&w=800&q=80`}
+                    src={resolveSrc(f.image)}
                     alt={f.alt}
                     fill
-                    className="object-cover"
-                    sizes="100vw"
+                    className="object-cover transition-transform duration-700 hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, 600px"
+                    priority={i === 0}
                   />
+                  {/* Number + label badge */}
+                  <div className="absolute bottom-4 left-4 flex items-center gap-3 rounded-full bg-white/90 px-4 py-2 backdrop-blur-sm md:bottom-6 md:left-6">
+                    <span className="text-xs font-medium text-[#B8896B]">
+                      {f.number}
+                    </span>
+                    <span className="text-xs font-medium text-[#0A0A0A]">
+                      {f.label}
+                    </span>
+                  </div>
                 </div>
 
+                {/* Text */}
                 <div
-                  className={`transition-opacity duration-300 ${
-                    active === i ? "opacity-100" : "opacity-40"
-                  }`}
+                  className={`${imageFirst ? "md:order-2" : "md:order-1"}`}
                 >
                   <p className="text-sm font-medium text-[#B8896B]">
                     {f.number} — {f.label}
                   </p>
-                  <h3 className="font-display mt-3 text-2xl font-medium leading-tight tracking-[-0.02em] md:text-3xl">
+                  <h3 className="font-display mt-3 text-2xl font-medium leading-tight tracking-[-0.02em] md:text-4xl">
                     {f.heading}
                   </h3>
-                  <p className="mt-4 leading-relaxed text-[#525252]">{f.body}</p>
+                  <p className="mt-4 leading-relaxed text-[#525252] md:text-lg">
+                    {f.body}
+                  </p>
                 </div>
-
-                {i < FEATURES.length - 1 && (
-                  <div className="mt-16 hidden h-px bg-[#E7E5E4] md:block" />
-                )}
-              </div>
-            ))}
-          </div>
+              </article>
+            );
+          })}
         </div>
       </div>
     </section>

@@ -12,6 +12,7 @@ export function Nav() {
       <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between px-6">
         <Link
           href="/"
+          title="Own Your Brand"
           className="font-display text-lg font-medium tracking-tight"
         >
           OYRB
@@ -26,6 +27,9 @@ export function Nav() {
           </Link>
           <Link href="/pricing" className="hover:text-[#0A0A0A] transition-colors">
             Pricing
+          </Link>
+          <Link href="/about" className="hover:text-[#0A0A0A] transition-colors">
+            About
           </Link>
         </nav>
 
@@ -59,6 +63,7 @@ export function Nav() {
             <Link href="/features" onClick={() => setOpen(false)}>Features</Link>
             <Link href="/templates" onClick={() => setOpen(false)}>Templates</Link>
             <Link href="/pricing" onClick={() => setOpen(false)}>Pricing</Link>
+            <Link href="/about" onClick={() => setOpen(false)}>About</Link>
             <Link href="/login" onClick={() => setOpen(false)}>Sign in</Link>
             <Link
               href="/signup"

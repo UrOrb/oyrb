@@ -25,11 +25,20 @@ export function Footer() {
               <Link href="/login" className="text-[#737373] hover:text-[#0A0A0A] transition-colors">Sign in</Link>
               <Link href="/signup" className="text-[#737373] hover:text-[#0A0A0A] transition-colors">Get started</Link>
             </div>
+            <div className="flex flex-col gap-3">
+              <span className="font-medium text-[#0A0A0A]">Support</span>
+              <a href="mailto:support@oyrb.space" className="text-[#737373] hover:text-[#0A0A0A] transition-colors">support@oyrb.space</a>
+              <Link href="/terms" className="text-[#737373] hover:text-[#0A0A0A] transition-colors">Terms of Service</Link>
+              <Link href="/privacy" className="text-[#737373] hover:text-[#0A0A0A] transition-colors">Privacy Policy</Link>
+            </div>
           </div>
         </div>
 
         <div className="mt-12 border-t border-[#E7E5E4] pt-6 text-xs text-[#A3A3A3]">
-          © {new Date().getFullYear()} OYRB. All rights reserved.
+          <p>© {new Date().getFullYear()} OYRB. All rights reserved.</p>
+          <p className="mt-2">
+            No booking fees, no cut of tips, no hidden charges. Professionals keep 100% of what their clients pay them. One flat monthly subscription — the price you see is the price you pay.
+          </p>
         </div>
       </div>
     </footer>

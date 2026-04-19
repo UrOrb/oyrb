@@ -43,11 +43,15 @@ const TESTIMONIALS = [
 ];
 
 // ─── Pricing tiers ───────────────────────────────────────────────────────────
+// Source of truth lives in src/lib/plans.ts — copy below stays in sync with
+// it. "Sites included" / cap surface explicitly so the homepage advertises
+// the same numbers as the pricing page.
 const TIERS = [
   {
     tier: "starter" as const,
     name: "Starter",
     price: "$24",
+    sites: "1 site included",
     features: ["1 staff calendar", "1 template", "Stripe payments", "Email confirmations", "Email booking reminders"],
     highlight: false,
   },
@@ -55,6 +59,7 @@ const TIERS = [
     tier: "studio" as const,
     name: "Studio",
     price: "$49",
+    sites: "2 sites included · add up to 1 more for $20/mo",
     features: ["Up to 3 staff", "All templates", "Deposits", "Intake forms", "SMS reminders (24h before)", "Waitlist + last-min slot alerts", "Everything in Starter"],
     highlight: true,
   },
@@ -62,7 +67,8 @@ const TIERS = [
     tier: "scale" as const,
     name: "Scale",
     price: "$89",
-    features: ["Unlimited staff", "Custom domain", "Unlimited SMS reminders", "Priority support", "Everything in Studio"],
+    sites: "3 sites included · add up to 2 more for $20/mo each",
+    features: ["Unlimited staff", "Custom domain", "Multi-location booking", "Unlimited SMS reminders", "Priority support", "Everything in Studio"],
     highlight: false,
   },
 ];
@@ -360,6 +366,7 @@ export default function HomePage() {
                 <p className="font-display mt-1 text-4xl font-medium">
                   {t.price}<span className="text-base font-normal text-[#737373]">/mo</span>
                 </p>
+                <p className="mt-2 text-xs text-[#525252]">{t.sites}</p>
                 <ul className="mt-6 flex flex-col gap-2">
                   {t.features.map((f) => (
                     <li key={f} className="flex items-center gap-2 text-sm text-[#525252]">
