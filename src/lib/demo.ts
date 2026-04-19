@@ -55,15 +55,15 @@ export const DEMO_SEED = {
     service_category: "hair",
     is_published: true,
     hero_image_url:
-      "https://images.unsplash.com/photo-1560066984-138daab7b9dd?auto=format&fit=crop&w=1600&q=85",
+      "https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=1600&q=85",
     profile_image_url:
       "https://images.unsplash.com/photo-1519699047748-de8e457a634e?auto=format&fit=crop&w=400&q=85",
     gallery_photos: [
-      "https://images.unsplash.com/photo-1522337660416-9e4f73a7da7e?auto=format&fit=crop&w=900&q=85",
+      "https://images.unsplash.com/photo-1552693673-1bf958298935?auto=format&fit=crop&w=900&q=85",
       "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=900&q=85",
       "https://images.unsplash.com/photo-1560869713-7d0a29430803?auto=format&fit=crop&w=900&q=85",
       "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?auto=format&fit=crop&w=900&q=85",
-      "https://images.unsplash.com/photo-1560066984-138daab7b9dd?auto=format&fit=crop&w=900&q=85",
+      "https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?auto=format&fit=crop&w=900&q=85",
       "https://images.unsplash.com/photo-1519699047748-de8e457a634e?auto=format&fit=crop&w=900&q=85",
       "https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&w=900&q=85",
       "https://images.unsplash.com/photo-1559599101-f09722fb4948?auto=format&fit=crop&w=900&q=85",
