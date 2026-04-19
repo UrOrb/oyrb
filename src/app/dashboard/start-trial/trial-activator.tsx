@@ -1,9 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, AlertTriangle } from "lucide-react";
 import type { Tier, BillingCycle } from "@/lib/plans";
+
+// FingerprintJS — open-source build. Generates a stable visitor id per
+// browser profile. Some users will have it blocked by a privacy extension;
+// we tolerate that and submit `null` (the audit log records it as such,
+// detector skips, eligibility still applies through email + phone + card).
+async function loadDeviceFingerprint(): Promise<string | null> {
+  try {
+    const FingerprintJS = await import("@fingerprintjs/fingerprintjs");
+    const fp = await FingerprintJS.load();
+    const result = await fp.get();
+    return result.visitorId || null;
+  } catch {
+    return null;
+  }
+}
 
 type Props = {
   userEmail: string;
@@ -28,6 +43,14 @@ export function TrialActivator({ userEmail, tier, cycle }: Props) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [blocked, setBlocked] = useState<string | null>(null);
+  const [deviceFp, setDeviceFp] = useState<string | null>(null);
+
+  // Generate the device fingerprint on mount. We don't gate the UI on it —
+  // a missing fingerprint just means we submit null and the detector loses
+  // one signal for this user.
+  useEffect(() => {
+    loadDeviceFingerprint().then(setDeviceFp);
+  }, []);
 
   async function sendCode() {
     setErr(null);
@@ -90,6 +113,7 @@ export function TrialActivator({ userEmail, tier, cycle }: Props) {
           skipTrial: false,
           phoneToken: token,
           phone,
+          deviceFingerprint: deviceFp,
         }),
       });
       const j = await r.json();

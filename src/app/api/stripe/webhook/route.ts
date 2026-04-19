@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { stripe, tierFromPriceId, isAddonPriceId } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/server";
-import { recordTrialStart } from "@/lib/trial";
+import { recordTrialStart, recordTrialAttempt } from "@/lib/trial";
+import { addBan } from "@/lib/trial-bans";
 import { sendTrialReminder } from "@/lib/trial-emails";
 import type { Tier, BillingCycle } from "@/lib/plans";
 import type Stripe from "stripe";
@@ -50,15 +51,67 @@ export async function POST(request: Request) {
           ? session.customer
           : session.customer?.id ?? "";
 
-      // Pull the full subscription so we can resolve tier+cycle from the
-      // actual line items rather than trusting the metadata (defends against
-      // metadata drift if someone edits the checkout in Stripe Dashboard).
+      // Expand items + default_payment_method so we can grab the card
+      // fingerprint for cross-account dedup.
       const sub = await stripe.subscriptions.retrieve(subscriptionId, {
-        expand: ["items.data.price"],
+        expand: ["items.data.price", "default_payment_method"],
       });
 
-      await syncSubscriptionRow(supabase, userId, customerId, sub);
+      const cardFingerprint = extractCardFingerprint(sub);
+
+      await syncSubscriptionRow(supabase, userId, customerId, sub, cardFingerprint);
       await ensureFirstBusiness(supabase, userId, customerId, sub.id);
+
+      // Dedup check: if this card has been used on another account's prior
+      // trial, cancel the new trial immediately, log the audit row, and ban
+      // the email + phone. The user will get the standard "trial isn't
+      // available" message. Only enforced for trials — paid subs are fine
+      // to share a card (e.g. agency owner running multiple sites).
+      const isTrial = sub.status === "trialing";
+      if (isTrial && cardFingerprint) {
+        const { data: dup } = await supabase
+          .from("account_subscriptions")
+          .select("user_id")
+          .eq("payment_method_fingerprint", cardFingerprint)
+          .neq("user_id", userId)
+          .limit(1)
+          .maybeSingle();
+
+        if (dup) {
+          // Cancel the just-created subscription. Stripe charges nothing
+          // because we're still in the trial window.
+          try {
+            await stripe.subscriptions.cancel(sub.id);
+          } catch (err) {
+            console.warn("Failed to cancel duplicate-card trial:", err);
+          }
+          await supabase
+            .from("account_subscriptions")
+            .update({ status: "cancelled" })
+            .eq("user_id", userId);
+
+          // Audit + ban. Phone may be empty if metadata didn't set it.
+          await recordTrialAttempt({
+            email: sub.metadata?.trial_email ?? "",
+            phone: sub.metadata?.trial_phone ?? "",
+            outcome: "blocked_payment_method_duplicate",
+            notes: `card fingerprint ${cardFingerprint.slice(0, 16)}…`,
+          });
+          await addBan({
+            email: sub.metadata?.trial_email ?? null,
+            reason: `duplicate_payment_method_fingerprint:${cardFingerprint.slice(0, 16)}`,
+            trigger: "duplicate_payment_method_fingerprint",
+          });
+          if (sub.metadata?.trial_phone) {
+            await addBan({
+              phone: sub.metadata.trial_phone,
+              reason: `duplicate_payment_method_fingerprint:${cardFingerprint.slice(0, 16)}`,
+              trigger: "duplicate_payment_method_fingerprint",
+            });
+          }
+          break; // do not record trial_history — they didn't successfully start
+        }
+      }
 
       // Record the trial in trial_history when the subscription was created
       // with a trial. The unique indexes on (email, phone) enforce one-trial-
@@ -198,7 +251,8 @@ async function syncSubscriptionRow(
   supabase: ReturnType<typeof createAdminClient>,
   userId: string,
   customerId: string,
-  sub: Stripe.Subscription
+  sub: Stripe.Subscription,
+  cardFingerprintOverride?: string | null
 ) {
   // Find the base-plan line item (the one that matches a tier price), the
   // add-on item, and derive billing cycle from whichever is present.
@@ -239,23 +293,45 @@ async function syncSubscriptionRow(
 
   const status = mapStatus(sub.status);
 
+  // Card fingerprint: prefer the value the caller already extracted (from
+  // an expanded subscription); otherwise try the inline value, otherwise
+  // leave the column untouched on update so we don't overwrite a previous
+  // capture with null.
+  const cardFp =
+    cardFingerprintOverride !== undefined
+      ? cardFingerprintOverride
+      : extractCardFingerprint(sub);
+
+  const row: Record<string, unknown> = {
+    user_id: userId,
+    tier,
+    billing_cycle: cycle,
+    stripe_customer_id: customerId,
+    stripe_subscription_id: sub.id,
+    stripe_addon_item_id: addonItemId,
+    addon_count: addonCount,
+    status,
+    current_period_end: periodEnd,
+    updated_at: new Date().toISOString(),
+  };
+  if (cardFp) row.payment_method_fingerprint = cardFp;
+
   await supabase
     .from("account_subscriptions")
-    .upsert(
-      {
-        user_id: userId,
-        tier,
-        billing_cycle: cycle,
-        stripe_customer_id: customerId,
-        stripe_subscription_id: sub.id,
-        stripe_addon_item_id: addonItemId,
-        addon_count: addonCount,
-        status,
-        current_period_end: periodEnd,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" }
-    );
+    .upsert(row, { onConflict: "user_id" });
+}
+
+/**
+ * Pull the card fingerprint out of an expanded Subscription. Returns
+ * null when the field isn't present (e.g. non-card payment method, or
+ * default_payment_method wasn't expanded). Stripe surfaces this as
+ * payment_method.card.fingerprint for cards.
+ */
+function extractCardFingerprint(sub: Stripe.Subscription): string | null {
+  const pm = sub.default_payment_method;
+  if (!pm || typeof pm === "string") return null;
+  const card = (pm as Stripe.PaymentMethod).card;
+  return card?.fingerprint ?? null;
 }
 
 function mapStatus(s: Stripe.Subscription.Status):

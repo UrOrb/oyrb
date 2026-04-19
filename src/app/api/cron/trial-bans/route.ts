@@ -115,6 +115,64 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Trigger 4: same Stripe payment-method fingerprint across 2+ accounts.
+    // Webhook also enforces this at signup time; the detector here is the
+    // safety net for any race condition or post-hoc duplication.
+    const { data: subs } = await admin
+      .from("account_subscriptions")
+      .select("user_id, payment_method_fingerprint, stripe_subscription_id")
+      .not("payment_method_fingerprint", "is", null);
+
+    const byCardFp = new Map<string, { user_id: string; sub_id: string }[]>();
+    for (const r of (subs ?? []) as {
+      user_id: string;
+      payment_method_fingerprint: string;
+      stripe_subscription_id: string;
+    }[]) {
+      const k = r.payment_method_fingerprint;
+      const arr = byCardFp.get(k);
+      const entry = { user_id: r.user_id, sub_id: r.stripe_subscription_id };
+      if (arr) arr.push(entry); else byCardFp.set(k, [entry]);
+    }
+
+    for (const [fp, accounts] of byCardFp) {
+      const distinctUsers = new Set(accounts.map((a) => a.user_id));
+      if (distinctUsers.size < 2) continue;
+
+      // Fetch the email + phone for every flagged user from the most-recent
+      // attempt row for that user, so the ban entries carry both pieces.
+      for (const userId of distinctUsers) {
+        const { data: { user } } = await admin.auth.admin.getUserById(userId);
+        const userEmail = user?.email?.toLowerCase().trim();
+        if (userEmail && !banEmails.has(userEmail)) {
+          newBans.push({
+            email: userEmail,
+            phone: null,
+            reason: `duplicate_payment_method_fingerprint:${fp.slice(0, 16)}`,
+            trigger_reason: "duplicate_payment_method_fingerprint",
+            triggering_attempt_ids: [],
+          });
+          banEmails.add(userEmail);
+        }
+        // Look up phones from the audit log for this email.
+        if (userEmail) {
+          const userAttempts = byEmail.get(userEmail) ?? [];
+          for (const a of userAttempts) {
+            const ph = (a.phone ?? "").trim();
+            if (!ph || banPhones.has(ph)) continue;
+            newBans.push({
+              email: null,
+              phone: ph,
+              reason: `duplicate_payment_method_fingerprint:${fp.slice(0, 16)}`,
+              trigger_reason: "duplicate_payment_method_fingerprint",
+              triggering_attempt_ids: userAttempts.map((x) => x.id),
+            });
+            banPhones.add(ph);
+          }
+        }
+      }
+    }
+
     // Trigger 3: device fingerprint, 3+ attempts within 30 days.
     const now = Date.now();
     const THIRTY = 30 * 24 * 60 * 60 * 1000;

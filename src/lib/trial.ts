@@ -127,17 +127,45 @@ export async function recordTrialStart(input: {
   );
 }
 
+export type TrialAttemptOutcome =
+  | "started"
+  | "blocked_email_already_used"
+  | "blocked_phone_already_used"
+  | "blocked_email_banned"
+  | "blocked_phone_banned"
+  | "blocked_phone_unverified"
+  | "blocked_payment_method_duplicate"
+  | "blocked_other";
+
+/** Public wrapper so the webhook can record outcomes the eligibility
+ *  function never sees (e.g. payment-method-duplicate found post-checkout). */
+export async function recordTrialAttempt(input: {
+  email: string;
+  phone: string;
+  ip?: string;
+  deviceFingerprint?: string;
+  outcome: TrialAttemptOutcome;
+  notes?: string;
+}): Promise<void> {
+  const admin = createAdminClient();
+  await logAttempt(
+    admin,
+    {
+      email: input.email.toLowerCase().trim(),
+      phone: input.phone.trim(),
+      ip: input.ip,
+      fp: input.deviceFingerprint,
+    },
+    input.outcome,
+    input.notes
+  );
+}
+
 async function logAttempt(
   admin: ReturnType<typeof createAdminClient>,
   who: { email: string; phone: string; ip?: string; fp?: string },
-  outcome:
-    | "started"
-    | "blocked_email_already_used"
-    | "blocked_phone_already_used"
-    | "blocked_email_banned"
-    | "blocked_phone_banned"
-    | "blocked_phone_unverified"
-    | "blocked_other"
+  outcome: TrialAttemptOutcome,
+  notes?: string
 ): Promise<void> {
   try {
     await admin.from("trial_signup_attempts").insert({
@@ -146,6 +174,7 @@ async function logAttempt(
       ip: who.ip,
       device_fingerprint: who.fp,
       outcome,
+      notes: notes ?? null,
     });
   } catch {
     // Audit failure shouldn't break the signup flow. Log to console only.

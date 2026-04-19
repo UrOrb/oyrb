@@ -25,10 +25,12 @@ export async function POST(request: Request) {
       skipTrial?: boolean;
       phoneToken?: string;
       phone?: string;
+      deviceFingerprint?: string | null;
     };
     const tier = body.tier;
     const cycle = body.cycle ?? "monthly";
     const skipTrial = !!body.skipTrial;
+    const deviceFingerprint = body.deviceFingerprint?.trim() || undefined;
 
     if (!tier || (tier !== "starter" && tier !== "studio" && tier !== "scale")) {
       return NextResponse.json({ error: "Invalid tier" }, { status: 400 });
@@ -72,6 +74,7 @@ export async function POST(request: Request) {
         phone: verifiedPhone,
         phoneVerified: true,
         ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim(),
+        deviceFingerprint,
       });
       if (!eligibility.ok) {
         return NextResponse.json(
@@ -123,6 +126,7 @@ export async function POST(request: Request) {
               tier,
               billing_cycle: cycle,
               skipped_trial: "true",
+              device_fingerprint: deviceFingerprint ?? "",
             },
           }
         : {
@@ -134,6 +138,7 @@ export async function POST(request: Request) {
               billing_cycle: cycle,
               trial_email: user.email,
               trial_phone: verifiedPhone ?? "",
+              device_fingerprint: deviceFingerprint ?? "",
             },
           },
       // Always require a payment method (even in trial mode — required by spec).
