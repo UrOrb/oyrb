@@ -90,6 +90,38 @@ export function ThemeCarousel({ layout, initialThemeId, themeIds }: Props) {
     if (dx < 0) next(); else prev();
   };
 
+  // Two-finger trackpad swipe on desktop. macOS/Windows trackpads fire `wheel`
+  // events with non-zero deltaX for horizontal swipes; a single swipe is a
+  // burst of events (gesture + inertia). We accumulate deltaX, fire once past
+  // the threshold, then cool down so one swipe → one navigation.
+  const wheelAcc = useRef(0);
+  const wheelCooldownUntil = useRef(0);
+  const wheelResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const root = document.documentElement;
+    const onWheel = (e: WheelEvent) => {
+      // Only predominantly-horizontal swipes. Vertical scroll passes through.
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      // Stop Safari's "swipe to go back" from hijacking the gesture.
+      e.preventDefault();
+
+      const now = Date.now();
+      if (now < wheelCooldownUntil.current) return;
+
+      wheelAcc.current += e.deltaX;
+      if (wheelResetTimer.current) clearTimeout(wheelResetTimer.current);
+      wheelResetTimer.current = setTimeout(() => { wheelAcc.current = 0; }, 120);
+
+      if (Math.abs(wheelAcc.current) > 80) {
+        if (wheelAcc.current > 0) next(); else prev();
+        wheelAcc.current = 0;
+        wheelCooldownUntil.current = Date.now() + 450;
+      }
+    };
+    root.addEventListener("wheel", onWheel, { passive: false });
+    return () => root.removeEventListener("wheel", onWheel);
+  }, [next, prev]);
+
   const themeId = themeIds[index];
   const theme = TEMPLATE_THEMES[themeId];
   const categoryKey = CATEGORY_MAP[theme.business.category] ?? "hair";
@@ -127,12 +159,13 @@ export function ThemeCarousel({ layout, initialThemeId, themeIds }: Props) {
         </div>
       </div>
 
-      {/* Left / right arrows — fixed over the preview, clear of the toolbar */}
+      {/* Left / right arrows — desktop-only (hidden below md). Touch users
+          navigate by swiping; the dot bar below covers both. */}
       <button
         type="button"
         onClick={prev}
         aria-label="Previous theme"
-        className="fixed left-3 top-1/2 z-40 -translate-y-1/2 rounded-full bg-black/70 p-2.5 text-white shadow-lg transition-transform hover:scale-110 hover:bg-black md:left-6 md:p-3"
+        className="fixed left-6 top-1/2 z-40 hidden -translate-y-1/2 rounded-full bg-black/70 p-3 text-white shadow-lg transition-transform hover:scale-110 hover:bg-black md:block"
       >
         <ChevronLeft size={20} />
       </button>
@@ -140,19 +173,29 @@ export function ThemeCarousel({ layout, initialThemeId, themeIds }: Props) {
         type="button"
         onClick={next}
         aria-label="Next theme"
-        className="fixed right-3 top-1/2 z-40 -translate-y-1/2 rounded-full bg-black/70 p-2.5 text-white shadow-lg transition-transform hover:scale-110 hover:bg-black md:right-6 md:p-3"
+        className="fixed right-6 top-1/2 z-40 hidden -translate-y-1/2 rounded-full bg-black/70 p-3 text-white shadow-lg transition-transform hover:scale-110 hover:bg-black md:block"
       >
         <ChevronRight size={20} />
       </button>
 
-      {/* Template */}
-      <div key={themeId}>
+      {/* Template — re-keyed so React remounts and the CSS fade re-fires */}
+      <div key={themeId} className="oyrb-theme-fade">
         {layout === "bold" && <BoldTemplate {...templateProps} />}
         {layout === "clean" && <CleanTemplate {...templateProps} />}
         {layout === "studio" && <StudioTemplate {...templateProps} />}
         {layout === "luxe" && <LuxeTemplate {...templateProps} />}
         {layout === "original" && <OriginalTemplate {...templateProps} />}
       </div>
+      <style>{`
+        @keyframes oyrb-theme-fade-in {
+          from { opacity: 0; transform: translateY(4px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .oyrb-theme-fade { animation: oyrb-theme-fade-in 220ms ease-out; }
+        @media (prefers-reduced-motion: reduce) {
+          .oyrb-theme-fade { animation: none; }
+        }
+      `}</style>
 
       {/* Dot indicators */}
       <div
