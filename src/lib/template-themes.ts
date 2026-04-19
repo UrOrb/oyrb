@@ -484,7 +484,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(323) 555-0449",
       email: "create@noircollective.co",
       category: "Editorial Hair & Beauty",
-      heroImageId: "1492106087820-71f1a00d2b11",
+      heroImageId: "/noir-hero.avif",
       profileImageId: "1517365830460-955ce3ccd263",
       galleryIds: [
         "1492106087820-71f1a00d2b11","1517365830460-955ce3ccd263",
