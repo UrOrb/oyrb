@@ -389,15 +389,15 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
   const igPhotos: string[] = (galleryFromBiz.length > 0 ? galleryFromBiz : galleryFromTheme).slice(0, 6);
 
   const reviews = [
-    { name: "Simone R.", body: "I've never been treated with this much care. My skin looked lit from inside for a week.", stars: 5 },
-    { name: "Jordan K.", body: "Booking was easy, the studio is serene, the work is meticulous. Worth every dollar.", stars: 5 },
-    { name: "Priya M.", body: "Rebooked before I left. That says it all.", stars: 5 },
+    { name: c("review_1_name", "Simone R."), body: c("review_1_body", "I've never been treated with this much care. My skin looked lit from inside for a week."), stars: 5 },
+    { name: c("review_2_name", "Jordan K."), body: c("review_2_body", "Booking was easy, the studio is serene, the work is meticulous. Worth every dollar."), stars: 5 },
+    { name: c("review_3_name", "Priya M."),  body: c("review_3_body", "Rebooked before I left. That says it all."), stars: 5 },
   ];
 
   const policies = [
-    { title: "Deposit", body: "A 30% non-refundable deposit secures your appointment and is applied to your final total." },
-    { title: "Cancellation", body: "48 hours notice required. Cancellations inside 48 hours forfeit the deposit; same-day cancels billed 50%." },
-    { title: "Late arrivals", body: "After 15 minutes your service may be shortened or rescheduled to protect the next guest." },
+    { title: c("policy_1_title", "Deposit"),       body: c("policy_1_body", "A 30% non-refundable deposit secures your appointment and is applied to your final total.") },
+    { title: c("policy_2_title", "Cancellation"),  body: c("policy_2_body", "48 hours notice required. Cancellations inside 48 hours forfeit the deposit; same-day cancels billed 50%.") },
+    { title: c("policy_3_title", "Late arrivals"), body: c("policy_3_body", "After 15 minutes your service may be shortened or rescheduled to protect the next guest.") },
   ];
 
   return (
@@ -484,8 +484,8 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
         {biz.galleryIds.length > 0 && (
           <section style={{ padding: "32px 22px", background: t.surface }}>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 18 }}>
-              <h2 style={{ fontFamily: t.displayFont, fontWeight: t.displayWeight, fontSize: 28, color: t.ink, margin: 0, fontStyle: t.id === "aura" ? "italic" : "normal", letterSpacing: t.displayTracking }}>Portfolio</h2>
-              <Kicker id={t.id} mono="monospace" accent={t.accent}>recent work</Kicker>
+              <h2 style={{ fontFamily: t.displayFont, fontWeight: t.displayWeight, fontSize: 28, color: t.ink, margin: 0, fontStyle: t.id === "aura" ? "italic" : "normal", letterSpacing: t.displayTracking }}>{c("section_gallery_title", "Portfolio")}</h2>
+              <Kicker id={t.id} mono="monospace" accent={t.accent}>{c("section_gallery_kicker", "recent work")}</Kicker>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {biz.galleryIds.slice(0, 6).map((id, i) => (
@@ -500,7 +500,7 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
         {/* ── Reviews ── */}
         <section style={{ padding: "32px 22px", background: t.bg }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 18 }}>
-            <h2 style={{ fontFamily: t.displayFont, fontWeight: t.displayWeight, fontSize: 28, color: t.ink, margin: 0, fontStyle: t.id === "aura" ? "italic" : "normal", letterSpacing: t.displayTracking }}>What clients say</h2>
+            <h2 style={{ fontFamily: t.displayFont, fontWeight: t.displayWeight, fontSize: 28, color: t.ink, margin: 0, fontStyle: t.id === "aura" ? "italic" : "normal", letterSpacing: t.displayTracking }}>{c("section_reviews_title", "What clients say")}</h2>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <StarRow accent={t.accent} n={5} />
               <span style={{ fontFamily: "monospace", fontSize: 10, color: t.muted, letterSpacing: 1 }}>4.9</span>
@@ -557,7 +557,7 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
         <section style={{ padding: "32px 22px", background: t.surface }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 16 }}>
             <div>
-              <Kicker id={t.id} mono="monospace" accent={t.accent} style={{ marginBottom: 4 }}>Instagram</Kicker>
+              <Kicker id={t.id} mono="monospace" accent={t.accent} style={{ marginBottom: 4 }}>{c("section_instagram_title", "Instagram")}</Kicker>
               <h3
                 style={{
                   fontFamily: t.displayFont,
@@ -617,11 +617,11 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
         {/* ── Contact ── */}
         <section style={{ padding: "32px 22px 24px", background: t.surface, textAlign: "center" }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}><Ornament t={t} /></div>
-          <Kicker id={t.id} mono="monospace" accent={t.accent} style={{ justifyContent: "center", marginBottom: 10 }}>Find the studio</Kicker>
+          <Kicker id={t.id} mono="monospace" accent={t.accent} style={{ justifyContent: "center", marginBottom: 10 }}>{c("section_location_title", "Find the studio")}</Kicker>
           <p style={{ fontFamily: t.bodyFont, fontSize: 14, color: t.ink, maxWidth: 260, margin: "0 auto" }}>{biz.location}</p>
           <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
-            <a href={bookHref} style={{ flex: 1, display: "block", background: "transparent", color: t.ink, border: `1px solid ${t.border}`, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "14px", borderRadius: t.radiusBtn, textDecoration: "none" }}>Directions</a>
-            <a href={bookHref} style={{ flex: 1, display: "block", background: "transparent", color: t.ink, border: `1px solid ${t.border}`, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "14px", borderRadius: t.radiusBtn, textDecoration: "none" }}>Message</a>
+            <a href={bookHref} style={{ flex: 1, display: "block", background: "transparent", color: t.ink, border: `1px solid ${t.border}`, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "14px", borderRadius: t.radiusBtn, textDecoration: "none" }}>{c("footer_action_1", "Directions")}</a>
+            <a href={bookHref} style={{ flex: 1, display: "block", background: "transparent", color: t.ink, border: `1px solid ${t.border}`, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "14px", borderRadius: t.radiusBtn, textDecoration: "none" }}>{c("footer_action_2", "Message")}</a>
           </div>
         </section>
 

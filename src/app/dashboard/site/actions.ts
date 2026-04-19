@@ -93,14 +93,22 @@ export async function updateSite(formData: FormData) {
     })(),
     template_content: (() => {
       // Collect every tc_* form field into a single JSONB blob. Each field
-      // maps to a template element id (see OriginalTemplate c() calls).
+      // maps to a template element id (see c(...) calls in template components).
+      // Short labels (buttons, section titles) are capped at 200; longer fields
+      // like review bodies and policy paragraphs need more room.
+      const LONG_TEXT_KEYS = new Set([
+        "review_1_body", "review_2_body", "review_3_body",
+        "policy_1_body", "policy_2_body", "policy_3_body",
+      ]);
       const out: Record<string, string> = {};
       for (const [key, value] of formData.entries()) {
         if (typeof value !== "string") continue;
         if (!key.startsWith("tc_")) continue;
         const trimmed = value.trim();
         if (!trimmed) continue;
-        out[key.slice(3)] = trimmed.slice(0, 200);
+        const bareKey = key.slice(3);
+        const cap = LONG_TEXT_KEYS.has(bareKey) ? 500 : 200;
+        out[bareKey] = trimmed.slice(0, cap);
       }
       return out;
     })(),

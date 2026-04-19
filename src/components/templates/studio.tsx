@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import { MapPin, Phone, Link2, Clock } from "lucide-react";
 import type { TemplateTheme } from "@/lib/template-themes";
@@ -9,6 +11,7 @@ interface StudioTemplateProps {
   services?: SampleService[];
   hours?: SampleHour[];
   theme?: TemplateTheme;
+  content?: Record<string, string> | null;
 }
 
 function formatPrice(cents: number) { return `$${(cents / 100).toFixed(0)}`; }
@@ -22,12 +25,17 @@ function formatTime(t: string) {
   return `${h % 12 || 12}:${m.toString().padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
 
-export function StudioTemplate({ business, services, hours, theme }: StudioTemplateProps) {
+export function StudioTemplate({ business, services, hours, theme, content }: StudioTemplateProps) {
+  const c = (key: string, fallback: string): string => {
+    const v = content?.[key];
+    return typeof v === "string" && v.trim() ? v : fallback;
+  };
   const bg = theme?.bg ?? "#F5F0EA";
   const surface = theme?.surface ?? "#FFFAF5";
   const ink = theme?.ink ?? "#2D1B0E";
   const muted = theme?.muted ?? "#7A5C45";
   const accent = theme?.accent ?? "#C17B5A";
+  const accent2 = theme?.accent2 ?? accent;
   const border = theme?.border ?? "rgba(42,30,23,0.12)";
   const btnBg = theme?.btnBg ?? "#C17B5A";
   const btnText = theme?.btnText ?? "#FFFFFF";
@@ -42,9 +50,13 @@ export function StudioTemplate({ business, services, hours, theme }: StudioTempl
   const bizPhone = business?.phone ?? biz?.phone ?? "(404) 555-0192";
   const bizEmail = business?.email ?? "hello@example.com";
   const bizInstagram = business?.instagram_url ?? null;
-  const heroId = biz?.heroImageId ?? "1522337360426-a1af4b2b9f90";
+  const heroId = biz?.heroImageId ?? "1508214751196-bcfd4ca60f91";
+  const heroSrc = business?.hero_image_url || unsplash(heroId, 1600);
+  const profileSrc = business?.profile_image_url || (biz?.profileImageId ? unsplash(biz.profileImageId, 400) : "");
+  const galleryUrls: string[] = (business?.photos && business.photos.length > 0)
+    ? business.photos
+    : (biz?.galleryIds ?? []).map((id: string) => unsplash(id, 600));
   const profileId = biz?.profileImageId ?? "1519699047748-de8e457a634e";
-  const galleryIds = biz?.galleryIds ?? [];
 
   const svcs = services ?? [];
   const hrs = hours ?? SAMPLE_HOURS;
@@ -60,11 +72,12 @@ export function StudioTemplate({ business, services, hours, theme }: StudioTempl
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <h1 className="text-lg font-semibold" style={{ fontFamily: displayFont }}>{bizName}</h1>
           <a
-            href={`mailto:${bizEmail}`}
+            href="#book"
+            onClick={(e) => { e.preventDefault(); (window as unknown as { __oyrbOpenBooking?: () => void }).__oyrbOpenBooking?.(); }}
             style={{ backgroundColor: btnBg, color: btnText, borderRadius: radius }}
             className="px-5 py-2 text-sm font-medium transition-opacity hover:opacity-80"
           >
-            Book Now
+            {c("top_book_label", "Book Now")}
           </a>
         </div>
       </header>
@@ -73,7 +86,7 @@ export function StudioTemplate({ business, services, hours, theme }: StudioTempl
       <section className="relative">
         <div className="relative h-72 w-full overflow-hidden md:h-96">
           <Image
-            src={unsplash(heroId, 1400)}
+            src={heroSrc}
             alt={bizName}
             fill
             className="object-cover object-center"
@@ -93,7 +106,7 @@ export function StudioTemplate({ business, services, hours, theme }: StudioTempl
             style={{ backgroundColor: surface, borderRadius: radius }}
           >
             <div className="relative h-20 w-20 shrink-0 overflow-hidden md:h-24 md:w-24" style={{ borderRadius: radius }}>
-              <Image src={unsplash(profileId, 192)} alt={bizName} fill className="object-cover" sizes="96px" />
+              <Image src={profileSrc || ""} alt={bizName} fill className="object-cover" sizes="96px" />
             </div>
             <div className="flex-1">
               <h2 className="text-xl font-semibold" style={{ fontFamily: displayFont }}>{bizName}</h2>
@@ -109,11 +122,12 @@ export function StudioTemplate({ business, services, hours, theme }: StudioTempl
               </div>
             </div>
             <a
-              href={`mailto:${bizEmail}`}
+              href="#book"
+            onClick={(e) => { e.preventDefault(); (window as unknown as { __oyrbOpenBooking?: () => void }).__oyrbOpenBooking?.(); }}
               style={{ backgroundColor: btnBg, color: btnText, borderRadius: radius }}
               className="shrink-0 px-6 py-2.5 text-sm font-medium transition-opacity hover:opacity-80"
             >
-              Book Now
+              {c("hero_book_label", "Book Now")}
             </a>
           </div>
         </div>
@@ -128,7 +142,10 @@ export function StudioTemplate({ business, services, hours, theme }: StudioTempl
 
       {/* ── Services ── */}
       <section className="mx-auto max-w-5xl px-6 pb-16">
-        <h2 className="mb-6 text-2xl font-semibold" style={{ fontFamily: displayFont }}>Services</h2>
+        <div className="mb-6 flex items-center gap-3">
+          <h2 className="text-2xl font-semibold" style={{ fontFamily: displayFont }}>{c("section_services_title", "Services")}</h2>
+          <span className="h-0.5 flex-1" style={{ background: `linear-gradient(90deg, ${accent} 0%, ${accent2} 100%)` }} />
+        </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {svcs.map((svc, i) => (
             <div
@@ -138,7 +155,7 @@ export function StudioTemplate({ business, services, hours, theme }: StudioTempl
             >
               <div className="relative h-40 w-full overflow-hidden">
                 <Image
-                  src={unsplash(galleryIds[i % galleryIds.length] ?? heroId, 500)}
+                  src={galleryUrls[i % galleryUrls.length] ?? unsplash(heroId, 500)}
                   alt={svc.name}
                   fill
                   className="object-cover transition-transform duration-500 hover:scale-105"
@@ -160,11 +177,12 @@ export function StudioTemplate({ business, services, hours, theme }: StudioTempl
                   <p className="mt-2 text-xs leading-relaxed" style={{ color: muted }}>{svc.description}</p>
                 )}
                 <a
-                  href={`mailto:${bizEmail}?subject=Booking Request: ${svc.name}`}
+                  href="#book"
+            onClick={(e) => { e.preventDefault(); (window as unknown as { __oyrbOpenBooking?: () => void }).__oyrbOpenBooking?.(); }}
                   style={{ backgroundColor: btnBg, color: btnText, borderRadius: radius }}
                   className="mt-4 block w-full py-2 text-center text-sm font-medium transition-opacity hover:opacity-80"
                 >
-                  Book
+                  {c("service_book_label", "Book")}
                 </a>
               </div>
             </div>
@@ -173,15 +191,15 @@ export function StudioTemplate({ business, services, hours, theme }: StudioTempl
       </section>
 
       {/* ── Gallery ── */}
-      {galleryIds.length > 0 && (
+      {galleryUrls.length > 0 && (
         <section className="py-16 px-6" style={{ borderTop: `1px solid ${border}` }}>
           <div className="mx-auto max-w-5xl">
-            <h2 className="mb-6 text-2xl font-semibold" style={{ fontFamily: displayFont }}>Portfolio</h2>
+            <h2 className="mb-6 text-2xl font-semibold" style={{ fontFamily: displayFont }}>{c("section_gallery_title", "Portfolio")}</h2>
             <div className="columns-2 gap-3 md:columns-3">
-              {galleryIds.map((id, i) => (
+              {galleryUrls.map((id, i) => (
                 <div key={i} className="mb-3 overflow-hidden" style={{ borderRadius: radius / 2 }}>
                   <Image
-                    src={unsplash(id, 400)}
+                    src={id}
                     alt={`Portfolio ${i + 1}`}
                     width={400}
                     height={i % 3 === 0 ? 500 : 300}
@@ -198,7 +216,7 @@ export function StudioTemplate({ business, services, hours, theme }: StudioTempl
       {/* ── Hours ── */}
       <section className="py-16 px-6" style={{ borderTop: `1px solid ${border}` }}>
         <div className="mx-auto max-w-5xl">
-          <h2 className="mb-6 text-2xl font-semibold" style={{ fontFamily: displayFont }}>Hours</h2>
+          <h2 className="mb-6 text-2xl font-semibold" style={{ fontFamily: displayFont }}>{c("section_hours_title", "Hours")}</h2>
           <div className="grid max-w-md grid-cols-2 gap-y-3 gap-x-8 text-sm">
             {hrs.map((h) => (
               <>
@@ -214,8 +232,8 @@ export function StudioTemplate({ business, services, hours, theme }: StudioTempl
 
       {/* ── Footer ── */}
       <footer className="py-8 px-6 text-center text-xs" style={{ borderTop: `1px solid ${border}`, color: muted }}>
-        <p>{bizName} · {bizLocation}</p>
-        <p className="mt-1">Powered by OYRB</p>
+        <p>{c("footer_text", `${bizName} · ${bizLocation}`)}</p>
+        <p className="mt-1">{c("footer_credit", "Powered by OYRB")}</p>
       </footer>
     </div>
   );

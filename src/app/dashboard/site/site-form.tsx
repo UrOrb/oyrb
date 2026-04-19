@@ -467,54 +467,125 @@ export function SiteForm({ business, hours, origin }: Props) {
 // ── Template copy fields ─────────────────────────────────────────────────────
 // Every field's `name` is "tc_<key>". The updateSite action picks up the tc_*
 // prefix, strips it, and writes the result into businesses.template_content.
-// Keys listed here must match the c(...) calls inside OriginalTemplate.
+// Keys listed here must match the c(...) calls inside the template components.
+// Leave any field blank to use the template's built-in default.
 const TEMPLATE_COPY_FIELDS: Array<{
   group: string;
   description?: string;
-  fields: Array<{ key: string; label: string; placeholder: string; helper?: string }>;
+  fields: Array<{
+    key: string;
+    label: string;
+    placeholder: string;
+    helper?: string;
+    wide?: boolean;
+    textarea?: boolean;
+  }>;
 }> = [
   {
     group: "Top bar",
     fields: [
-      { key: "top_book_label", label: "Top-right Book button", placeholder: "Book" },
+      { key: "top_book_label",   label: "Top-right Book button label", placeholder: "Book" },
+      { key: "top_brand_label",  label: "Top-left brand tag (Bold layout only)", placeholder: "OYRB" },
     ],
   },
   {
     group: "Hero",
-    description: "The opening section on your site.",
+    description: "The opening section of your site.",
     fields: [
       {
         key: "hero_kicker",
         label: "Hero kicker (small text above your name)",
         placeholder: "e.g. OPEN · come thru!!",
-        helper: "Shown differently per theme — every theme gets its own default.",
+        wide: true,
+      },
+      {
+        key: "hero_badge",
+        label: "Hero badge / chip",
+        placeholder: "e.g. Now booking",
+      },
+      {
+        key: "hero_rating",
+        label: "Hero rating line (Bold layout)",
+        placeholder: "5.0 (48 reviews)",
       },
       {
         key: "hero_cta_label",
-        label: "Hero Book button label",
+        label: "Hero Book button label (Original layout)",
         placeholder: "e.g. ☆ book me ☆",
+      },
+      {
+        key: "hero_book_label",
+        label: "Hero Book button label (Studio / Luxe)",
+        placeholder: "Book an Appointment",
       },
     ],
   },
   {
-    group: "Stats strip",
-    description: "Three quick-proof numbers under the hero.",
+    group: "Stats strip (Original layout)",
+    description: "Three quick-proof numbers shown under the hero.",
     fields: [
-      { key: "stat_1_value", label: "Stat 1 value",  placeholder: "4.9" },
-      { key: "stat_1_label", label: "Stat 1 label",  placeholder: "rating" },
-      { key: "stat_2_value", label: "Stat 2 value",  placeholder: "320+" },
-      { key: "stat_2_label", label: "Stat 2 label",  placeholder: "reviews" },
-      { key: "stat_3_value", label: "Stat 3 value",  placeholder: "9 yrs" },
-      { key: "stat_3_label", label: "Stat 3 label",  placeholder: "practice" },
+      { key: "stat_1_value", label: "Stat 1 value", placeholder: "4.9" },
+      { key: "stat_1_label", label: "Stat 1 label", placeholder: "rating" },
+      { key: "stat_2_value", label: "Stat 2 value", placeholder: "320+" },
+      { key: "stat_2_label", label: "Stat 2 label", placeholder: "reviews" },
+      { key: "stat_3_value", label: "Stat 3 value", placeholder: "9 yrs" },
+      { key: "stat_3_label", label: "Stat 3 label", placeholder: "practice" },
     ],
   },
   {
     group: "Section titles",
+    description: "Relabel each section to match your voice.",
     fields: [
-      { key: "section_about_title",    label: "About section title",    placeholder: "Meet the specialist" },
-      { key: "section_services_title", label: "Services section title", placeholder: "Services" },
-      { key: "section_hours_title",    label: "Hours section title",    placeholder: "Studio hours" },
-      { key: "section_policies_title", label: "Policies section title", placeholder: "Booking & policies" },
+      { key: "section_about_title",     label: "About section title",      placeholder: "Meet the specialist" },
+      { key: "section_services_title",  label: "Services section title",   placeholder: "Services" },
+      { key: "section_gallery_title",   label: "Gallery / Portfolio title", placeholder: "Portfolio" },
+      { key: "section_gallery_kicker",  label: "Gallery kicker",           placeholder: "recent work" },
+      { key: "section_reviews_title",   label: "Reviews section title",    placeholder: "What clients say" },
+      { key: "section_hours_title",     label: "Hours section title",      placeholder: "Studio hours" },
+      { key: "section_location_title",  label: "Location section title",   placeholder: "Find the studio" },
+      { key: "section_policies_title",  label: "Policies section title",   placeholder: "Booking & policies" },
+      { key: "section_instagram_title", label: "Instagram section title",  placeholder: "Instagram" },
+    ],
+  },
+  {
+    group: "Buttons",
+    description: "Every call-to-action on your site.",
+    fields: [
+      { key: "service_book_label",  label: "Per-service button",   placeholder: "Book" },
+      { key: "sidebar_cta_label",   label: "Sidebar / footer CTA", placeholder: "Request a Booking" },
+      { key: "footer_action_1",    label: "Footer button 1 (Original)", placeholder: "Directions" },
+      { key: "footer_action_2",    label: "Footer button 2 (Original)", placeholder: "Message" },
+    ],
+  },
+  {
+    group: "Testimonials (shown in the template)",
+    description: "Sample reviews baked into the template design. Rewrite as your own or leave blank.",
+    fields: [
+      { key: "review_1_name", label: "Review 1 — client name",   placeholder: "Simone R." },
+      { key: "review_1_body", label: "Review 1 — quote",         placeholder: "I've never been treated with this much care…", wide: true, textarea: true },
+      { key: "review_2_name", label: "Review 2 — client name",   placeholder: "Jordan K." },
+      { key: "review_2_body", label: "Review 2 — quote",         placeholder: "Booking was easy, the studio is serene…", wide: true, textarea: true },
+      { key: "review_3_name", label: "Review 3 — client name",   placeholder: "Priya M." },
+      { key: "review_3_body", label: "Review 3 — quote",         placeholder: "Rebooked before I left…", wide: true, textarea: true },
+    ],
+  },
+  {
+    group: "Policies (shown in the template)",
+    description: "Three short policy cards. The Bookings & Policies section on your public site also renders your full Client policies / Cancellation text from the main form.",
+    fields: [
+      { key: "policy_1_title", label: "Policy 1 — title", placeholder: "Deposit" },
+      { key: "policy_1_body",  label: "Policy 1 — body",  placeholder: "30% deposit secures your slot…", wide: true, textarea: true },
+      { key: "policy_2_title", label: "Policy 2 — title", placeholder: "Cancellation" },
+      { key: "policy_2_body",  label: "Policy 2 — body",  placeholder: "48 hours notice required…", wide: true, textarea: true },
+      { key: "policy_3_title", label: "Policy 3 — title", placeholder: "Late arrivals" },
+      { key: "policy_3_body",  label: "Policy 3 — body",  placeholder: "After 15 minutes your service may be shortened…", wide: true, textarea: true },
+    ],
+  },
+  {
+    group: "Footer",
+    fields: [
+      { key: "footer_text",   label: "Footer line",     placeholder: "Your name · Your city", wide: true },
+      { key: "footer_credit", label: "Footer credit",   placeholder: "Powered by OYRB" },
     ],
   },
 ];
@@ -536,19 +607,31 @@ function TemplateCopyFields({
           )}
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             {group.fields.map((f) => (
-              <div key={f.key}>
+              <div key={f.key} className={f.wide ? "md:col-span-2" : undefined}>
                 <label htmlFor={`tc_${f.key}`} className="block text-xs font-medium text-[#525252]">
                   {f.label}
                 </label>
-                <input
-                  id={`tc_${f.key}`}
-                  name={`tc_${f.key}`}
-                  type="text"
-                  defaultValue={values[f.key] ?? ""}
-                  placeholder={f.placeholder}
-                  maxLength={200}
-                  className={inputCls}
-                />
+                {f.textarea ? (
+                  <textarea
+                    id={`tc_${f.key}`}
+                    name={`tc_${f.key}`}
+                    defaultValue={values[f.key] ?? ""}
+                    placeholder={f.placeholder}
+                    maxLength={500}
+                    rows={3}
+                    className={inputCls + " resize-y"}
+                  />
+                ) : (
+                  <input
+                    id={`tc_${f.key}`}
+                    name={`tc_${f.key}`}
+                    type="text"
+                    defaultValue={values[f.key] ?? ""}
+                    placeholder={f.placeholder}
+                    maxLength={200}
+                    className={inputCls}
+                  />
+                )}
                 {f.helper && (
                   <p className="mt-1 text-[11px] text-[#A3A3A3]">{f.helper}</p>
                 )}

@@ -1,5 +1,7 @@
+"use client";
+
 import Image from "next/image";
-import { MapPin, Clock } from "lucide-react";
+import { MapPin, Clock, Link2 } from "lucide-react";
 import type { TemplateTheme } from "@/lib/template-themes";
 import { unsplash, SAMPLE_HOURS } from "@/lib/template-images";
 import type { SampleBusiness, SampleService, SampleHour } from "@/lib/sample-data";
@@ -9,6 +11,7 @@ interface CleanTemplateProps {
   services?: SampleService[];
   hours?: SampleHour[];
   theme?: TemplateTheme;
+  content?: Record<string, string> | null;
 }
 
 function formatPrice(cents: number) { return `$${(cents / 100).toFixed(0)}`; }
@@ -22,11 +25,17 @@ function formatTime(t: string) {
   return `${h % 12 || 12}:${m.toString().padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
 
-export function CleanTemplate({ business, services, hours, theme }: CleanTemplateProps) {
+export function CleanTemplate({ business, services, hours, theme, content }: CleanTemplateProps) {
+  const c = (key: string, fallback: string): string => {
+    const v = content?.[key];
+    return typeof v === "string" && v.trim() ? v : fallback;
+  };
   const bg = theme?.bg ?? "#FFFFFF";
   const surface = theme?.surface ?? "#FFFFFF";
   const ink = theme?.ink ?? "#111111";
   const muted = theme?.muted ?? "#888888";
+  const accent = theme?.accent ?? "#B8896B";
+  const accent2 = theme?.accent2 ?? accent;
   const border = theme?.border ?? "rgba(0,0,0,0.08)";
   const btnBg = theme?.btnBg ?? "#111111";
   const btnText = theme?.btnText ?? "#FFFFFF";
@@ -39,15 +48,23 @@ export function CleanTemplate({ business, services, hours, theme }: CleanTemplat
   const bizLocation = business?.location ?? biz?.location ?? "Atlanta, GA";
   const bizPhone = business?.phone ?? biz?.phone ?? "(404) 555-0192";
   const bizEmail = business?.email ?? "hello@example.com";
-  const heroId = biz?.heroImageId ?? "1522337360426-a1af4b2b9f90";
+  const bizInstagram = business?.instagram_url ?? null;
+  const heroId = biz?.heroImageId ?? "1508214751196-bcfd4ca60f91";
+  const heroSrc = business?.hero_image_url || unsplash(heroId, 1600);
+  const profileSrc = business?.profile_image_url || (biz?.profileImageId ? unsplash(biz.profileImageId, 400) : "");
+  const galleryUrls: string[] = (business?.photos && business.photos.length > 0)
+    ? business.photos
+    : (biz?.galleryIds ?? []).map((id: string) => unsplash(id, 600));
   const profileId = biz?.profileImageId ?? "1519699047748-de8e457a634e";
-  const galleryIds = biz?.galleryIds ?? [];
 
   const svcs = services ?? [];
   const hrs = hours ?? SAMPLE_HOURS;
 
   return (
     <div className="min-h-screen font-sans" style={{ backgroundColor: bg, color: ink }}>
+
+      {/* ── Accent color band ── */}
+      <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${accent} 0%, ${accent2} 100%)` }} />
 
       {/* ── Thin top bar ── */}
       <div className="px-6 py-2 text-center text-xs" style={{ backgroundColor: ink, color: `${bg}b3` }}>
@@ -62,7 +79,7 @@ export function CleanTemplate({ business, services, hours, theme }: CleanTemplat
               className="relative h-12 w-12 overflow-hidden border-2"
               style={{ borderRadius: 999, borderColor: ink }}
             >
-              <Image src={unsplash(profileId, 96)} alt={bizName} fill className="object-cover" sizes="48px" />
+              <Image src={profileSrc || ""} alt={bizName} fill className="object-cover" sizes="48px" />
             </div>
             <div>
               <h1 className="text-base font-semibold leading-tight" style={{ fontFamily: displayFont }}>{bizName}</h1>
@@ -70,11 +87,12 @@ export function CleanTemplate({ business, services, hours, theme }: CleanTemplat
             </div>
           </div>
           <a
-            href={`mailto:${bizEmail}`}
+            href="#book"
+            onClick={(e) => { e.preventDefault(); (window as unknown as { __oyrbOpenBooking?: () => void }).__oyrbOpenBooking?.(); }}
             style={{ backgroundColor: btnBg, color: btnText, borderRadius: radius / 2 }}
             className="px-5 py-2 text-sm font-medium transition-opacity hover:opacity-80"
           >
-            Book Now
+            {c("top_book_label", "Book Now")}
           </a>
         </div>
       </header>
@@ -84,7 +102,7 @@ export function CleanTemplate({ business, services, hours, theme }: CleanTemplat
 
           {/* Left: Services */}
           <main>
-            <h2 className="mb-1 text-xl font-semibold" style={{ fontFamily: displayFont }}>Select a service</h2>
+            <h2 className="mb-1 text-xl font-semibold" style={{ fontFamily: displayFont }}>{c("section_services_title", "Select a service")}</h2>
             <p className="mb-6 text-sm" style={{ color: muted }}>
               {svcs.length} services available · {bizLocation}
             </p>
@@ -111,7 +129,8 @@ export function CleanTemplate({ business, services, hours, theme }: CleanTemplat
                     </div>
                   </div>
                   <a
-                    href={`mailto:${bizEmail}?subject=Booking: ${svc.name}`}
+                    href="#book"
+            onClick={(e) => { e.preventDefault(); (window as unknown as { __oyrbOpenBooking?: () => void }).__oyrbOpenBooking?.(); }}
                     className="shrink-0 px-4 py-1.5 text-xs font-medium transition-colors"
                     style={{
                       borderRadius: radius / 2,
@@ -119,7 +138,7 @@ export function CleanTemplate({ business, services, hours, theme }: CleanTemplat
                     }}
 
                   >
-                    Select
+                    {c("service_book_label", "Select")}
                   </a>
                 </div>
               ))}
@@ -131,12 +150,12 @@ export function CleanTemplate({ business, services, hours, theme }: CleanTemplat
 
             {/* Hero photo */}
             <div className="relative h-52 w-full overflow-hidden" style={{ borderRadius: radius }}>
-              <Image src={unsplash(heroId, 640)} alt={bizName} fill className="object-cover" sizes="320px" />
+              <Image src={heroSrc} alt={bizName} fill className="object-cover" sizes="320px" />
             </div>
 
             {/* Hours card */}
             <div className="p-5" style={{ borderRadius: radius, border: `1px solid ${border}` }}>
-              <h3 className="mb-3 text-sm font-semibold">Hours</h3>
+              <h3 className="mb-3 text-sm font-semibold">{c("section_hours_title", "Hours")}</h3>
               <div className="flex flex-col gap-2">
                 {hrs.map((h) => (
                   <div key={h.day} className="flex justify-between text-xs">
@@ -151,32 +170,44 @@ export function CleanTemplate({ business, services, hours, theme }: CleanTemplat
 
             {/* Location card */}
             <div className="p-5" style={{ borderRadius: radius, border: `1px solid ${border}` }}>
-              <h3 className="mb-2 text-sm font-semibold">Location</h3>
+              <h3 className="mb-2 text-sm font-semibold">{c("section_location_title", "Location")}</h3>
               <p className="flex items-start gap-1.5 text-xs" style={{ color: muted }}>
                 <MapPin size={12} className="mt-0.5 shrink-0" />{bizLocation}
               </p>
+              {bizInstagram && (
+                <a
+                  href={bizInstagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 flex items-center gap-1.5 text-xs transition-opacity hover:opacity-70"
+                  style={{ color: muted }}
+                >
+                  <Link2 size={12} /> Instagram
+                </a>
+              )}
             </div>
 
             {/* CTA */}
             <a
-              href={`mailto:${bizEmail}`}
+              href="#book"
+            onClick={(e) => { e.preventDefault(); (window as unknown as { __oyrbOpenBooking?: () => void }).__oyrbOpenBooking?.(); }}
               style={{ backgroundColor: btnBg, color: btnText, borderRadius: radius }}
               className="block w-full py-3.5 text-center text-sm font-medium transition-opacity hover:opacity-80"
             >
-              Request a Booking
+              {c("sidebar_cta_label", "Request a Booking")}
             </a>
           </aside>
         </div>
 
         {/* Gallery strip */}
-        {galleryIds.length > 0 && (
+        {galleryUrls.length > 0 && (
           <section className="mt-12 pt-10" style={{ borderTop: `1px solid ${border}` }}>
-            <h2 className="mb-5 text-lg font-semibold" style={{ fontFamily: displayFont }}>Recent Work</h2>
+            <h2 className="mb-5 text-lg font-semibold" style={{ fontFamily: displayFont }}>{c("section_gallery_title", "Recent Work")}</h2>
             <div className="flex gap-3 overflow-x-auto pb-2">
-              {galleryIds.map((id, i) => (
+              {galleryUrls.map((id, i) => (
                 <div key={i} className="relative h-40 w-40 shrink-0 overflow-hidden" style={{ borderRadius: radius / 2 }}>
                   <Image
-                    src={unsplash(id, 320)}
+                    src={id}
                     alt={`Work ${i + 1}`}
                     fill
                     className="object-cover transition-transform duration-500 hover:scale-105"
@@ -191,8 +222,8 @@ export function CleanTemplate({ business, services, hours, theme }: CleanTemplat
 
       {/* ── Footer ── */}
       <footer className="mt-8 px-6 py-8 text-center text-xs" style={{ borderTop: `1px solid ${border}`, color: muted }}>
-        <p>{bizName} · {bizLocation}</p>
-        <p className="mt-1">Powered by OYRB</p>
+        <p>{c("footer_text", `${bizName} · ${bizLocation}`)}</p>
+        <p className="mt-1">{c("footer_credit", "Powered by OYRB")}</p>
       </footer>
     </div>
   );
