@@ -197,7 +197,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(718) 555-0456",
       email: "book@blockstudio.co",
       category: "Makeup & Brow Artistry",
-      heroImageId: "1516975080664-ed2fc6a32937",
+      heroImageId: "/bold-hero.avif",
       profileImageId: "1517365830460-955ce3ccd263",
       galleryIds: [
         "1516975080664-ed2fc6a32937","1517365830460-955ce3ccd263",
@@ -320,7 +320,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(305) 555-0772",
       email: "hey@glossbaby.co",
       category: "Lash Extensions & Beauty",
-      heroImageId: "1517365830460-955ce3ccd263",
+      heroImageId: "/y2k-hero.avif",
       profileImageId: "1531746020798-e6953c6e8e04",
       galleryIds: [
         "1517365830460-955ce3ccd263","1531746020798-e6953c6e8e04",
@@ -607,7 +607,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(718) 555-0808",
       email: "book@riotroom.co",
       category: "Vivid Color & Texture",
-      heroImageId: "1492106087820-71f1a00d2b11",
+      heroImageId: "/riot-hero.avif",
       profileImageId: "1517365830460-955ce3ccd263",
       galleryIds: [
         "1492106087820-71f1a00d2b11","1517365830460-955ce3ccd263",
