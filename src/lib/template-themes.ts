@@ -238,7 +238,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(310) 555-0847",
       email: "hello@blancnails.com",
       category: "Nail Art & Extensions",
-      heroImageId: "1604654894610-df63bc536371",
+      heroImageId: "/minimal-hero.avif",
       profileImageId: "1531746020798-e6953c6e8e04",
       galleryIds: [
         "1604654894610-df63bc536371","1516975080664-ed2fc6a32937",
@@ -279,7 +279,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(510) 555-0213",
       email: "cuts@shearcode.co",
       category: "Barbershop",
-      heroImageId: "1654097800369-abc063d657c4",
+      heroImageId: "/street-hero.avif",
       profileImageId: "1508214751196-bcfd4ca60f91",
       galleryIds: [
         "1654097800369-abc063d657c4","1654097801176-cb1795fd0c5e",
@@ -402,7 +402,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(503) 555-0641",
       email: "book@sageandstone.co",
       category: "Hair & Wellness",
-      heroImageId: "1620916566398-39f1143ab7be",
+      heroImageId: "/sage-hero.avif",
       profileImageId: "1519699047748-de8e457a634e",
       galleryIds: [
         "1620916566398-39f1143ab7be","1519699047748-de8e457a634e",
@@ -443,7 +443,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(646) 555-0882",
       email: "book@thestylesuite.com",
       category: "Premium Grooming",
-      heroImageId: "1654097801176-cb1795fd0c5e",
+      heroImageId: "/slate-hero.avif",
       profileImageId: "1508214751196-bcfd4ca60f91",
       galleryIds: [
         "1654097801176-cb1795fd0c5e","1654097800369-abc063d657c4",
@@ -566,7 +566,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(718) 555-0817",
       email: "hello@blockandco.studio",
       category: "Barbershop",
-      heroImageId: "1654097800369-abc063d657c4",
+      heroImageId: "/colorblock-hero.avif",
       profileImageId: "1508214751196-bcfd4ca60f91",
       galleryIds: [
         "1654097800369-abc063d657c4","1654097801176-cb1795fd0c5e",
