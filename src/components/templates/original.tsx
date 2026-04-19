@@ -87,7 +87,7 @@ function Ornament({ t }: { t: TemplateTheme }) {
 }
 
 // ── Hero section — each theme gets its exact layout ────────────────────────────
-function Hero({ t, biz, email }: { t: TemplateTheme; biz: TemplateTheme["business"]; email: string }) {
+function Hero({ t, biz, bookHref }: { t: TemplateTheme; biz: TemplateTheme["business"]; bookHref: string }) {
   const heroUrl = unsplash(biz.heroImageId, 800);
   const portraitUrl = unsplash(biz.profileImageId, 400);
 
@@ -104,7 +104,7 @@ function Hero({ t, biz, email }: { t: TemplateTheme; biz: TemplateTheme["busines
         <Image src={heroUrl} alt={biz.name} width={800} height={1000} className="w-full object-cover" style={{ borderRadius: t.radius, aspectRatio: "4/5" }} />
       </div>
       <div style={{ marginTop: 24 }}>
-        <a href={`mailto:${email}`} style={{ display: "block", width: "100%", background: t.btnBg, color: t.btnText, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "16px", borderRadius: t.radiusBtn, textDecoration: "none" }}>Request Appointment</a>
+        <a href={bookHref} style={{ display: "block", width: "100%", background: t.btnBg, color: t.btnText, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "16px", borderRadius: t.radiusBtn, textDecoration: "none" }}>Request Appointment</a>
       </div>
     </div>
   );
@@ -125,7 +125,7 @@ function Hero({ t, biz, email }: { t: TemplateTheme; biz: TemplateTheme["busines
         <div style={{ position: "absolute", bottom: -12, left: -4, background: t.accent, color: t.ink, fontFamily: t.displayFont, fontWeight: 900, fontSize: 14, padding: "6px 12px", letterSpacing: 1 }}>NEW WORK ⟶</div>
       </div>
       <div style={{ marginTop: 28 }}>
-        <a href={`mailto:${email}`} style={{ display: "block", background: t.accent, color: t.ink, fontFamily: t.displayFont, fontWeight: 900, fontSize: 15, textAlign: "center", padding: "16px", textDecoration: "none", letterSpacing: "0.05em", textTransform: "uppercase" }}>BOOK NOW →</a>
+        <a href={bookHref} style={{ display: "block", background: t.accent, color: t.ink, fontFamily: t.displayFont, fontWeight: 900, fontSize: 15, textAlign: "center", padding: "16px", textDecoration: "none", letterSpacing: "0.05em", textTransform: "uppercase" }}>BOOK NOW →</a>
       </div>
     </div>
   );
@@ -148,7 +148,7 @@ function Hero({ t, biz, email }: { t: TemplateTheme; biz: TemplateTheme["busines
       </div>
       <div style={{ marginTop: 14, fontFamily: t.bodyFont, fontSize: 13, color: t.muted, lineHeight: 1.5 }}>{biz.tagline}</div>
       <div style={{ marginTop: 20 }}>
-        <a href={`mailto:${email}`} style={{ display: "block", background: t.btnBg, color: t.btnText, fontFamily: t.displayFont, fontWeight: 700, fontSize: 14, textAlign: "center", padding: "16px", textDecoration: "none", textTransform: "uppercase", letterSpacing: "0.05em" }}>▸ BOOK THE CHAIR</a>
+        <a href={bookHref} style={{ display: "block", background: t.btnBg, color: t.btnText, fontFamily: t.displayFont, fontWeight: 700, fontSize: 14, textAlign: "center", padding: "16px", textDecoration: "none", textTransform: "uppercase", letterSpacing: "0.05em" }}>▸ BOOK THE CHAIR</a>
       </div>
     </div>
   );
@@ -170,7 +170,7 @@ function Hero({ t, biz, email }: { t: TemplateTheme; biz: TemplateTheme["busines
         <div style={{ position: "absolute", top: -10, right: -6, background: t.accent, color: t.surface, fontFamily: t.displayFont, fontWeight: 900, fontSize: 13, padding: "8px 12px", borderRadius: 999, border: `2px solid ${t.ink}`, transform: "rotate(8deg)" }}>✧ NEW SET ✧</div>
       </div>
       <div style={{ marginTop: 24 }}>
-        <a href={`mailto:${email}`} style={{ display: "block", background: t.btnBg, color: t.btnText, fontFamily: t.displayFont, fontWeight: 900, fontSize: 15, textAlign: "center", padding: "16px", borderRadius: 999, textDecoration: "none" }}>☆ book me ☆</a>
+        <a href={bookHref} style={{ display: "block", background: t.btnBg, color: t.btnText, fontFamily: t.displayFont, fontWeight: 900, fontSize: 15, textAlign: "center", padding: "16px", borderRadius: 999, textDecoration: "none" }}>☆ book me ☆</a>
       </div>
     </div>
   );
@@ -190,7 +190,7 @@ function Hero({ t, biz, email }: { t: TemplateTheme; biz: TemplateTheme["busines
         </div>
       </div>
       <div style={{ margin: "24px auto", display: "flex", justifyContent: "center" }}><Ornament t={t} /></div>
-      <a href={`mailto:${email}`} style={{ display: "block", background: t.btnBg, color: t.btnText, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "16px", borderRadius: t.radiusBtn, textDecoration: "none" }}>Book a treatment</a>
+      <a href={bookHref} style={{ display: "block", background: t.btnBg, color: t.btnText, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "16px", borderRadius: t.radiusBtn, textDecoration: "none" }}>Book a treatment</a>
     </div>
   );
 
@@ -206,7 +206,7 @@ function Hero({ t, biz, email }: { t: TemplateTheme; biz: TemplateTheme["busines
       <Image src={heroUrl} alt={biz.name} width={800} height={1000} className="w-full object-cover" style={{ aspectRatio: "4/5" }} />
       <div style={{ marginTop: 32, fontFamily: t.bodyFont, fontSize: 13, lineHeight: 1.7, color: t.ink }}>{biz.bio ?? biz.tagline}</div>
       <div style={{ marginTop: 32 }}>
-        <a href={`mailto:${email}`} style={{ display: "block", background: t.btnBg, color: t.btnText, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "16px", textDecoration: "none" }}>Book</a>
+        <a href={bookHref} style={{ display: "block", background: t.btnBg, color: t.btnText, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "16px", textDecoration: "none" }}>Book</a>
       </div>
     </div>
   );
@@ -230,7 +230,7 @@ function Hero({ t, biz, email }: { t: TemplateTheme; biz: TemplateTheme["busines
           { label: "Free consult", sub: "15 min intro" },
           { label: "Gift cards", sub: "Starting $50" },
         ].map((tile, i) => (
-          <a key={i} href={`mailto:${email}`} style={{
+          <a key={i} href={bookHref} style={{
             display: "flex", flexDirection: "column" as const, justifyContent: "space-between",
             minHeight: 82, padding: "14px 16px", borderRadius: t.radius, textDecoration: "none",
             background: tile.primary ? t.ink : t.surface,
@@ -274,16 +274,16 @@ function Hero({ t, biz, email }: { t: TemplateTheme; biz: TemplateTheme["busines
         </div>
       </div>
       <div style={{ marginTop: 32 }}>
-        <a href={`mailto:${email}`} style={{ display: "block", background: t.btnBg, color: t.btnText, fontFamily: t.displayFont, fontWeight: 900, fontSize: 15, textAlign: "center", padding: "16px", borderRadius: 999, textDecoration: "none" }}>ꕥ book your cute time ꕥ</a>
+        <a href={bookHref} style={{ display: "block", background: t.btnBg, color: t.btnText, fontFamily: t.displayFont, fontWeight: 900, fontSize: 15, textAlign: "center", padding: "16px", borderRadius: 999, textDecoration: "none" }}>ꕥ book your cute time ꕥ</a>
       </div>
     </div>
   );
 }
 
 // ── Service row — 5 distinct styles ──────────────────────────────────────────
-function ServiceRow({ t, svc, last, email }: { t: TemplateTheme; svc: SampleService; last: boolean; email: string }) {
+function ServiceRow({ t, svc, last, bookHref }: { t: TemplateTheme; svc: SampleService; last: boolean; bookHref: string }) {
   if (t.id === "bold" || t.id === "citrus") return (
-    <a href={`mailto:${email}?subject=Booking: ${svc.name}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, background: t.surface, padding: "18px 16px", borderRadius: 8, textDecoration: "none", marginBottom: 10 }}>
+    <a href={bookHref} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, background: t.surface, padding: "18px 16px", borderRadius: 8, textDecoration: "none", marginBottom: 10 }}>
       <div style={{ flex: 1 }}>
         <div style={{ fontFamily: t.displayFont, fontWeight: 900, fontSize: 17, color: t.ink, letterSpacing: "-0.02em", textTransform: "uppercase" as const, lineHeight: 1.1 }}>{svc.name}</div>
         <div style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: 1, color: t.muted, textTransform: "uppercase" as const, marginTop: 6 }}>{fmtDur(svc.duration_minutes)}</div>
@@ -293,7 +293,7 @@ function ServiceRow({ t, svc, last, email }: { t: TemplateTheme; svc: SampleServ
   );
 
   if (t.id === "street" || t.id === "slate") return (
-    <a href={`mailto:${email}?subject=Booking: ${svc.name}`} style={{ display: "grid", gridTemplateColumns: "28px 1fr auto", gap: 12, alignItems: "center", padding: "16px 0", borderBottom: last ? "none" : `1px solid ${t.border}`, textDecoration: "none" }}>
+    <a href={bookHref} style={{ display: "grid", gridTemplateColumns: "28px 1fr auto", gap: 12, alignItems: "center", padding: "16px 0", borderBottom: last ? "none" : `1px solid ${t.border}`, textDecoration: "none" }}>
       <div style={{ fontFamily: "monospace", fontSize: 10, color: t.accent, letterSpacing: 1 }}>0{1}</div>
       <div>
         <div style={{ fontFamily: t.displayFont, fontWeight: 700, fontSize: 15, color: t.ink, textTransform: "uppercase" as const, letterSpacing: "0.5px", lineHeight: 1.2 }}>{svc.name}</div>
@@ -304,7 +304,7 @@ function ServiceRow({ t, svc, last, email }: { t: TemplateTheme; svc: SampleServ
   );
 
   if (t.id === "y2k" || t.id === "citrus") return (
-    <a href={`mailto:${email}?subject=Booking: ${svc.name}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", border: `2px solid ${t.ink}`, background: t.surface, padding: "14px 16px", borderRadius: 22, boxShadow: `3px 3px 0 0 ${t.accent2 ?? t.muted}`, marginBottom: 10, textDecoration: "none" }}>
+    <a href={bookHref} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", border: `2px solid ${t.ink}`, background: t.surface, padding: "14px 16px", borderRadius: 22, boxShadow: `3px 3px 0 0 ${t.accent2 ?? t.muted}`, marginBottom: 10, textDecoration: "none" }}>
       <div>
         <div style={{ fontFamily: t.displayFont, fontWeight: 900, fontSize: 16, color: t.ink, lineHeight: 1.1 }}>{svc.name}</div>
         <div style={{ fontFamily: t.bodyFont, fontSize: 12, color: t.muted, marginTop: 2 }}>{fmtDur(svc.duration_minutes)} min · so cute</div>
@@ -315,7 +315,7 @@ function ServiceRow({ t, svc, last, email }: { t: TemplateTheme; svc: SampleServ
 
   // editorial list (aura, luxe, earth, minimal, rose, sage, noir)
   return (
-    <a href={`mailto:${email}?subject=Booking: ${svc.name}`} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12, alignItems: "flex-start", padding: "18px 0", borderBottom: last ? "none" : `1px solid ${t.border}`, textDecoration: "none" }}>
+    <a href={bookHref} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12, alignItems: "flex-start", padding: "18px 0", borderBottom: last ? "none" : `1px solid ${t.border}`, textDecoration: "none" }}>
       <div>
         <div style={{ fontFamily: t.displayFont, fontWeight: t.displayWeight, fontSize: 17, color: t.ink, letterSpacing: t.displayTracking, lineHeight: 1.2 }}>{svc.name}</div>
         <div style={{ fontFamily: t.bodyFont, fontSize: 12, color: t.muted, marginTop: 6, lineHeight: 1.5 }}>{svc.description}</div>
@@ -331,8 +331,31 @@ function ServiceRow({ t, svc, last, email }: { t: TemplateTheme; svc: SampleServ
 
 // ── Main export ───────────────────────────────────────────────────────────────
 export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS, business }: OriginalTemplateProps) {
-  const biz = t.business;
-  const email = `hello@${biz.name.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`;
+  // Merge real business data over the theme's sample business so the template
+  // renders the pro's actual name/tagline/bio/photos. unsplash() returns full
+  // URLs unchanged, so substituting hero/profile/gallery with real image URLs
+  // works transparently throughout the template.
+  const sample = t.business;
+  const hasBiz = !!business;
+  const biz = {
+    ...sample,
+    name: business?.name || sample.name,
+    tagline: business?.tagline || sample.tagline,
+    bio: business?.bio || sample.bio,
+    location: business?.location || sample.location,
+    phone: business?.phone || sample.phone,
+    email: business?.email || sample.email,
+    heroImageId: business?.hero_image_url || sample.heroImageId,
+    profileImageId: business?.profile_image_url || sample.profileImageId,
+    galleryIds: (business?.photos && business.photos.length > 0)
+      ? business.photos
+      : sample.galleryIds,
+  };
+  // Any Book button on a real business site should open the floating BookingWidget
+  // (which listens for hash === "#book"). In preview mode (no real business),
+  // keep a harmless mailto: fallback so the demo gallery still works.
+  const demoEmail = biz.email || `hello@${biz.name.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`;
+  const bookHref = hasBiz ? "#book" : `mailto:${demoEmail}`;
 
   // Instagram: prefer user-provided URL; fall back to a handle derived from business name
   const igHandle = (business?.instagram_url?.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/$/, "") || biz.name.toLowerCase().replace(/[^a-z0-9]/g, ""));
@@ -341,7 +364,9 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
   // Instagram grid: use uploaded gallery photos if present, else theme's sample gallery IDs via Unsplash
   const galleryFromBiz: string[] = (business?.photos ?? []) as string[];
   const galleryFromTheme: string[] = (biz.galleryIds ?? []).map(
-    (id: string) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=400&q=80`
+    (id: string) => id.startsWith("http")
+      ? id
+      : `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=400&q=80`
   );
   const igPhotos: string[] = (galleryFromBiz.length > 0 ? galleryFromBiz : galleryFromTheme).slice(0, 6);
 
@@ -375,7 +400,7 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
           letterSpacing: (t.id === "street" || t.id === "slate") ? 1 : 0,
           textTransform: (t.id === "street" || t.id === "slate") ? "uppercase" as const : "none" as const,
         }}>{biz.name}</div>
-        <a href={`mailto:${email}`} style={{
+        <a href={bookHref} style={{
           display: "inline-flex", alignItems: "center", justifyContent: "center",
           height: 36, padding: "0 16px",
           background: t.btnBg, color: t.btnText,
@@ -388,7 +413,7 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
       <div style={{ maxWidth: 480, margin: "0 auto" }}>
 
         {/* ── Hero ── */}
-        <Hero t={t} biz={biz} email={email} />
+        <Hero t={t} biz={biz} bookHref={bookHref} />
 
         {/* ── Stats strip ── */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", borderTop: `1px solid ${t.border}`, borderBottom: `1px solid ${t.border}`, background: t.surface }}>
@@ -422,7 +447,7 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
           </div>
           <div style={{ display: "flex", flexDirection: "column" as const, gap: (t.id === "bold" || t.id === "y2k") ? 0 : 0 }}>
             {services.map((svc, i) => (
-              <ServiceRow key={svc.id} t={t} svc={svc} last={i === services.length - 1} email={email} />
+              <ServiceRow key={svc.id} t={t} svc={svc} last={i === services.length - 1} bookHref={bookHref} />
             ))}
           </div>
         </section>
@@ -567,8 +592,8 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
           <Kicker id={t.id} mono="monospace" accent={t.accent} style={{ justifyContent: "center", marginBottom: 10 }}>Find the studio</Kicker>
           <p style={{ fontFamily: t.bodyFont, fontSize: 14, color: t.ink, maxWidth: 260, margin: "0 auto" }}>{biz.location}</p>
           <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
-            <a href={`mailto:${email}`} style={{ flex: 1, display: "block", background: "transparent", color: t.ink, border: `1px solid ${t.border}`, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "14px", borderRadius: t.radiusBtn, textDecoration: "none" }}>Directions</a>
-            <a href={`mailto:${email}`} style={{ flex: 1, display: "block", background: "transparent", color: t.ink, border: `1px solid ${t.border}`, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "14px", borderRadius: t.radiusBtn, textDecoration: "none" }}>Message</a>
+            <a href={bookHref} style={{ flex: 1, display: "block", background: "transparent", color: t.ink, border: `1px solid ${t.border}`, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "14px", borderRadius: t.radiusBtn, textDecoration: "none" }}>Directions</a>
+            <a href={bookHref} style={{ flex: 1, display: "block", background: "transparent", color: t.ink, border: `1px solid ${t.border}`, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "14px", borderRadius: t.radiusBtn, textDecoration: "none" }}>Message</a>
           </div>
         </section>
 

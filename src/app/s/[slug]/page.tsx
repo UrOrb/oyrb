@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getStockImages } from "@/lib/stock-images";
 
 export const dynamic = "force-dynamic";
@@ -45,12 +45,28 @@ export default async function PublicSitePage({ params }: Props) {
   const { slug } = await params;
   const supabase = createAdminClient();
 
-  const { data: biz } = await supabase
+  let { data: biz } = await supabase
     .from("businesses")
     .select("*")
     .eq("slug", slug)
     .eq("is_published", true)
     .maybeSingle();
+
+  // Owner preview: let a signed-in owner view their own site even if it's
+  // unpublished, so the dashboard preview panel always works.
+  if (!biz) {
+    const userSupabase = await createClient();
+    const { data: { user } } = await userSupabase.auth.getUser();
+    if (user) {
+      const { data: ownerBiz } = await supabase
+        .from("businesses")
+        .select("*")
+        .eq("slug", slug)
+        .eq("owner_id", user.id)
+        .maybeSingle();
+      biz = ownerBiz;
+    }
+  }
 
   if (!biz) notFound();
 
