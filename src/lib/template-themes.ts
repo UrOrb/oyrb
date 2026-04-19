@@ -361,7 +361,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(843) 555-0318",
       email: "hello@roseatelier.com",
       category: "Bridal & Hair Artistry",
-      heroImageId: "1549236177-f9b0031756eb",
+      heroImageId: "/rose-hero.avif",
       profileImageId: "1531746020798-e6953c6e8e04",
       galleryIds: [
         "1549236177-f9b0031756eb","1519699047748-de8e457a634e",
