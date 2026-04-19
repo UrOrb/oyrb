@@ -5,6 +5,7 @@ import { MapPin, Phone, Link2, Star, Clock } from "lucide-react";
 import type { TemplateTheme } from "@/lib/template-themes";
 import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
 import { StockBadge } from "@/components/templates/stock-badge";
+import { PlatformCredit } from "@/components/templates/platform-credit";
 import type { SampleBusiness, SampleService, SampleHour } from "@/lib/sample-data";
 
 interface BoldTemplateProps {
@@ -278,12 +279,13 @@ export function BoldTemplate({ business, services, hours, theme, content, isEdit
       {/* ── Footer ── */}
       <footer className="mt-8 px-6 py-8 text-center text-xs" style={{ borderTop: `1px solid ${border}`, backgroundColor: surface, color: muted }}>
         <p>{c("footer_text", `${bizName} · ${bizLocation}`)}</p>
-        <p className="mt-1">{c("footer_credit", "Powered by OYRB")}</p>
         {!isEditorPreview && (isStockImageUrl(heroSrc) || isStockImageUrl(profileSrc) || galleryUrls.some(isStockImageUrl)) && (
           <p className="mt-3 italic opacity-70 text-[10px]">
             Some images on this site may be stock photos used for illustrative purposes. Actual service results may vary.
           </p>
         )}
+        {/* Platform attribution — NOT user-editable. */}
+        <PlatformCredit color={muted} />
       </footer>
     </div>
   );

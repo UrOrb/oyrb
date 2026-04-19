@@ -5,6 +5,7 @@ import { MapPin, Phone, Link2, Clock } from "lucide-react";
 import type { TemplateTheme } from "@/lib/template-themes";
 import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
 import { StockBadge } from "@/components/templates/stock-badge";
+import { PlatformCredit } from "@/components/templates/platform-credit";
 import type { SampleBusiness, SampleService, SampleHour } from "@/lib/sample-data";
 
 interface StudioTemplateProps {
@@ -243,7 +244,6 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
           when the site actually contains a stock photo. */}
       <footer className="py-8 px-6 text-center text-xs" style={{ borderTop: `1px solid ${border}`, color: muted }}>
         <p>{c("footer_text", `${bizName} · ${bizLocation}`)}</p>
-        <p className="mt-1">{c("footer_credit", "Powered by OYRB")}</p>
         {!isEditorPreview && hasAnyStockImage({
           heroSrc,
           profileSrc,
@@ -253,6 +253,8 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
             Some images on this site may be stock photos used for illustrative purposes. Actual service results may vary.
           </p>
         )}
+        {/* Platform attribution — NOT user-editable. See components/templates/platform-credit.tsx. */}
+        <PlatformCredit color={muted} />
       </footer>
     </div>
   );

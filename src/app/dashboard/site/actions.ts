@@ -99,13 +99,19 @@ export async function updateSite(formData: FormData) {
         "review_1_body", "review_2_body", "review_3_body",
         "policy_1_body", "policy_2_body", "policy_3_body",
       ]);
+      // Platform-enforced keys — even if a hand-crafted request tries to
+      // set these, drop them server-side. The templates render these from
+      // hard-coded components, not from template_content, but this is the
+      // defense-in-depth belt for the one-liner suspenders.
+      const LOCKED_KEYS = new Set(["footer_credit"]);
       const out: Record<string, string> = {};
       for (const [key, value] of formData.entries()) {
         if (typeof value !== "string") continue;
         if (!key.startsWith("tc_")) continue;
+        const bareKey = key.slice(3);
+        if (LOCKED_KEYS.has(bareKey)) continue;
         const trimmed = value.trim();
         if (!trimmed) continue;
-        const bareKey = key.slice(3);
         const cap = LONG_TEXT_KEYS.has(bareKey) ? 500 : 200;
         out[bareKey] = trimmed.slice(0, cap);
       }

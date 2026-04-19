@@ -6,6 +6,7 @@ import Image from "next/image";
 import type { TemplateTheme } from "@/lib/template-themes";
 import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
 import { StockBadge } from "@/components/templates/stock-badge";
+import { PlatformCredit } from "@/components/templates/platform-credit";
 import type { SampleService, SampleHour, SampleBusiness } from "@/lib/sample-data";
 
 interface OriginalTemplateProps {
@@ -641,7 +642,9 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
             only when at least one stock image is present on the site. */}
         <div style={{ padding: "28px 22px 48px", background: t.surface, textAlign: "center" }}>
           <div style={{ fontFamily: t.displayFont, fontWeight: t.displayWeight, fontSize: 18, color: t.ink, letterSpacing: t.displayTracking }}>{biz.name}</div>
-          <div style={{ fontFamily: "monospace", fontSize: 10, color: t.muted, letterSpacing: 1.5, textTransform: "uppercase" as const, marginTop: 6 }}>© 2026 · Powered by OYRB</div>
+          <div style={{ fontFamily: "monospace", fontSize: 10, color: t.muted, letterSpacing: 1.5, textTransform: "uppercase" as const, marginTop: 6 }}>© {new Date().getFullYear()}</div>
+          {/* Platform attribution — NOT user-editable. */}
+          <PlatformCredit color={t.muted} />
           {!isEditorPreview && originalHasAnyStock(biz) && (
             <p style={{ fontFamily: t.bodyFont, fontSize: 10, fontStyle: "italic", color: t.muted, opacity: 0.7, marginTop: 14, lineHeight: 1.5 }}>
               Some images on this site may be stock photos used for illustrative purposes. Actual service results may vary.

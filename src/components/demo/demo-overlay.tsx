@@ -57,12 +57,21 @@ export function DemoOverlay() {
 
   return (
     <>
-      {/* Persistent banner — fixed at top of viewport */}
-      <div className="fixed inset-x-0 top-0 z-40 flex items-center justify-center gap-2 bg-[#0A0A0A] px-4 py-1.5 text-center text-[11px] font-medium text-white shadow-sm md:text-xs">
+      {/* Persistent banner — fixed at top of viewport, renders on every
+          page in demo mode. */}
+      <div className="fixed inset-x-0 top-0 z-40 flex flex-wrap items-center justify-center gap-2 bg-[#0A0A0A] px-4 py-1.5 text-center text-[11px] font-medium text-white shadow-sm md:text-xs">
         <span className="hidden sm:inline">🎬</span>
         <span>
           <strong>Live Demo</strong> — try anything! Resets every 24 hours.
         </span>
+        <a
+          href="/s/luxe-studio-demo"
+          target="_blank"
+          rel="noreferrer"
+          className="rounded border border-white/30 bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-white/20 md:text-[11px]"
+        >
+          👁️ Preview public site
+        </a>
         <a
           href="https://oyrb.space/signup"
           className="rounded bg-[#B8896B] px-2 py-0.5 text-[10px] font-semibold text-white hover:opacity-85 md:text-[11px]"
@@ -70,8 +79,10 @@ export function DemoOverlay() {
           Sign up for the real thing →
         </a>
       </div>
-      {/* Push page content down so the banner doesn't cover it. */}
-      <div aria-hidden className="h-8" />
+      {/* Push page content down so the banner doesn't cover it. The banner
+          wraps to two lines on narrow viewports — bump the mobile height
+          so there's no overlap. */}
+      <div aria-hidden className="h-12 md:h-8" />
 
       {showModal && <WelcomeModal sourceLabel={sourceLabel} onDismiss={dismiss} />}
     </>
@@ -99,16 +110,22 @@ function WelcomeModal({
           </p>
         )}
         <h2 id="demo-welcome-title" className="font-display text-2xl font-medium tracking-tight">
-          Welcome to the OYRB live demo!
+          Welcome to OYRB! 🎉
         </h2>
         <p className="mt-2 text-sm text-[#525252]">
-          You&rsquo;re logged in as a sample beauty professional. Try editing
-          the site, swapping templates, changing themes, adding bookings —
-          anything you want. Nothing you do here breaks anything.
+          You&rsquo;re now logged in as <strong>Jasmine Carter</strong>, a
+          sample beauty professional. You have full access to her dashboard,
+          site editor, bookings, and settings — try anything!
         </p>
         <p className="mt-2 text-xs text-[#737373]">
-          Your changes will reset every 24 hours. No real charges, no real
-          emails, no real texts — it&rsquo;s a sandbox.
+          Edit text, swap templates, change themes, add bookings, tweak
+          services — all in real time. Your changes reset every 24 hours.
+          No real charges, no real emails, no real texts. It&rsquo;s a sandbox.
+        </p>
+        <p className="mt-2 text-xs text-[#737373]">
+          Want to see what her clients see? Click{" "}
+          <span className="font-semibold">&ldquo;Preview public site&rdquo;</span>{" "}
+          in the black banner at the top.
         </p>
         <div className="mt-5 flex flex-wrap items-center gap-2">
           <button

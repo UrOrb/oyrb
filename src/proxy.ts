@@ -29,18 +29,32 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Demo-mode auto-login: any unauthenticated visitor gets signed in as
-  // the shared demo user and bounced to the site builder. Skip when the
-  // request is already the auto-login route itself (would loop).
-  if (
-    !user &&
-    process.env.DEMO_MODE === "true" &&
-    !request.nextUrl.pathname.startsWith("/api/demo/auto-login")
-  ) {
-    const dest = request.nextUrl.pathname + request.nextUrl.search;
-    const url = new URL("/api/demo/auto-login", request.url);
-    url.searchParams.set("dest", dest || "/dashboard/site");
-    return NextResponse.redirect(url);
+  // ── Demo-mode routing ────────────────────────────────────────────────
+  // On the demo deployment the marketing homepage isn't relevant — the
+  // whole point is to drop visitors straight into Jasmine Carter's
+  // authenticated dashboard. So:
+  //   · "/" → /dashboard/site (both before and after auto-login)
+  //   · any unauthenticated visit → /api/demo/auto-login with dest
+  //     preserving the requested path (or the dashboard for "/")
+  if (process.env.DEMO_MODE === "true") {
+    const isRoot = request.nextUrl.pathname === "/";
+
+    // Already-authenticated demo visitor hitting "/" → skip the marketing
+    // page and go straight to the dashboard.
+    if (user && isRoot) {
+      return NextResponse.redirect(new URL("/dashboard/site", request.url));
+    }
+
+    // Unauthenticated demo visitor on any matched path → sign in first.
+    // Normalize "/" so the post-login redirect lands on the dashboard,
+    // not back on the marketing homepage.
+    if (!user && !request.nextUrl.pathname.startsWith("/api/demo/auto-login")) {
+      const normalizedPath = isRoot ? "/dashboard/site" : request.nextUrl.pathname;
+      const dest = normalizedPath + request.nextUrl.search;
+      const url = new URL("/api/demo/auto-login", request.url);
+      url.searchParams.set("dest", dest);
+      return NextResponse.redirect(url);
+    }
   }
 
   // Redirect unauthenticated users away from protected routes

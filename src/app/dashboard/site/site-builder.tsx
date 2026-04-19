@@ -246,9 +246,12 @@ const TEMPLATE_COPY_FIELDS: Array<{
   },
   {
     group: "Footer",
+    // footer_credit used to live here; it is now rendered by
+    // <PlatformCredit /> (server-side, platform-enforced, non-removable).
+    // See components/templates/platform-credit.tsx + Terms §24.
+    description: `"Powered by OYRB" credit is shown on all published sites and cannot be removed.`,
     fields: [
-      { key: "footer_text",   label: "Footer line",   placeholder: "Your name · Your city", wide: true },
-      { key: "footer_credit", label: "Footer credit", placeholder: "Powered by OYRB" },
+      { key: "footer_text", label: "Footer line", placeholder: "Your name · Your city", wide: true },
     ],
   },
 ];

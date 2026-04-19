@@ -412,7 +412,25 @@ export default function TermsPage() {
           </section>
 
           <section className="mt-8 space-y-4 text-[#2a2a2a]">
-            <h2 className="font-display text-2xl font-medium">24. Contact</h2>
+            <h2 className="font-display text-2xl font-medium">24. Platform Attribution</h2>
+            <p className="rounded bg-amber-50 px-2 py-1 text-xs font-mono text-amber-900">
+              [LAWYER REVIEW REQUIRED — DRAFT TEXT BELOW]
+            </p>
+            <p>
+              Every site published through {COMPANY_NAME} displays a
+              &ldquo;Powered by OYRB&rdquo; credit in the footer, linking to{" "}
+              <a href="https://oyrb.space" className="text-[#B8896B] hover:underline">oyrb.space</a>.
+              Removal, modification, or obscuring of this credit — whether
+              through the editor, custom CSS, custom HTML, custom JavaScript,
+              third-party tooling, or re-hosting exported HTML — is a
+              violation of these Terms and may result in account suspension
+              or termination, in addition to any legal remedies available to
+              {" "}{COMPANY_NAME}.
+            </p>
+          </section>
+
+          <section className="mt-8 space-y-4 text-[#2a2a2a]">
+            <h2 className="font-display text-2xl font-medium">25. Contact</h2>
             <p>
               Questions about these Terms? Email us at <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#B8896B] hover:underline">{CONTACT_EMAIL}</a>.
             </p>
