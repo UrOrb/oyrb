@@ -525,7 +525,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(786) 555-0195",
       email: "hey@citrusbeautybar.com",
       category: "Natural Hair & Color",
-      heroImageId: "1519699047748-de8e457a634e",
+      heroImageId: "/citrus-vegetables.avif",
       profileImageId: "1519014816548-bf5fe059798b",
       galleryIds: [
         "1519699047748-de8e457a634e","1519014816548-bf5fe059798b",

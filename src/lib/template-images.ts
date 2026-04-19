@@ -6,6 +6,9 @@ export const UNSPLASH_BASE = "https://images.unsplash.com/photo-";
 export function unsplash(id: string, w = 800, q = 85) {
   // If a full URL was passed (e.g. a real business's uploaded image), use it directly.
   if (id.startsWith("http://") || id.startsWith("https://")) return id;
+  // Local /public paths stay as-is so we can pin specific theme images to
+  // project assets (e.g. the Citrus fruits/vegetables hero).
+  if (id.startsWith("/")) return id;
   return `${UNSPLASH_BASE}${id}?auto=format&fit=crop&w=${w}&q=${q}`;
 }
 
