@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { SettingsForm } from "./settings-form";
+import { PlanChangeForm } from "./plan-change-form";
 import { getCurrentBusiness } from "@/lib/current-site";
 import { getAccountSummary } from "@/lib/account";
 import {
@@ -144,12 +145,12 @@ function BillingPanel({ summary }: { summary: NonNullable<Awaited<ReturnType<typ
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-xs text-[#737373]">
         <p>Next charge: <span className="font-semibold text-[#0A0A0A]">{renewalDate}</span></p>
         <div className="flex gap-2">
-          <Link
-            href="/pricing"
-            className="rounded-md border border-[#E7E5E4] bg-white px-3 py-1.5 font-medium hover:bg-[#F5F5F4]"
-          >
-            Change plan
-          </Link>
+          <PlanChangeForm
+            currentTier={sub.tier}
+            currentCycle={cycle}
+            currentSites={summary.siteCount}
+            currentAddons={sub.addon_count}
+          />
           <Link
             href="/api/stripe/portal"
             className="rounded-md bg-[#0A0A0A] px-3 py-1.5 font-medium text-white hover:opacity-85"
