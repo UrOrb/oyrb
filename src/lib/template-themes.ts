@@ -115,7 +115,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(212) 555-0917",
       email: "book@midnightatelier.com",
       category: "Beauty & Makeup Artistry",
-      heroImageId: "1604654894610-df63bc536371",
+      heroImageId: "/luxe-hero.avif",
       profileImageId: "1492106087820-71f1a00d2b11",
       galleryIds: [
         "1604654894610-df63bc536371","1531746020798-e6953c6e8e04",
@@ -648,7 +648,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(424) 555-0622",
       email: "hi@mochiroom.co",
       category: "Nail & Lash Artistry",
-      heroImageId: "1604654894610-df63bc536371",
+      heroImageId: "/mochi-hero.avif",
       profileImageId: "1531746020798-e6953c6e8e04",
       galleryIds: [
         "1604654894610-df63bc536371","1531746020798-e6953c6e8e04",
