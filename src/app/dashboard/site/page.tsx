@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { SiteForm } from "./site-form";
-import { EditorTabs } from "./editor-tabs";
+import { SiteBuilder } from "./site-builder";
 import type { Business, BusinessHours } from "@/lib/types";
 
 export default async function SitePage() {
@@ -27,10 +26,15 @@ export default async function SitePage() {
     );
   }
 
-  const { data: hours } = await supabase
-    .from("business_hours")
-    .select("*")
-    .eq("business_id", business.id);
+  const [{ data: hours }, { data: services }] = await Promise.all([
+    supabase.from("business_hours").select("*").eq("business_id", business.id),
+    supabase
+      .from("services")
+      .select("id, name, duration_minutes, price_cents, deposit_cents, description")
+      .eq("business_id", business.id)
+      .eq("active", true)
+      .order("price_cents", { ascending: true }),
+  ]);
 
   const h = await headers();
   const host = h.get("host") ?? "oyrb.space";
@@ -38,26 +42,11 @@ export default async function SitePage() {
   const origin = `${protocol}://${host}`;
 
   return (
-    <div>
-      <h1 className="font-display text-2xl font-medium tracking-tight">Your site</h1>
-      <p className="mt-1 text-sm text-[#737373]">
-        Everything your clients see. Publish when you&rsquo;re ready.
-      </p>
-
-      <div className="mt-8">
-        <EditorTabs
-          slug={business.slug}
-          origin={origin}
-          isPublished={!!business.is_published}
-          editChildren={
-            <SiteForm
-              business={business as Business}
-              hours={(hours ?? []) as BusinessHours[]}
-              origin={origin}
-            />
-          }
-        />
-      </div>
-    </div>
+    <SiteBuilder
+      business={business as Business}
+      hours={(hours ?? []) as BusinessHours[]}
+      services={services ?? []}
+      origin={origin}
+    />
   );
 }
