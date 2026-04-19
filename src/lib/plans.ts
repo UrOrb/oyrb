@@ -117,3 +117,19 @@ export function fmtPriceLabel(cents: number, cycle: BillingCycle): string {
 
 /** "Save ~17%" — annual plans get 2 months free. */
 export const ANNUAL_SAVINGS_LABEL = "2 months free";
+
+/**
+ * Display the annual price as its per-month equivalent. Whole-dollar
+ * rounding is the canonical convention across plans and the add-on
+ * (240→$20, 490→$41, 890→$74, 200→$17). Used only for display — actual
+ * Stripe charges are still the full annual amount up front.
+ */
+export function fmtAnnualAsMonthly(annualCents: number): string {
+  const monthly = Math.round(annualCents / 12 / 100);
+  return `$${monthly}`;
+}
+
+/** "$240 billed annually" — secondary text under the per-month headline. */
+export function fmtAnnualBilled(annualCents: number): string {
+  return `${fmtMoney(annualCents)} billed annually`;
+}

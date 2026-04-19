@@ -10,6 +10,8 @@ import {
   ANNUAL_SAVINGS_LABEL,
   fmtMoney,
   fmtPriceLabel,
+  fmtAnnualAsMonthly,
+  fmtAnnualBilled,
   type BillingCycle,
 } from "@/lib/plans";
 
@@ -52,15 +54,17 @@ export function PricingCards() {
 
       <div className="mt-10 grid gap-4 md:grid-cols-3">
         {TIER_LIST.map((tier) => {
-          const priceCents = cycle === "monthly" ? tier.monthlyPriceCents : tier.annualPriceCents;
-          const cycleLabel = cycle === "monthly" ? "/mo" : "/yr";
           const sitesIncludedLabel =
             tier.sitesIncluded === 1 ? "1 site included" : `${tier.sitesIncluded} sites included`;
           const addonsAvailable = tier.id !== "starter" && tier.siteCap > tier.sitesIncluded;
           const extraSlots = tier.siteCap - tier.sitesIncluded;
-          const addonCost = cycle === "monthly" ? ADDON_MONTHLY_CENTS : ADDON_ANNUAL_CENTS;
+          // Add-on copy: in monthly mode show $20/mo each; in annual mode show
+          // the per-month equivalent ($17/mo) with "billed annually" so it
+          // matches the headline plan-price treatment.
           const addonCopy = addonsAvailable
-            ? `Add up to ${extraSlots} more ${extraSlots === 1 ? "site" : "sites"} for ${fmtPriceLabel(addonCost, cycle)} each.`
+            ? cycle === "monthly"
+              ? `Add up to ${extraSlots} more ${extraSlots === 1 ? "site" : "sites"} for ${fmtPriceLabel(ADDON_MONTHLY_CENTS, "monthly")} each.`
+              : `Add up to ${extraSlots} more ${extraSlots === 1 ? "site" : "sites"} for ${fmtAnnualAsMonthly(ADDON_ANNUAL_CENTS)}/mo each, billed annually.`
             : "Site limit: 1. Upgrade for additional sites.";
 
           return (
@@ -78,15 +82,34 @@ export function PricingCards() {
                 </div>
               )}
               <p className="font-medium">{tier.name}</p>
-              <p className="font-display mt-2 text-5xl font-medium">
-                {fmtMoney(priceCents)}
-                <span className="text-lg font-normal text-[#737373]">{cycleLabel}</span>
-              </p>
-              {cycle === "annual" && (
-                <p className="mt-1 text-xs text-[#B8896B]">
-                  {fmtMoney(tier.monthlyPriceCents)}/mo equivalent · {ANNUAL_SAVINGS_LABEL}
-                </p>
+
+              {/* Headline price: monthly cycle shows the actual monthly charge.
+                  Annual cycle shows the per-month equivalent (whole-dollar
+                  rounded) with the full annual amount in secondary text and
+                  the "Save ~17%" badge alongside. Stripe still charges the
+                  full annual sum up front — display only. */}
+              {cycle === "monthly" ? (
+                <>
+                  <p className="font-display mt-2 text-5xl font-medium">
+                    {fmtMoney(tier.monthlyPriceCents)}
+                    <span className="text-lg font-normal text-[#737373]">/mo</span>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-display mt-2 text-5xl font-medium">
+                    {fmtAnnualAsMonthly(tier.annualPriceCents)}
+                    <span className="text-lg font-normal text-[#737373]">/mo</span>
+                  </p>
+                  <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[#525252]">
+                    <span>{fmtAnnualBilled(tier.annualPriceCents)}</span>
+                    <span className="rounded-full bg-[#B8896B]/15 px-2 py-0.5 text-[10px] font-semibold text-[#B8896B]">
+                      {ANNUAL_SAVINGS_LABEL}
+                    </span>
+                  </p>
+                </>
               )}
+
               <p className="mt-2 text-sm text-[#737373]">{tier.description}</p>
 
               <div className="mt-4 rounded-md bg-[#FAFAF9] px-3 py-2 text-xs">
