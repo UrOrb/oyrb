@@ -2,7 +2,10 @@
 // Signed JWTs — no separate DB table needed.
 import { SignJWT, jwtVerify } from "jose";
 
-const SECRET = process.env.CLIENT_AUTH_SECRET ?? process.env.CRON_SECRET ?? "";
+// CLIENT_AUTH_SECRET is its own dedicated secret. It must NOT fall back to
+// CRON_SECRET — those serve different security domains and sharing them
+// means a compromise of one becomes a compromise of the other.
+const SECRET = process.env.CLIENT_AUTH_SECRET ?? "";
 const encoder = new TextEncoder();
 
 // 20-minute magic link, 7-day session
@@ -13,8 +16,8 @@ type MagicPayload = { email: string; kind: "magic" };
 type SessionPayload = { email: string; kind: "session" };
 
 function key() {
-  if (!SECRET || SECRET.length < 16) {
-    throw new Error("CLIENT_AUTH_SECRET (or CRON_SECRET) must be set to at least 16 chars");
+  if (!SECRET || SECRET.length < 32) {
+    throw new Error("CLIENT_AUTH_SECRET must be set to at least 32 chars");
   }
   return encoder.encode(SECRET);
 }

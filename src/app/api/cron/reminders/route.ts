@@ -14,11 +14,11 @@ const FROM_EMAIL =
  * SMS:   sent to clients with sms_consent=true, only when the pro is on Studio/Scale.
  */
 export async function GET(request: NextRequest) {
-  // Protect the endpoint — Vercel Cron sends an auth header,
-  // or allow manual triggering via CRON_SECRET.
+  // CRON_SECRET is mandatory — without it, anyone could trigger this
+  // endpoint and burn Resend / Twilio quota by making us re-send reminders.
   const cronSecret = process.env.CRON_SECRET;
   const auth = request.headers.get("authorization");
-  if (cronSecret && auth !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || auth !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

@@ -1,6 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+// Guard: this module imports server-only APIs (cookies()) and exposes
+// createAdminClient() which uses the SUPABASE_SERVICE_ROLE_KEY. It must
+// never be bundled into client code. `next/headers` already throws if
+// imported into a client component, but make the intent explicit:
+if (typeof window !== "undefined") {
+  throw new Error("@/lib/supabase/server must only be imported on the server");
+}
+
 export async function createClient() {
   const cookieStore = await cookies();
 

@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
   const serviceId = metadata.service_id!;
   const startAt = new Date(metadata.start_at!);
   const name = metadata.name!;
-  const email = metadata.email!;
+  const email = (metadata.email ?? "").toLowerCase();
   const phone = metadata.phone || null;
   const notes = metadata.notes || null;
   const smsConsent = metadata.sms_consent === "true";

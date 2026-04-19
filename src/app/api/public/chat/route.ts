@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createAdminClient } from "@/lib/supabase/server";
+import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
 
 const MAX_MESSAGE_LEN = 600;
 const MAX_HISTORY = 10;
@@ -26,6 +27,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "AI assistant not configured." },
       { status: 503 }
+    );
+  }
+
+  // Public endpoint that pays for every call. Cap each IP at 10 messages per
+  // minute and 60 per hour so a runaway loop can't drain the AI budget.
+  const ip = ipFromRequest(request);
+  const minuteCheck = rateLimit(`chat:m:${ip}`, 10, 60_000);
+  const hourCheck = rateLimit(`chat:h:${ip}`, 60, 60 * 60_000);
+  if (!minuteCheck.ok || !hourCheck.ok) {
+    return NextResponse.json(
+      { error: "You're sending messages too quickly — please wait a moment." },
+      { status: 429 }
     );
   }
 
@@ -55,7 +68,7 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient();
   const { data: biz } = await supabase
     .from("businesses")
-    .select("id, business_name, tagline, bio, city, state, phone, contact_email, cancellation_policy, client_policies")
+    .select("id, business_name, tagline, bio, city, state, cancellation_policy, client_policies")
     .eq("slug", slug)
     .eq("is_published", true)
     .maybeSingle();
@@ -105,12 +118,15 @@ export async function POST(request: NextRequest) {
 
   const location = [biz.city, biz.state].filter(Boolean).join(", ");
 
+  // Deliberately omit phone + email from the prompt body — those are
+  // already visible on the public site for any human visitor; sending them
+  // through the LLM provider as part of every chat is unnecessary PII spread.
   const systemPrompt = `You are the virtual assistant for ${biz.business_name}, a beauty professional.
 Your job: help potential clients understand services, pricing, hours, and policies, and guide them to book. You are NOT the booking system itself — when someone wants to book, tell them to click the "Book an Appointment" button on this page.
 
 ABOUT THE BUSINESS
 Name: ${biz.business_name}
-${biz.tagline ? `Tagline: ${biz.tagline}\n` : ""}${biz.bio ? `Bio: ${biz.bio}\n` : ""}${location ? `Location: ${location}\n` : ""}${biz.phone ? `Phone: ${biz.phone}\n` : ""}${biz.contact_email ? `Email: ${biz.contact_email}\n` : ""}
+${biz.tagline ? `Tagline: ${biz.tagline}\n` : ""}${biz.bio ? `Bio: ${biz.bio}\n` : ""}${location ? `Location: ${location}\n` : ""}
 
 SERVICES
 ${servicesText || "(no services listed yet)"}
@@ -125,8 +141,8 @@ RULES
 1. Keep answers short and warm (1–3 sentences typical). No headers, no bullet lists unless asked. No emojis unless the client uses them first.
 2. Only answer questions about this business, its services, hours, location, policies, or how to book. If asked off-topic questions, politely redirect: "I can help with questions about ${biz.business_name} and booking — is there something specific about a service you'd like to know?"
 3. When asked to book, say: "Click the Book an Appointment button on this page to pick a time — I'll be here if you have questions as you go."
-4. Never make up a price, duration, or policy not listed above. If you don't know, say "I'm not sure — reach out to ${biz.business_name} directly at ${biz.contact_email || biz.phone || "the contact info on this page"} and they can help."
-5. Do not collect personal info (name, email, phone, card). The booking form handles that.
+4. Never make up a price, duration, or policy not listed above. If you don't know, say "I'm not sure — the contact details on this page will get you a direct answer from ${biz.business_name}."
+5. Do not collect personal info (name, email, phone, card) and do not share the business's phone or email — point them to the contact info shown on the page.
 6. If the client seems uncertain, recommend a service that fits what they described.`;
 
   const messages = [

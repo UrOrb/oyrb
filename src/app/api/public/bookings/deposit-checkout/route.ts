@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
+import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
 
 type Payload = {
   business_id: string;
@@ -20,6 +21,16 @@ type Payload = {
 // Booking isn't created yet — it's created in /api/public/bookings/confirm
 // after Stripe redirects back with a paid session_id.
 export async function POST(request: NextRequest) {
+  const ip = ipFromRequest(request);
+  const minute = rateLimit(`deposit:m:${ip}`, 6, 60_000);
+  const hour = rateLimit(`deposit:h:${ip}`, 30, 60 * 60_000);
+  if (!minute.ok || !hour.ok) {
+    return NextResponse.json(
+      { error: "Too many checkout attempts — please slow down." },
+      { status: 429 }
+    );
+  }
+
   let body: Payload;
   try {
     body = await request.json();
@@ -30,6 +41,8 @@ export async function POST(request: NextRequest) {
   if (!body.business_id || !body.service_id || !body.start_at || !body.name || !body.email) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
+
+  body.email = body.email.toLowerCase();
 
   const supabase = createAdminClient();
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { sendBookingConfirmation, sendOwnerNotification } from "@/lib/email";
 import { formatCents } from "@/lib/types";
+import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
 
 type BookingPayload = {
   business_id: string;
@@ -17,6 +18,19 @@ type BookingPayload = {
 };
 
 export async function POST(request: NextRequest) {
+  // Spam guard: cap booking attempts per-IP. Booking inserts trigger owner
+  // emails (Resend quota) and create real DB rows. 6/min, 30/hour is plenty
+  // for legitimate human use, blocks scripted abuse.
+  const ip = ipFromRequest(request);
+  const minute = rateLimit(`book:m:${ip}`, 6, 60_000);
+  const hour = rateLimit(`book:h:${ip}`, 30, 60 * 60_000);
+  if (!minute.ok || !hour.ok) {
+    return NextResponse.json(
+      { error: "Too many booking attempts — please slow down." },
+      { status: 429 }
+    );
+  }
+
   let body: BookingPayload;
   try {
     body = await request.json();
@@ -28,6 +42,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
+  // Canonicalize the email so "Foo@x.com" and "foo@x.com" don't create
+  // duplicate client rows. The rest of the pipeline already lower-cases
+  // email when reading; do it on write too.
+  body.email = body.email.toLowerCase();
+
+  // RLS NOTE: this route uses the admin client because anonymous clients
+  // need to insert booking + client rows. We protect those writes by
+  // (a) requiring a published business, (b) scoping every insert to the
+  // resolved business_id below, and (c) rate-limiting above. Do not relax
+  // those checks without re-evaluating the trust model.
   const supabase = createAdminClient();
 
   // Load business + service
