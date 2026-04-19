@@ -12,6 +12,10 @@ interface OriginalTemplateProps {
   services?: SampleService[];
   hours?: SampleHour[];
   business?: SampleBusiness;
+  // Row-level text overrides keyed by template element id (see the
+  // "Template copy" section in /dashboard/site). When an entry is blank or
+  // missing the code-level fallback passed to c() wins.
+  content?: Record<string, string> | null;
 }
 
 function fmt$(cents: number) { return `$${(cents / 100).toFixed(0)}`; }
@@ -87,14 +91,22 @@ function Ornament({ t }: { t: TemplateTheme }) {
 }
 
 // ── Hero section — each theme gets its exact layout ────────────────────────────
-function Hero({ t, biz, bookHref }: { t: TemplateTheme; biz: TemplateTheme["business"]; bookHref: string }) {
+function Hero({ t, biz, bookHref, kickerOverride, ctaOverride }: {
+  t: TemplateTheme;
+  biz: TemplateTheme["business"];
+  bookHref: string;
+  kickerOverride?: string;
+  ctaOverride?: string;
+}) {
+  const k = (fallback: string) => (kickerOverride?.trim() ? kickerOverride : fallback);
+  const cta = (fallback: string) => (ctaOverride?.trim() ? ctaOverride : fallback);
   const heroUrl = unsplash(biz.heroImageId, 800);
   const portraitUrl = unsplash(biz.profileImageId, 400);
 
   if (t.id === "luxe" || t.id === "noir") return (
     <div style={{ background: t.bg, padding: "28px 20px 40px", position: "relative" }}>
       <div style={{ position: "absolute", top: 28, right: 20, fontFamily: "monospace", fontSize: 9, color: t.accent, letterSpacing: 3, writingMode: "vertical-rl" as const }}>EST. MMXVIII</div>
-      <Kicker id={t.id} mono="monospace" accent={t.accent} style={{ marginBottom: 20 }}>Private Studio · By Appointment</Kicker>
+      <Kicker id={t.id} mono="monospace" accent={t.accent} style={{ marginBottom: 20 }}>{k("Private Studio · By Appointment")}</Kicker>
       <h1 style={{ fontFamily: t.displayFont, fontWeight: t.displayWeight, fontSize: 56, lineHeight: 1.0, letterSpacing: "-0.02em", margin: 0, color: t.ink, fontStyle: "italic" }}>
         {biz.name.split(" ")[0]}<br /><span style={{ color: t.accent }}>{biz.name.split(" ").slice(1).join(" ")}</span>
       </h1>
@@ -104,14 +116,14 @@ function Hero({ t, biz, bookHref }: { t: TemplateTheme; biz: TemplateTheme["busi
         <Image src={heroUrl} alt={biz.name} width={800} height={1000} className="w-full object-cover" style={{ borderRadius: t.radius, aspectRatio: "4/5" }} />
       </div>
       <div style={{ marginTop: 24 }}>
-        <a href={bookHref} style={{ display: "block", width: "100%", background: t.btnBg, color: t.btnText, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "16px", borderRadius: t.radiusBtn, textDecoration: "none" }}>Request Appointment</a>
+        <a href={bookHref} style={{ display: "block", width: "100%", background: t.btnBg, color: t.btnText, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "16px", borderRadius: t.radiusBtn, textDecoration: "none" }}>{cta("Request Appointment")}</a>
       </div>
     </div>
   );
 
   if (t.id === "bold" || t.id === "citrus") return (
     <div style={{ background: t.ink, color: t.bg, padding: "24px 20px 28px" }}>
-      <div style={{ fontFamily: "monospace", fontSize: 10, color: t.accent, letterSpacing: 2, textTransform: "uppercase", marginBottom: 14 }}>◼ OPEN FOR BOOKING</div>
+      <div style={{ fontFamily: "monospace", fontSize: 10, color: t.accent, letterSpacing: 2, textTransform: "uppercase", marginBottom: 14 }}>{k("◼ OPEN FOR BOOKING")}</div>
       <div style={{ fontFamily: t.displayFont, fontWeight: 900, fontSize: 68, lineHeight: 0.88, letterSpacing: "-0.045em", color: t.bg }}>
         {biz.name.toUpperCase().split(" ")[0]}.<br />
         <span style={{ color: t.accent }}>{biz.name.toUpperCase().split(" ").slice(1).join(" ") || "STUDIO"}</span>
@@ -125,7 +137,7 @@ function Hero({ t, biz, bookHref }: { t: TemplateTheme; biz: TemplateTheme["busi
         <div style={{ position: "absolute", bottom: -12, left: -4, background: t.accent, color: t.ink, fontFamily: t.displayFont, fontWeight: 900, fontSize: 14, padding: "6px 12px", letterSpacing: 1 }}>NEW WORK ⟶</div>
       </div>
       <div style={{ marginTop: 28 }}>
-        <a href={bookHref} style={{ display: "block", background: t.accent, color: t.ink, fontFamily: t.displayFont, fontWeight: 900, fontSize: 15, textAlign: "center", padding: "16px", textDecoration: "none", letterSpacing: "0.05em", textTransform: "uppercase" }}>BOOK NOW →</a>
+        <a href={bookHref} style={{ display: "block", background: t.accent, color: t.ink, fontFamily: t.displayFont, fontWeight: 900, fontSize: 15, textAlign: "center", padding: "16px", textDecoration: "none", letterSpacing: "0.05em", textTransform: "uppercase" }}>{cta("BOOK NOW →")}</a>
       </div>
     </div>
   );
@@ -133,7 +145,7 @@ function Hero({ t, biz, bookHref }: { t: TemplateTheme; biz: TemplateTheme["busi
   if (t.id === "street" || t.id === "slate") return (
     <div style={{ background: t.bg, color: t.ink, padding: "20px 18px 28px", position: "relative" }}>
       <div style={{ fontFamily: "monospace", fontSize: 10, color: t.accent, letterSpacing: 2, marginBottom: 8 }}>
-        // STUDIO · EST_2019 · ACCEPTING CLIENTS
+        {k("// STUDIO · EST_2019 · ACCEPTING CLIENTS")}
       </div>
       <div style={{ fontFamily: t.displayFont, fontWeight: 800, fontSize: 64, lineHeight: 0.85, letterSpacing: "-0.045em", color: t.ink, textTransform: "uppercase" as const }}>
         {biz.name.split(" ")[0]}<span style={{ color: t.accent }}>/</span>{biz.name.split(" ").slice(1).join("")}
@@ -148,7 +160,7 @@ function Hero({ t, biz, bookHref }: { t: TemplateTheme; biz: TemplateTheme["busi
       </div>
       <div style={{ marginTop: 14, fontFamily: t.bodyFont, fontSize: 13, color: t.muted, lineHeight: 1.5 }}>{biz.tagline}</div>
       <div style={{ marginTop: 20 }}>
-        <a href={bookHref} style={{ display: "block", background: t.btnBg, color: t.btnText, fontFamily: t.displayFont, fontWeight: 700, fontSize: 14, textAlign: "center", padding: "16px", textDecoration: "none", textTransform: "uppercase", letterSpacing: "0.05em" }}>▸ BOOK THE CHAIR</a>
+        <a href={bookHref} style={{ display: "block", background: t.btnBg, color: t.btnText, fontFamily: t.displayFont, fontWeight: 700, fontSize: 14, textAlign: "center", padding: "16px", textDecoration: "none", textTransform: "uppercase", letterSpacing: "0.05em" }}>{cta("▸ BOOK THE CHAIR")}</a>
       </div>
     </div>
   );
@@ -157,7 +169,7 @@ function Hero({ t, biz, bookHref }: { t: TemplateTheme; biz: TemplateTheme["busi
     <div style={{ background: `linear-gradient(180deg, ${t.accent2}44 0%, ${t.bg} 40%)`, padding: "24px 20px 32px", position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", top: 40, right: -20, fontSize: 120, opacity: 0.25, color: t.accent, userSelect: "none" }}>★</div>
       <div style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: 2, textTransform: "uppercase" as const, color: t.muted, display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <span style={{ color: t.accent }}>★</span> OPEN · come thru!!
+        <span style={{ color: t.accent }}>★</span> {k("OPEN · come thru!!")}
       </div>
       <div style={{ fontFamily: t.displayFont, fontWeight: 900, fontSize: 62, lineHeight: 0.9, letterSpacing: "-0.03em", color: t.ink }}>
         {biz.name.toLowerCase().split(" ")[0]}<span style={{ color: t.accent }}>☆</span>
@@ -170,14 +182,14 @@ function Hero({ t, biz, bookHref }: { t: TemplateTheme; biz: TemplateTheme["busi
         <div style={{ position: "absolute", top: -10, right: -6, background: t.accent, color: t.surface, fontFamily: t.displayFont, fontWeight: 900, fontSize: 13, padding: "8px 12px", borderRadius: 999, border: `2px solid ${t.ink}`, transform: "rotate(8deg)" }}>✧ NEW SET ✧</div>
       </div>
       <div style={{ marginTop: 24 }}>
-        <a href={bookHref} style={{ display: "block", background: t.btnBg, color: t.btnText, fontFamily: t.displayFont, fontWeight: 900, fontSize: 15, textAlign: "center", padding: "16px", borderRadius: 999, textDecoration: "none" }}>☆ book me ☆</a>
+        <a href={bookHref} style={{ display: "block", background: t.btnBg, color: t.btnText, fontFamily: t.displayFont, fontWeight: 900, fontSize: 15, textAlign: "center", padding: "16px", borderRadius: 999, textDecoration: "none" }}>{cta("☆ book me ☆")}</a>
       </div>
     </div>
   );
 
   if (t.id === "earth" || t.id === "sage") return (
     <div style={{ background: t.bg, padding: "28px 20px 32px" }}>
-      <Kicker id={t.id} mono="monospace" accent={t.accent} kicker="✦" style={{ marginBottom: 16 }}>A small studio · since 2017</Kicker>
+      <Kicker id={t.id} mono="monospace" accent={t.accent} kicker="✦" style={{ marginBottom: 16 }}>{k("A small studio · since 2017")}</Kicker>
       <h1 style={{ fontFamily: t.displayFont, fontWeight: t.displayWeight, fontSize: 44, lineHeight: 1.02, letterSpacing: "-0.01em", margin: 0, color: t.ink }}>
         Slow beauty,<br /><span style={{ color: t.accent, fontStyle: "italic" }}>grounded.</span>
       </h1>
@@ -190,7 +202,7 @@ function Hero({ t, biz, bookHref }: { t: TemplateTheme; biz: TemplateTheme["busi
         </div>
       </div>
       <div style={{ margin: "24px auto", display: "flex", justifyContent: "center" }}><Ornament t={t} /></div>
-      <a href={bookHref} style={{ display: "block", background: t.btnBg, color: t.btnText, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "16px", borderRadius: t.radiusBtn, textDecoration: "none" }}>Book a treatment</a>
+      <a href={bookHref} style={{ display: "block", background: t.btnBg, color: t.btnText, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "16px", borderRadius: t.radiusBtn, textDecoration: "none" }}>{cta("Book a treatment")}</a>
     </div>
   );
 
@@ -206,7 +218,7 @@ function Hero({ t, biz, bookHref }: { t: TemplateTheme; biz: TemplateTheme["busi
       <Image src={heroUrl} alt={biz.name} width={800} height={1000} className="w-full object-cover" style={{ aspectRatio: "4/5" }} />
       <div style={{ marginTop: 32, fontFamily: t.bodyFont, fontSize: 13, lineHeight: 1.7, color: t.ink }}>{biz.bio ?? biz.tagline}</div>
       <div style={{ marginTop: 32 }}>
-        <a href={bookHref} style={{ display: "block", background: t.btnBg, color: t.btnText, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "16px", textDecoration: "none" }}>Book</a>
+        <a href={bookHref} style={{ display: "block", background: t.btnBg, color: t.btnText, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "16px", textDecoration: "none" }}>{cta("Book")}</a>
       </div>
     </div>
   );
@@ -274,7 +286,7 @@ function Hero({ t, biz, bookHref }: { t: TemplateTheme; biz: TemplateTheme["busi
         </div>
       </div>
       <div style={{ marginTop: 32 }}>
-        <a href={bookHref} style={{ display: "block", background: t.btnBg, color: t.btnText, fontFamily: t.displayFont, fontWeight: 900, fontSize: 15, textAlign: "center", padding: "16px", borderRadius: 999, textDecoration: "none" }}>ꕥ book your cute time ꕥ</a>
+        <a href={bookHref} style={{ display: "block", background: t.btnBg, color: t.btnText, fontFamily: t.displayFont, fontWeight: 900, fontSize: 15, textAlign: "center", padding: "16px", borderRadius: 999, textDecoration: "none" }}>{cta("ꕥ book your cute time ꕥ")}</a>
       </div>
     </div>
   );
@@ -330,7 +342,13 @@ function ServiceRow({ t, svc, last, bookHref }: { t: TemplateTheme; svc: SampleS
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
-export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS, business }: OriginalTemplateProps) {
+export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS, business, content }: OriginalTemplateProps) {
+  // Pick a user-edited override for `key` if it's a non-blank string, else
+  // fall back to the theme/layout's built-in copy. Keeps every edit optional.
+  const c = (key: string, fallback: string): string => {
+    const v = content?.[key];
+    return typeof v === "string" && v.trim() ? v : fallback;
+  };
   // Merge real business data over the theme's sample business so the template
   // renders the pro's actual name/tagline/bio/photos. unsplash() returns full
   // URLs unchanged, so substituting hero/profile/gallery with real image URLs
@@ -406,18 +424,28 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
           background: t.btnBg, color: t.btnText,
           borderRadius: t.radiusBtn, fontSize: 12, fontWeight: 600,
           textDecoration: "none", fontFamily: t.bodyFont,
-        }}>Book</a>
+        }}>{c("top_book_label", "Book")}</a>
       </div>
 
       {/* Constrained content width on large screens */}
       <div style={{ maxWidth: 480, margin: "0 auto" }}>
 
         {/* ── Hero ── */}
-        <Hero t={t} biz={biz} bookHref={bookHref} />
+        <Hero
+          t={t}
+          biz={biz}
+          bookHref={bookHref}
+          kickerOverride={content?.hero_kicker}
+          ctaOverride={content?.hero_cta_label}
+        />
 
         {/* ── Stats strip ── */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", borderTop: `1px solid ${t.border}`, borderBottom: `1px solid ${t.border}`, background: t.surface }}>
-          {[{ k: "4.9", l: "rating" }, { k: "320+", l: "reviews" }, { k: "9 yrs", l: "practice" }].map((s, i) => (
+          {[
+            { k: c("stat_1_value", "4.9"),   l: c("stat_1_label", "rating") },
+            { k: c("stat_2_value", "320+"),  l: c("stat_2_label", "reviews") },
+            { k: c("stat_3_value", "9 yrs"), l: c("stat_3_label", "practice") },
+          ].map((s, i) => (
             <div key={i} style={{ padding: "14px 10px", textAlign: "center", borderRight: i < 2 ? `1px solid ${t.border}` : "none" }}>
               <div style={{ fontFamily: t.displayFont, fontSize: 20, fontWeight: t.displayWeight, color: t.ink, letterSpacing: t.displayTracking }}>{s.k}</div>
               <div style={{ fontFamily: "monospace", fontSize: 9, letterSpacing: 1.5, color: t.muted, textTransform: "uppercase" as const, marginTop: 2 }}>{s.l}</div>
@@ -427,7 +455,7 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
 
         {/* ── About ── */}
         <section style={{ padding: "32px 22px", background: t.bg }}>
-          <Kicker id={t.id} mono="monospace" accent={t.accent} kicker={t.id === "y2k" ? "★" : undefined} style={{ marginBottom: 10 }}>Meet the specialist</Kicker>
+          <Kicker id={t.id} mono="monospace" accent={t.accent} kicker={t.id === "y2k" ? "★" : undefined} style={{ marginBottom: 10 }}>{c("section_about_title", "Meet the specialist")}</Kicker>
           <div style={{ display: "flex", gap: 16, alignItems: "flex-start", marginTop: 8 }}>
             <div style={{ width: 82, flexShrink: 0, borderRadius: (t.id === "y2k" || t.id === "rose") ? 999 : t.radius, overflow: "hidden" }}>
               <Image src={unsplash(biz.profileImageId, 200)} alt={biz.name} width={164} height={164} className="object-cover w-full" style={{ aspectRatio: "1/1" }} />
@@ -442,7 +470,7 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
         {/* ── Services ── */}
         <section style={{ padding: "8px 22px 32px", background: t.bg }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 16 }}>
-            <h2 style={{ fontFamily: t.displayFont, fontWeight: t.displayWeight, fontSize: 28, color: t.ink, margin: 0, fontStyle: t.id === "aura" ? "italic" : "normal", letterSpacing: t.displayTracking }}>Services</h2>
+            <h2 style={{ fontFamily: t.displayFont, fontWeight: t.displayWeight, fontSize: 28, color: t.ink, margin: 0, fontStyle: t.id === "aura" ? "italic" : "normal", letterSpacing: t.displayTracking }}>{c("section_services_title", "Services")}</h2>
             <div style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: 1.5, color: t.muted, textTransform: "uppercase" as const }}>{services.length} offered</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column" as const, gap: (t.id === "bold" || t.id === "y2k") ? 0 : 0 }}>
@@ -499,7 +527,7 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
 
         {/* ── Hours ── */}
         <section style={{ padding: "32px 22px", background: t.surface, borderTop: `1px solid ${t.border}`, borderBottom: `1px solid ${t.border}` }}>
-          <Kicker id={t.id} mono="monospace" accent={t.accent} kicker={t.id === "y2k" ? "★" : undefined} style={{ marginBottom: 12 }}>Studio hours</Kicker>
+          <Kicker id={t.id} mono="monospace" accent={t.accent} kicker={t.id === "y2k" ? "★" : undefined} style={{ marginBottom: 12 }}>{c("section_hours_title", "Studio hours")}</Kicker>
           <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
             {hours.map((h, i) => (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", fontFamily: t.bodyFont, fontSize: 14, color: t.ink }}>
@@ -514,7 +542,7 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
 
         {/* ── Policies ── */}
         <section style={{ padding: "32px 22px", background: t.bg }}>
-          <h2 style={{ fontFamily: t.displayFont, fontWeight: t.displayWeight, fontSize: 22, color: t.ink, margin: "0 0 16px", fontStyle: t.id === "aura" ? "italic" : "normal", letterSpacing: t.displayTracking }}>Booking & policies</h2>
+          <h2 style={{ fontFamily: t.displayFont, fontWeight: t.displayWeight, fontSize: 22, color: t.ink, margin: "0 0 16px", fontStyle: t.id === "aura" ? "italic" : "normal", letterSpacing: t.displayTracking }}>{c("section_policies_title", "Booking & policies")}</h2>
           <div style={{ display: "flex", flexDirection: "column" as const, gap: 14 }}>
             {policies.map((p, i) => (
               <div key={i}>

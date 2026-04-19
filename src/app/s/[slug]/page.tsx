@@ -179,6 +179,7 @@ export default async function PublicSitePage({ params }: Props) {
     services: sampleServices,
     hours: sampleHours,
     theme,
+    content: (biz.template_content ?? {}) as Record<string, string>,
   } as any;
 
   // Legacy rows saved with `template_layout === "zip"` map to the renamed Original.

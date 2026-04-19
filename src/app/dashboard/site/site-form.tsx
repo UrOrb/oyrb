@@ -253,6 +253,18 @@ export function SiteForm({ business, hours, origin }: Props) {
         </div>
       </Section>
 
+      {/* Template copy — per-element text overrides (only the Original layout
+          reads these today; other layouts ignore them until ported). */}
+      <Section
+        title="Template copy"
+        subtitle="Rewrite the labels on your template in your own voice. Leave any field blank to use the original design's wording."
+      >
+        <TemplateCopyFields
+          values={(business.template_content ?? {}) as Record<string, string>}
+          inputCls={inputCls}
+        />
+      </Section>
+
       {/* Gallery */}
       <Section title="Gallery" subtitle="Show off your work. Clients see these on your booking site.">
         <GalleryUpload value={gallery} onChange={setGallery} userId={business.owner_id} max={12} />
@@ -449,5 +461,102 @@ export function SiteForm({ business, hours, origin }: Props) {
         </button>
       </div>
     </form>
+  );
+}
+
+// ── Template copy fields ─────────────────────────────────────────────────────
+// Every field's `name` is "tc_<key>". The updateSite action picks up the tc_*
+// prefix, strips it, and writes the result into businesses.template_content.
+// Keys listed here must match the c(...) calls inside OriginalTemplate.
+const TEMPLATE_COPY_FIELDS: Array<{
+  group: string;
+  description?: string;
+  fields: Array<{ key: string; label: string; placeholder: string; helper?: string }>;
+}> = [
+  {
+    group: "Top bar",
+    fields: [
+      { key: "top_book_label", label: "Top-right Book button", placeholder: "Book" },
+    ],
+  },
+  {
+    group: "Hero",
+    description: "The opening section on your site.",
+    fields: [
+      {
+        key: "hero_kicker",
+        label: "Hero kicker (small text above your name)",
+        placeholder: "e.g. OPEN · come thru!!",
+        helper: "Shown differently per theme — every theme gets its own default.",
+      },
+      {
+        key: "hero_cta_label",
+        label: "Hero Book button label",
+        placeholder: "e.g. ☆ book me ☆",
+      },
+    ],
+  },
+  {
+    group: "Stats strip",
+    description: "Three quick-proof numbers under the hero.",
+    fields: [
+      { key: "stat_1_value", label: "Stat 1 value",  placeholder: "4.9" },
+      { key: "stat_1_label", label: "Stat 1 label",  placeholder: "rating" },
+      { key: "stat_2_value", label: "Stat 2 value",  placeholder: "320+" },
+      { key: "stat_2_label", label: "Stat 2 label",  placeholder: "reviews" },
+      { key: "stat_3_value", label: "Stat 3 value",  placeholder: "9 yrs" },
+      { key: "stat_3_label", label: "Stat 3 label",  placeholder: "practice" },
+    ],
+  },
+  {
+    group: "Section titles",
+    fields: [
+      { key: "section_about_title",    label: "About section title",    placeholder: "Meet the specialist" },
+      { key: "section_services_title", label: "Services section title", placeholder: "Services" },
+      { key: "section_hours_title",    label: "Hours section title",    placeholder: "Studio hours" },
+      { key: "section_policies_title", label: "Policies section title", placeholder: "Booking & policies" },
+    ],
+  },
+];
+
+function TemplateCopyFields({
+  values,
+  inputCls,
+}: {
+  values: Record<string, string>;
+  inputCls: string;
+}) {
+  return (
+    <div className="space-y-6">
+      {TEMPLATE_COPY_FIELDS.map((group) => (
+        <div key={group.group}>
+          <h3 className="text-sm font-semibold text-[#0A0A0A]">{group.group}</h3>
+          {group.description && (
+            <p className="mt-0.5 text-xs text-[#737373]">{group.description}</p>
+          )}
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            {group.fields.map((f) => (
+              <div key={f.key}>
+                <label htmlFor={`tc_${f.key}`} className="block text-xs font-medium text-[#525252]">
+                  {f.label}
+                </label>
+                <input
+                  id={`tc_${f.key}`}
+                  name={`tc_${f.key}`}
+                  type="text"
+                  defaultValue={values[f.key] ?? ""}
+                  placeholder={f.placeholder}
+                  maxLength={200}
+                  className={inputCls}
+                />
+                {f.helper && (
+                  <p className="mt-1 text-[11px] text-[#A3A3A3]">{f.helper}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
