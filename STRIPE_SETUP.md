@@ -174,7 +174,67 @@ Annual saves ~17% (= "2 months free").
 
 ---
 
-## G. What this app does NOT do for billing
+## G. Free trial flow
+
+OYRB ships a 14-day free trial on every plan + cycle. No new Stripe products
+needed — the trial is just `trial_period_days: 14` on subscription creation,
+plus payment-method-collection set to `always` so a card is required up front.
+
+### Stripe setup
+
+- Trial subscriptions are created from `/api/checkout` with
+  `trial_period_days: 14` and `trial_settings.end_behavior.missing_payment_method = "cancel"`.
+  If the user removes their card during the trial, the subscription is cancelled
+  rather than left dangling.
+- "Skip trial and start now" creates a subscription **without** `trial_period_days`
+  so Stripe charges today. Same product / price IDs.
+- Mid-trial conversion: `/api/dashboard/end-trial-now` calls
+  `stripe.subscriptions.update(id, { trial_end: "now" })`. The customer is
+  charged immediately and add-on purchases unlock.
+
+### Webhook events (in addition to those in section E)
+
+| Stripe event | App behavior |
+|---|---|
+| `customer.subscription.created` (in trial state) | Webhook upserts the account row with `status = trialing` and writes a `trial_history` row keyed by (email, phone). Unique indexes on each prevent a second trial. |
+| `customer.subscription.trial_will_end` | Fires 3 days before the trial ends. Used as the trigger for the 3-day reminder email (TODO — email job not yet wired). |
+| `customer.subscription.updated` (status changed `trialing` → `active`) | Sync status flip; no schema work needed since the webhook re-derives `status` from the subscription object. |
+| `invoice.payment_succeeded` (first one after trial) | Status flips to `active`; bump `current_period_end`. |
+| `invoice.payment_failed` (after trial conversion) | Status flips to `past_due`; in-app banner asks the user to update their card. |
+
+### Abuse prevention
+
+Implemented today:
+- `trial_history` table with unique indexes on `lower(email)` and `phone`.
+  A 2nd trial for the same email or phone is impossible at the DB layer.
+- `trial_ban_list` table — explicit permanent bans on emails / phones.
+  Lookups happen before trial creation; a banned identity sees a friendly
+  "free trials aren't available — start a paid plan" message and can still
+  pay directly.
+- `trial_signup_attempts` audit log — every attempt (success, blocked-by-
+  prior-trial, blocked-by-ban, phone-unverified) recorded with timestamp,
+  email, phone, IP. Useful for support disputes and as input to future
+  abuse-pattern detection.
+- Phone verification required: trial signup demands a Twilio Verify SMS
+  code. The verification token (signed JWT, 30-min) is the proof that the
+  phone is real before a `trial_history` row is written.
+
+Deferred (planned, but not in this commit):
+- **Auto-ban detector.** A background job that watches `trial_signup_attempts`
+  for the patterns in the spec (same phone twice, same payment-method
+  fingerprint twice, 3+ attempts from one device fingerprint in 30 days)
+  and inserts ban rows automatically.
+- **Payment method fingerprint dedup.** Stripe surfaces a `fingerprint` on
+  `payment_methods` — store it on `account_subscriptions` and refuse a
+  trial when the same fingerprint appears across two different accounts.
+- **Device fingerprint.** Requires a client lib (FingerprintJS or similar);
+  pipeline already has a `device_fingerprint` column ready in
+  `trial_signup_attempts`.
+- **Reminder emails (7 / 3 / 1 days before end).** Need Resend templates
+  and a scheduled job that queries `account_subscriptions` for trialing
+  rows whose `current_period_end` falls inside the target window.
+
+## H. What this app does NOT do for billing
 
 - **No proration UI.** Stripe handles proration when a user adds an add-on
   mid-cycle; the app just confirms the change. The Stripe email receipt is

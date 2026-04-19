@@ -126,16 +126,31 @@ export function PricingCards() {
                 ))}
               </ul>
 
-              <Link
-                href={`/signup?tier=${tier.id}&cycle=${cycle}`}
-                className={`mt-8 block rounded-md py-3 text-center text-sm font-medium transition-opacity hover:opacity-80 ${
-                  tier.highlight
-                    ? "bg-[#0A0A0A] text-white"
-                    : "border border-[#E7E5E4] text-[#0A0A0A] hover:bg-[#F5F5F4]"
-                }`}
-              >
-                Get started
-              </Link>
+              <div className="mt-8 flex flex-col gap-2">
+                <Link
+                  href={`/signup?tier=${tier.id}&cycle=${cycle}&trial=1`}
+                  className={`block rounded-md py-3 text-center text-sm font-medium transition-opacity hover:opacity-80 ${
+                    tier.highlight
+                      ? "bg-[#0A0A0A] text-white"
+                      : "border border-[#E7E5E4] text-[#0A0A0A] hover:bg-[#F5F5F4]"
+                  }`}
+                >
+                  Start 14-day free trial
+                </Link>
+                <Link
+                  href={`/signup?tier=${tier.id}&cycle=${cycle}&trial=0`}
+                  className={`block rounded-md py-2 text-center text-xs font-medium underline-offset-2 transition-colors ${
+                    tier.id === "starter"
+                      ? "text-[#737373] hover:text-[#0A0A0A]"
+                      : "text-[#B8896B] hover:underline"
+                  }`}
+                >
+                  Skip trial — start now
+                  {tier.id !== "starter" && (
+                    <span className="ml-1 text-[#A3A3A3]">(unlock add-on sites)</span>
+                  )}
+                </Link>
+              </div>
             </div>
           );
         })}

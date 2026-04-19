@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { stripe, tierFromPriceId, isAddonPriceId } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/server";
+import { recordTrialStart } from "@/lib/trial";
 import type Stripe from "stripe";
 
 /**
@@ -56,6 +57,31 @@ export async function POST(request: Request) {
 
       await syncSubscriptionRow(supabase, userId, customerId, sub);
       await ensureFirstBusiness(supabase, userId, customerId, sub.id);
+
+      // Record the trial in trial_history when the subscription was created
+      // with a trial. The unique indexes on (email, phone) enforce one-trial-
+      // per-identity at the DB layer too. Skip-trial path doesn't have
+      // trial_email metadata so this no-ops naturally.
+      const trialEmail = sub.metadata?.trial_email ?? "";
+      const trialPhone = sub.metadata?.trial_phone ?? "";
+      const billingCycle = (sub.metadata?.billing_cycle as "monthly" | "annual") ?? "monthly";
+      const tierMeta = (sub.metadata?.tier as "starter" | "studio" | "scale") ?? null;
+      if (sub.status === "trialing" && trialEmail && trialPhone && tierMeta) {
+        try {
+          await recordTrialStart({
+            userId,
+            email: trialEmail,
+            phone: trialPhone,
+            tier: tierMeta,
+            billingCycle,
+            stripeSubscriptionId: sub.id,
+          });
+        } catch (err) {
+          // The DB unique index will catch a true duplicate; everything
+          // else is best-effort.
+          console.warn("recordTrialStart failed:", err);
+        }
+      }
       break;
     }
 

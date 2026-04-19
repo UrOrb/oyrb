@@ -2,9 +2,11 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { CheckoutButton } from "@/components/marketing/checkout-button";
-import { Check, ExternalLink, Plus, Pencil } from "lucide-react";
+import { Check, ExternalLink, Plus, Pencil, Clock } from "lucide-react";
 import { CheckoutPoller } from "./checkout-poller";
 import { ApplyPendingTemplate } from "./apply-pending-template";
+import { getAccountSummary } from "@/lib/account";
+import { TIERS, fmtMoney } from "@/lib/plans";
 
 export default async function DashboardPage({
   searchParams,
@@ -90,12 +92,24 @@ export default async function DashboardPage({
                   </li>
                 ))}
               </ul>
-              <CheckoutButton
-                tier={t.tier}
-                className={`mt-6 w-full rounded-md py-2.5 text-center text-sm font-medium transition-opacity hover:opacity-80 disabled:opacity-50 ${t.highlight ? "bg-[#0A0A0A] text-white" : "border border-[#E7E5E4] text-[#0A0A0A] hover:bg-[#F5F5F4]"}`}
-              >
-                Get started
-              </CheckoutButton>
+              <div className="mt-6 flex flex-col gap-2">
+                <CheckoutButton
+                  tier={t.tier}
+                  cycle="monthly"
+                  mode="trial"
+                  className={`w-full rounded-md py-2.5 text-center text-sm font-medium transition-opacity hover:opacity-80 disabled:opacity-50 ${t.highlight ? "bg-[#0A0A0A] text-white" : "border border-[#E7E5E4] text-[#0A0A0A] hover:bg-[#F5F5F4]"}`}
+                >
+                  Start 14-day free trial
+                </CheckoutButton>
+                <CheckoutButton
+                  tier={t.tier}
+                  cycle="monthly"
+                  mode="skip"
+                  className="w-full rounded-md py-1.5 text-center text-xs font-medium text-[#B8896B] hover:underline disabled:opacity-50"
+                >
+                  Skip trial — start now{t.tier !== "starter" ? " (unlock add-on sites)" : ""}
+                </CheckoutButton>
+              </div>
             </div>
           ))}
         </div>
@@ -133,6 +147,8 @@ export default async function DashboardPage({
       <p className="mt-1 text-sm text-[#737373]">
         Welcome back, {user.user_metadata?.full_name ?? user.email}.
       </p>
+
+      <TrialBanner />
 
       {/* Site status banner */}
       <div className={`mt-6 flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-center md:justify-between ${business.is_published ? "border-[#E7E5E4] bg-[#FAFAF9]" : "border-amber-200 bg-amber-50"}`}>
@@ -212,6 +228,49 @@ export default async function DashboardPage({
           <p className="mt-1 text-xs text-[#737373]">All upcoming and past appointments.</p>
         </a>
       </div>
+    </div>
+  );
+}
+
+// ── Trial banner ────────────────────────────────────────────────────────────
+// Shown only when the user's subscription is in `trialing` status. Displays
+// the conversion date + amount so there are no surprises on day 15.
+async function TrialBanner() {
+  const summary = await getAccountSummary();
+  if (!summary?.subscription) return null;
+  const sub = summary.subscription;
+  if (sub.status !== "trialing") return null;
+
+  const tier = TIERS[sub.tier];
+  const amountCents = sub.billing_cycle === "monthly" ? tier.monthlyPriceCents : tier.annualPriceCents;
+  const date = sub.current_period_end
+    ? new Date(sub.current_period_end).toLocaleDateString(undefined, {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "the end of your trial";
+
+  return (
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      <div className="flex items-start gap-2">
+        <Clock size={16} className="mt-0.5 shrink-0 text-amber-700" />
+        <div>
+          <p className="font-semibold">
+            You&rsquo;re on a 14-day free trial of {tier.name} ({sub.billing_cycle === "monthly" ? "Monthly" : "Annual"}).
+          </p>
+          <p className="mt-0.5 text-xs">
+            Your card will be charged <span className="font-semibold">{fmtMoney(amountCents)}</span> on{" "}
+            <span className="font-semibold">{date}</span>. Cancel anytime before then with one click.
+          </p>
+        </div>
+      </div>
+      <Link
+        href="/dashboard/settings"
+        className="rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-100"
+      >
+        Manage trial
+      </Link>
     </div>
   );
 }

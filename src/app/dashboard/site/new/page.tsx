@@ -58,7 +58,9 @@ export default async function AddNewSitePage() {
         </div>
       </div>
 
-      {/* Branch on tier + cap */}
+      {/* Branch on tier + cap. Trial users get extra gating on add-ons —
+          included sites can still be claimed (those don't cost extra) but
+          the add-on path is offered as a "skip your trial" upsell. */}
       <div className="mt-8">
         {sub.tier === "starter" ? (
           <UpgradeNeeded reason="starter" />
@@ -72,6 +74,8 @@ export default async function AddNewSitePage() {
           <FreeSlot
             remainingFree={tier.sitesIncluded - summary.siteCount}
           />
+        ) : sub.status === "trialing" ? (
+          <AddonBlockedByTrial />
         ) : (
           <AddonOffer
             cycle={cycle}
@@ -80,6 +84,28 @@ export default async function AddNewSitePage() {
           />
         )}
       </div>
+    </div>
+  );
+}
+
+function AddonBlockedByTrial() {
+  return (
+    <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
+      <div className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+        <Lock size={14} className="text-amber-700" />
+        Additional sites are available after your free trial ends.
+      </div>
+      <p className="mt-2 text-xs text-amber-900">
+        To start using multiple sites right now, you can skip the free trial
+        and activate your plan today. (You&rsquo;ll be charged for your plan
+        immediately and the trial offer will be forfeited.)
+      </p>
+      <Link
+        href="/dashboard/settings"
+        className="mt-5 inline-flex items-center gap-1.5 rounded-md bg-[#0A0A0A] px-4 py-2 text-xs font-medium text-white hover:opacity-85"
+      >
+        Skip trial and start now
+      </Link>
     </div>
   );
 }

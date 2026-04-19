@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { SettingsForm } from "./settings-form";
 import { PlanChangeForm } from "./plan-change-form";
+import { EndTrialButton } from "./end-trial-button";
 import { getCurrentBusiness } from "@/lib/current-site";
 import { getAccountSummary } from "@/lib/account";
 import {
@@ -141,6 +142,21 @@ function BillingPanel({ summary }: { summary: NonNullable<Awaited<ReturnType<typ
           </li>
         </ul>
       </div>
+
+      {sub.status === "trialing" && (
+        <div className="mt-5 rounded-md border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
+          <p className="font-semibold">You&rsquo;re currently in your 14-day free trial.</p>
+          <p className="mt-1">
+            Your card will be charged {fmtMoney(planCents + addonTotalCents)}{cycleSuffix} on{" "}
+            <span className="font-semibold">{renewalDate}</span>. Add-on sites are
+            disabled during the trial — skip the trial to start using multiple
+            sites today.
+          </p>
+          <div className="mt-3">
+            <EndTrialButton />
+          </div>
+        </div>
+      )}
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-xs text-[#737373]">
         <p>Next charge: <span className="font-semibold text-[#0A0A0A]">{renewalDate}</span></p>
