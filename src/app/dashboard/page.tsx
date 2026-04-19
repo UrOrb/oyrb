@@ -1,7 +1,8 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { CheckoutButton } from "@/components/marketing/checkout-button";
-import { Check } from "lucide-react";
+import { Check, ExternalLink, Plus, Pencil } from "lucide-react";
 import { CheckoutPoller } from "./checkout-poller";
 import { ApplyPendingTemplate } from "./apply-pending-template";
 
@@ -15,11 +16,15 @@ export default async function DashboardPage({
 
   if (!user) redirect("/login");
 
-  const { data: business } = await supabase
+  // Pull every business owned by this user — today there's almost always one,
+  // but the View Site row maps over the array so multi-site is a UI-only swap
+  // when the rest of the app is ready for it.
+  const { data: businesses } = await supabase
     .from("businesses")
     .select("*")
     .eq("owner_id", user.id)
-    .single();
+    .order("created_at", { ascending: true });
+  const business = businesses?.[0];
 
   const params = await searchParams;
   const checkoutSuccess = params?.checkout === "success";
@@ -151,6 +156,39 @@ export default async function DashboardPage({
         </div>
       </div>
 
+      {/* ── Your sites ──
+          One card per business the user owns. Each card embeds a live iframe
+          of /s/<slug> as a real-render thumbnail (lazy-loaded, click-through
+          disabled so the parent anchor catches the tap). */}
+      <div className="mt-8">
+        <h2 className="text-sm font-semibold text-[#525252]">Your sites</h2>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {(businesses ?? []).map((b) => (
+            <SiteCard key={b.id} business={b} />
+          ))}
+        </div>
+
+        {/* Add-new-site row — its own row below the thumbnails, no matter how
+            many sites exist. */}
+        <div className="mt-4">
+          <Link
+            href="/dashboard/site/new"
+            className="flex items-center gap-3 rounded-lg border border-dashed border-[#E7E5E4] bg-white px-5 py-4 transition-colors hover:border-[#B8896B] hover:bg-[#FAFAF9]"
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E7E5E4] bg-[#FAFAF9] text-[#525252]">
+              <Plus size={18} />
+            </span>
+            <div className="flex-1">
+              <p className="text-sm font-semibold">Add New Site</p>
+              <p className="mt-0.5 text-xs text-[#737373]">
+                Spin up another booking site — same dashboard, separate brand.
+              </p>
+            </div>
+            <span className="text-xs text-[#A3A3A3]">→</span>
+          </Link>
+        </div>
+      </div>
+
       <div className="mt-8 grid gap-4 md:grid-cols-3">
         {[
           { label: "Upcoming bookings", value: String(bookingCount ?? 0) },
@@ -173,6 +211,59 @@ export default async function DashboardPage({
           <p className="text-sm font-semibold">View bookings</p>
           <p className="mt-1 text-xs text-[#737373]">All upcoming and past appointments.</p>
         </a>
+      </div>
+    </div>
+  );
+}
+
+// ── View-Site card ──────────────────────────────────────────────────────────
+// Renders a real iframe of the live public site as a thumbnail. The iframe is
+// pointer-events:none so the surrounding anchor catches clicks; loading="lazy"
+// keeps multiple cards from racing to render full-page templates at once.
+function SiteCard({ business }: { business: { id: string; business_name: string; slug: string; is_published: boolean } }) {
+  const siteUrl = `/s/${business.slug}`;
+  return (
+    <div className="overflow-hidden rounded-lg border border-[#E7E5E4] bg-white transition-colors hover:border-[#B8896B]">
+      <a href={siteUrl} target="_blank" rel="noreferrer" className="group block" aria-label={`View ${business.business_name} live`}>
+        <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#FAFAF9]">
+          <iframe
+            src={siteUrl}
+            title={`${business.business_name} preview`}
+            loading="lazy"
+            className="absolute left-0 top-0 origin-top-left"
+            style={{
+              width: "1200px",
+              height: "900px",
+              border: 0,
+              transform: "scale(0.3)",
+              pointerEvents: "none",
+            }}
+          />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent" />
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-2 text-white">
+            <span className="text-[10px] font-mono opacity-80">oyrb.space{siteUrl}</span>
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold">
+              View site <ExternalLink size={11} />
+            </span>
+          </div>
+          {!business.is_published && (
+            <span className="absolute left-2 top-2 rounded bg-amber-500/95 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+              Draft
+            </span>
+          )}
+        </div>
+      </a>
+      <div className="flex items-center justify-between gap-2 px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold">{business.business_name}</p>
+          <p className="truncate text-[11px] text-[#737373]">View Site</p>
+        </div>
+        <Link
+          href="/dashboard/site"
+          className="inline-flex items-center gap-1 rounded-md border border-[#E7E5E4] px-2.5 py-1 text-[11px] font-medium hover:bg-[#F5F5F4]"
+        >
+          <Pencil size={11} /> Edit
+        </Link>
       </div>
     </div>
   );
