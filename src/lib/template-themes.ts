@@ -804,7 +804,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(912) 555-0169",
       email: "hi@velvetandgold.co",
       category: "Bridal & Hair Artistry",
-      heroImageId: "1605497788044-5a32c7078486",
+      heroImageId: "/sorbet-hero.avif",
       profileImageId: "1519699047748-de8e457a634e",
       galleryIds: [
         "1605497788044-5a32c7078486","1519699047748-de8e457a634e",
@@ -972,7 +972,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(512) 555-0382",
       email: "hello@linenandclay.co",
       category: "Hair & Skin Studio",
-      heroImageId: "1515377905703-c4788e51af15",
+      heroImageId: "/latte-hero.avif",
       profileImageId: "1540555700478-4be289fbecef",
       galleryIds: [
         "1515377905703-c4788e51af15","1540555700478-4be289fbecef",
