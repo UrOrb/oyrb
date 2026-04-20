@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Shuffle, HelpCircle, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Shuffle, HelpCircle, X } from "lucide-react";
 import { TEMPLATE_THEMES, LAYOUT_TYPES } from "@/lib/template-themes";
 import { SAMPLE_SERVICES_BY_CATEGORY, SAMPLE_HOURS } from "@/lib/template-images";
 import { BoldTemplate } from "@/components/templates/bold";
@@ -314,19 +314,6 @@ export function ThemeCarousel({ layout: initialLayout, initialThemeId, themeIds 
               Theme
             </span>
 
-            {/* Left chevron — mobile only. Desktop users navigate via
-                two-finger trackpad scroll, Shift+wheel, or ← → keys; the
-                chevron would add visual clutter without a payoff. Min tap
-                target 44x44 for iOS accessibility. */}
-            <button
-              type="button"
-              onClick={() => cycleTheme(-1)}
-              aria-label="Previous theme"
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 md:hidden"
-            >
-              <ChevronLeft size={16} />
-            </button>
-
             <div
               ref={scrollerRef}
               className="-mx-1 flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -383,15 +370,6 @@ export function ThemeCarousel({ layout: initialLayout, initialThemeId, themeIds 
               })}
             </div>
 
-            {/* Right chevron — mobile only (see left chevron comment) */}
-            <button
-              type="button"
-              onClick={() => cycleTheme(1)}
-              aria-label="Next theme"
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 md:hidden"
-            >
-              <ChevronRight size={16} />
-            </button>
           </div>
 
           {/* Dot indicators — mirror the active theme position. Clickable so
