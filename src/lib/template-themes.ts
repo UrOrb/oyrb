@@ -1230,7 +1230,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(312) 555-0618",
       email: "private@ateliergotham.co",
       category: "Private Beauty Consultancy",
-      heroImageId: "1519014816548-bf5fe059798b",
+      heroImageId: "/knight-hero.avif",
       profileImageId: "1540555700478-4be289fbecef",
       galleryIds: [
         "1519014816548-bf5fe059798b","1540555700478-4be289fbecef",
