@@ -919,6 +919,61 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       ],
     },
   },
+
+  // ── 21. Floral Latte ────────────────────────────────────────────────────
+  //
+  // Quiet-luxury palette. Ivory + Whisper Ivory lead every layout; Soft Clay
+  // carries the accent work; Toasted Almond anchors CTAs so the buttons
+  // read as warm grounded luxury. Greige stays structural (dividers,
+  // borders). Text uses Espresso / Dark Cocoa instead of pure black so the
+  // Pinterest-dream-salon warmth never tips into hard contrast.
+  //
+  // Contrast audit (WCAG AA):
+  //   · Espresso #3D2E22 on Ivory #F7F1E8             → 11.55:1 ✅ (body)
+  //   · Dark Cocoa #2A1E14 on Ivory                   → 14.38:1 ✅ (headings)
+  //   · Dark Cocoa on Toasted Almond #B8956F          → 5.82:1  ✅ (CTA text)
+  //   · Dark Cocoa on Soft Clay #D4B8A5               → 8.62:1  ✅
+  //   · Espresso on Warm Linen #EAE0D2                → 9.92:1  ✅
+  //   · Espresso on Whisper Ivory #FCF7EF             → 12.10:1 ✅
+  latte: {
+    id: "latte",
+    name: "Floral Latte",
+    vibe: "Quiet luxury · bleached oak · dried pampas · timeless warm neutrals",
+    category: "natural",
+    bg: "#F7F1E8",            // Ivory — main surface
+    surface: "#FCF7EF",       // Whisper Ivory — layered cards
+    ink: "#2A1E14",            // Dark Cocoa — headings
+    muted: "#3D2E22",          // Espresso — body copy
+    accent: "#D4B8A5",         // Soft Clay — primary accent, hero highlights
+    accent2: "#A89B8C",        // Greige — secondary accent, structural dividers
+    border: "rgba(42,30,20,0.14)",
+    displayFont: '"Fraunces", "Cormorant Garamond", Georgia, serif',
+    bodyFont: '"Inter", "Manrope", system-ui, sans-serif',
+    displayWeight: 350,
+    displayTracking: "-0.02em",
+    radius: 18,
+    radiusBtn: 999,
+    btnBg: "#B8956F",          // Toasted Almond — CTA surface
+    btnText: "#2A1E14",        // Dark Cocoa on almond = 5.82:1
+    tags: ["neutral", "warm", "luxury", "pinterest", "timeless", "pampas", "beige"],
+    business: {
+      name: "Linen & Clay Atelier",
+      tagline: "bleached oak · dried pampas · quiet luxury",
+      bio: "A warm, appointment-only atelier for lived-in color, soft cuts, and slow skin rituals. Think linen drapes, terracotta ceramics, and the golden-hour light that makes every client look like the best version of herself.",
+      location: "Second Floor · 42 Oakwood Row · Austin, TX",
+      phone: "(512) 555-0382",
+      email: "hello@linenandclay.co",
+      category: "Hair & Skin Studio",
+      heroImageId: "1515377905703-c4788e51af15",
+      profileImageId: "1540555700478-4be289fbecef",
+      galleryIds: [
+        "1515377905703-c4788e51af15","1540555700478-4be289fbecef",
+        "1519699047748-de8e457a634e","1552693673-1bf958298935",
+        "1505932794465-147d1f1b2c97","1531746020798-e6953c6e8e04",
+        "1556228720-195a672e8a03","1519014816548-bf5fe059798b",
+      ],
+    },
+  },
 };
 
 export const THEME_IDS = Object.keys(TEMPLATE_THEMES) as Array<keyof typeof TEMPLATE_THEMES>;
