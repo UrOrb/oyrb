@@ -207,10 +207,10 @@ export default function HomePage() {
             <div>
               <p className="text-sm font-medium text-[#B8896B]">Template gallery</p>
               <h2 className="font-display mt-3 text-3xl font-medium tracking-[-0.02em] md:text-5xl">
-                28 themes. 5 layouts.<br className="hidden md:block" /> Your signature style.
+                29 themes. 5 layouts.<br className="hidden md:block" /> Your signature style.
               </h2>
               <p className="mt-4 max-w-lg text-[#525252]">
-                From soft &amp; feminine to bold editorial to streetwear-inspired. 140 total combinations — pick a palette, pick a layout, launch in minutes.
+                From soft &amp; feminine to bold editorial to streetwear-inspired. 145 total combinations — pick a palette, pick a layout, launch in minutes.
               </p>
             </div>
           </div>
@@ -286,7 +286,7 @@ export default function HomePage() {
               href="/templates"
               className="inline-flex items-center gap-2 rounded-full bg-[#0A0A0A] px-6 py-3 text-sm font-medium text-white transition-opacity hover:opacity-80"
             >
-              Browse all 140 templates <ArrowRight size={14} />
+              Browse all 145 templates <ArrowRight size={14} />
             </Link>
           </div>
         </div>

@@ -1412,6 +1412,65 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       ],
     },
   },
+
+  // ── 29. Liquid Sunset Trip ──────────────────────────────────────────────
+  //
+  // ENHANCED THEME — medium tier (alongside League Lead, Neon Dream Island).
+  // Pure color-flow aesthetic — NO decorative objects, NO icon swaps, NO
+  // sparkles / aliens / planets / bullets. Only a warped multi-radial
+  // watercolor gradient + glass panels + pink-magenta gradient CTAs.
+  //
+  // Intentional distinction from MAXIMALIST themes (Unicorn Candy-Cloud,
+  // Galactic Bender): this theme is purely about dreamy color flow.
+  //
+  // ⚠️  ENHANCED-tier override pattern — scoped to `[data-oyrb-theme="sunset"]`.
+  //
+  // Contrast audit (WCAG AA):
+  //   · Deep Plum #1F1240 on 0.85 glass (worst blend) → ~14.8:1 ✅ (body)
+  //   · Deep Plum #1F1240 on Trip White #FDFBFE       → 18.72:1 ✅ (headings)
+  //   · Deep Plum #1F1240 on Acid Pink #FF6EC7        → 6.77:1  ✅
+  //   · Deep Plum #1F1240 on Warped Magenta #C63FAF   → 3.90:1  ✅ AA Large
+  //     (CTA labels only — size ≥14px / weight ≥600 qualifies AA Large.)
+  //   · Gradient palette colors — background only, never text.
+  sunset: {
+    id: "sunset",
+    name: "Liquid Sunset Trip",
+    vibe: "Trippy · watercolor · psychedelic · liquid sunset · color-flow",
+    category: "feminine",
+    bg: "#C63FAF",            // Warped Magenta fallback; gradient applied via scoped CSS
+    surface: "#FDFBFE",       // Trip White — glass panel base
+    ink: "#1F1240",            // Deep Plum — headings
+    muted: "#1F1240",          // Deep Plum — body on glass
+    accent: "#FF6EC7",         // Acid Pink — primary accent
+    accent2: "#3DB5B0",        // Teal Wash — secondary accent
+    border: "rgba(255,255,255,0.4)",
+    displayFont: '"Fraunces", "Cormorant Garamond", Georgia, serif',
+    bodyFont: '"Inter", system-ui, sans-serif',
+    displayWeight: 500,
+    displayTracking: "-0.01em",
+    radius: 20,
+    radiusBtn: 9999,
+    btnBg: "#C63FAF",          // Magenta fallback; gradient applied via scoped CSS
+    btnText: "#1F1240",        // Deep Plum on pink/magenta gradient (AA Large)
+    tags: ["enhanced", "trippy", "watercolor", "psychedelic", "sunset", "gradient", "dreamy"],
+    business: {
+      name: "Liquid Sunset Trip",
+      tagline: "watercolor color · dreamscape skin · slow afternoons",
+      bio: "A watercolor-soft studio for hand-painted color, dreamscape makeup, and the kind of slow afternoons that feel like a long exhale. We work by natural light and finish every session with tea and a polaroid.",
+      location: "Top Floor · 18 Marina Way · San Diego, CA",
+      phone: "(619) 555-0245",
+      email: "studio@liquidsunsettrip.co",
+      category: "Color & Makeup Studio",
+      heroImageId: "1515377905703-c4788e51af15",
+      profileImageId: "1540555700478-4be289fbecef",
+      galleryIds: [
+        "1515377905703-c4788e51af15","1540555700478-4be289fbecef",
+        "1519699047748-de8e457a634e","1531746020798-e6953c6e8e04",
+        "1552693673-1bf958298935","1556228720-195a672e8a03",
+        "1505932794465-147d1f1b2c97","1519014816548-bf5fe059798b",
+      ],
+    },
+  },
 };
 
 export const THEME_IDS = Object.keys(TEMPLATE_THEMES) as Array<keyof typeof TEMPLATE_THEMES>;

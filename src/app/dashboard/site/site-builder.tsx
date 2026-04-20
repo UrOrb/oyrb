@@ -152,7 +152,7 @@ const ALL_THEMES = [
   "luxe", "earth", "street", "y2k",
   "rose", "sage", "slate", "noir",
   "citrus", "colorblock",
-  "riot", "mochi", "linden", "harajuku", "sorbet", "amethyst", "quartz", "latte", "league", "crimson", "avenger", "knight", "neon", "candy", "galactic",
+  "riot", "mochi", "linden", "harajuku", "sorbet", "amethyst", "quartz", "latte", "league", "crimson", "avenger", "knight", "neon", "candy", "galactic", "sunset",
 ];
 const STARTER_THEMES = ["aura", "minimal", "bold"];
 
@@ -550,6 +550,7 @@ export function SiteBuilder({ business, hours, services, origin }: Props) {
                       t === "league"   ? { text: "⚡ Bold style — uppercase headings",      color: "#D4FF00" } :
                       t === "candy"    ? { text: "🦄 Maximalist Sugar Rush — heavy style",  color: "#FFEB3B" } :
                       t === "galactic" ? { text: "🌌 Maximalist Cosmic — heavy style",      color: "#8FD934" } :
+                      t === "sunset"   ? { text: "🌊 Enhanced Trippy — dreamy style",       color: "#FF6EC7" } :
                       t === "neon"     ? { text: "✨ Saturated kawaii — bold style",        color: "#FFD54F" } :
                       t === "harajuku" ? { text: "☁︎ Soft kawaii — pastel style",           color: "#F5C8D1" } :
                       null;

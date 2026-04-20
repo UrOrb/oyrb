@@ -622,3 +622,122 @@
     display: none !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Liquid Sunset Trip — ENHANCED watercolor theme
+ * ─────────────────────────────────────────────────────────────────────────
+ * Enhanced-tier theme alongside League Lead and Neon Dream Island. Scoped
+ * to `[data-oyrb-theme="sunset"]`. Pure color-flow — NO decorative objects,
+ * NO icon swaps, NO bullets changes. Just a warped multi-radial watercolor
+ * gradient background, glass panels, and pink-magenta gradient CTAs.
+ *
+ * Intentional distinction from MAXIMALIST themes: Galactic Bender and
+ * Unicorn Candy-Cloud both layer SVG decorations; this theme is JUST
+ * dreamy color flow.
+ *
+ * Motion-safety: transitions respect `prefers-reduced-motion`.
+ * Print: gradient + glass stripped for clean printed bookings.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+/* Warped multi-radial watercolor gradient as the page background */
+[data-oyrb-theme="sunset"] {
+  background:
+    radial-gradient(ellipse at 20% 30%, #FF6EC7 0%, transparent 40%),
+    radial-gradient(ellipse at 80% 40%, #C63FAF 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 60%, #4A7FD6 0%, transparent 40%),
+    radial-gradient(ellipse at 30% 80%, #3DB5B0 0%, transparent 35%),
+    radial-gradient(ellipse at 70% 90%, #2B2E73 0%, transparent 40%),
+    radial-gradient(ellipse at 45% 15%, #F26E8E 0%, transparent 45%),
+    linear-gradient(180deg, #FF6EC7 0%, #C63FAF 100%) !important;
+  background-attachment: fixed !important;
+  background-color: #C63FAF !important;
+}
+
+/* Glass panels — inline-white surfaces become Trip White glass tinted by
+   the sunset gradient. 0.92 fallback for browsers without backdrop-filter;
+   0.85 + 24px blur when supported. */
+[data-oyrb-theme="sunset"] [style*="background: #FFFFFF"],
+[data-oyrb-theme="sunset"] [style*="background: #FFF"],
+[data-oyrb-theme="sunset"] [style*="background:#FFFFFF"],
+[data-oyrb-theme="sunset"] [style*="background:#FFF"],
+[data-oyrb-theme="sunset"] [style*="backgroundColor: #FFFFFF"],
+[data-oyrb-theme="sunset"] [style*="backgroundColor:#FFFFFF"],
+[data-oyrb-theme="sunset"] [style*="background-color: #FFFFFF"],
+[data-oyrb-theme="sunset"] [style*="background-color: #FFF"],
+[data-oyrb-theme="sunset"] [style*="background: white"] {
+  background: rgba(253, 251, 254, 0.92) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 8px 32px rgba(43, 46, 115, 0.15) !important;
+}
+@supports (backdrop-filter: blur(24px)) or (-webkit-backdrop-filter: blur(24px)) {
+  [data-oyrb-theme="sunset"] [style*="background: #FFFFFF"],
+  [data-oyrb-theme="sunset"] [style*="background: #FFF"],
+  [data-oyrb-theme="sunset"] [style*="background:#FFFFFF"],
+  [data-oyrb-theme="sunset"] [style*="background:#FFF"],
+  [data-oyrb-theme="sunset"] [style*="backgroundColor: #FFFFFF"],
+  [data-oyrb-theme="sunset"] [style*="backgroundColor:#FFFFFF"],
+  [data-oyrb-theme="sunset"] [style*="background-color: #FFFFFF"],
+  [data-oyrb-theme="sunset"] [style*="background-color: #FFF"],
+  [data-oyrb-theme="sunset"] [style*="background: white"] {
+    background: rgba(253, 251, 254, 0.85) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+  }
+}
+
+/* Primary CTAs — Acid Pink → Warped Magenta gradient with Deep Plum text.
+   Pill-shaped; gradient shifts to a slightly hotter blend on hover. */
+[data-oyrb-theme="sunset"] a[href*="book"],
+[data-oyrb-theme="sunset"] a[role="button"],
+[data-oyrb-theme="sunset"] button {
+  background: linear-gradient(135deg, #FF6EC7, #C63FAF) !important;
+  color: #1F1240 !important;
+  border-radius: 9999px !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  transition: background 300ms ease, box-shadow 300ms ease, transform 300ms ease;
+}
+[data-oyrb-theme="sunset"] a[href*="book"]:hover,
+[data-oyrb-theme="sunset"] a[role="button"]:hover,
+[data-oyrb-theme="sunset"] button:hover {
+  background: linear-gradient(135deg, #FF3D9E, #A32C92) !important;
+  box-shadow: 0 8px 24px rgba(255, 61, 158, 0.35);
+  transform: scale(1.02);
+}
+
+/* Motion-safety */
+@media (prefers-reduced-motion: reduce) {
+  [data-oyrb-theme="sunset"] a[href*="book"],
+  [data-oyrb-theme="sunset"] a[role="button"],
+  [data-oyrb-theme="sunset"] button {
+    transition: none !important;
+  }
+  [data-oyrb-theme="sunset"] a[href*="book"]:hover,
+  [data-oyrb-theme="sunset"] a[role="button"]:hover,
+  [data-oyrb-theme="sunset"] button:hover {
+    transform: none !important;
+  }
+}
+
+/* Print stylesheet — clean white bookings */
+@media print {
+  [data-oyrb-theme="sunset"] {
+    background: #FFFFFF !important;
+    background-image: none !important;
+    color: #1F1240 !important;
+  }
+  [data-oyrb-theme="sunset"] [style*="background"] {
+    background: #FFFFFF !important;
+    border: 1px solid #1F1240 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  [data-oyrb-theme="sunset"] a[href*="book"],
+  [data-oyrb-theme="sunset"] a[role="button"],
+  [data-oyrb-theme="sunset"] button {
+    background: #FFFFFF !important;
+    color: #1F1240 !important;
+    border: 1px solid #1F1240 !important;
+  }
+}
