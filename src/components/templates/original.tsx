@@ -375,42 +375,71 @@ function Hero({ t, biz, bookHref, kickerOverride, ctaOverride }: {
           );
         }
         if (t.id === "sunset") {
-          // Liquid Sunset Trip — 3-4 horizontal gradient wash bands fading
-          // at the edges, using the theme's Acid Pink (accent), Teal Wash
-          // (accent2), and the palette's Warped Magenta (bg) + Psychedelic
-          // Blue (latter not in theme tokens — hardcoded for this deco).
-          const pink    = t.accent  ?? "#FF6EC7";
-          const teal    = t.accent2 ?? "#3DB5B0";
-          const magenta = t.bg      ?? "#C63FAF";
-          const blue    = "#4A7FD6";
+          // Liquid Sunset Trip — no hero decoration. The theme's page-
+          // level watercolor gradient already provides the mood; the hero
+          // is intentionally clean with just typography.
+          return null;
+        }
+        if (t.id === "galactic") {
+          // Galactic Bender — generic flying-saucer silhouette (disc +
+          // dome + viewport lights) in Toxic Splash Green (t.accent),
+          // with a neon drop-shadow glow. Not derivative of any IP.
+          const toxic = t.accent ?? "#8FD934";
+          const dark  = t.ink    ?? "#F5F0FF";
+          return (
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 200 160"
+              preserveAspectRatio="xMidYMid meet"
+              style={{ ...deco, filter: `drop-shadow(0 0 8px ${toxic}) drop-shadow(0 0 16px ${toxic})` }}
+            >
+              <g>
+                {/* saucer disc */}
+                <ellipse cx="100" cy="92" rx="68" ry="11" fill={toxic} />
+                {/* rim shadow under disc */}
+                <ellipse cx="100" cy="98" rx="60" ry="4" fill={toxic} opacity="0.4" />
+                {/* dome on top */}
+                <path d="M64 88 Q 100 52 136 88 Z" fill={toxic} />
+                {/* dome highlight */}
+                <path d="M82 78 Q 100 62 118 78" fill="none" stroke={dark} strokeWidth="1.5" opacity="0.4" />
+                {/* viewport lights along the rim */}
+                <circle cx="76"  cy="92" r="2.2" fill={dark} opacity="0.85" />
+                <circle cx="92"  cy="94" r="2.4" fill={dark} opacity="0.85" />
+                <circle cx="108" cy="94" r="2.4" fill={dark} opacity="0.85" />
+                <circle cx="124" cy="92" r="2.2" fill={dark} opacity="0.85" />
+                {/* under-beam */}
+                <path d="M86 103 L 100 138 L 114 103 Z" fill={toxic} opacity="0.25" />
+              </g>
+            </svg>
+          );
+        }
+        if (t.id === "chrome") {
+          // Chrome Oracle — soft iridescent aura glow (two overlapping
+          // blurred radial gradients blending the theme's iridescent
+          // palette). Heavy blur + low opacity so it reads as "ambient
+          // holographic light," never a defined shape. Uses t.accent +
+          // t.accent2 tokens; complementary hex literals come from the
+          // theme's written spec (Iridescent Coral / Teal / Chrome Silver
+          // aren't in the theme token set).
           return (
             <svg aria-hidden="true" viewBox="0 0 200 160" preserveAspectRatio="xMidYMid meet" style={deco}>
               <defs>
-                <linearGradient id="sunset-band1" x1="0%" x2="100%">
-                  <stop offset="0%" stopColor={pink} stopOpacity="0" />
-                  <stop offset="50%" stopColor={pink} stopOpacity="0.5" />
-                  <stop offset="100%" stopColor={pink} stopOpacity="0" />
-                </linearGradient>
-                <linearGradient id="sunset-band2" x1="0%" x2="100%">
-                  <stop offset="0%" stopColor={magenta} stopOpacity="0" />
-                  <stop offset="50%" stopColor={magenta} stopOpacity="0.45" />
-                  <stop offset="100%" stopColor={magenta} stopOpacity="0" />
-                </linearGradient>
-                <linearGradient id="sunset-band3" x1="0%" x2="100%">
-                  <stop offset="0%" stopColor={blue} stopOpacity="0" />
-                  <stop offset="50%" stopColor={blue} stopOpacity="0.45" />
-                  <stop offset="100%" stopColor={blue} stopOpacity="0" />
-                </linearGradient>
-                <linearGradient id="sunset-band4" x1="0%" x2="100%">
-                  <stop offset="0%" stopColor={teal} stopOpacity="0" />
-                  <stop offset="50%" stopColor={teal} stopOpacity="0.4" />
-                  <stop offset="100%" stopColor={teal} stopOpacity="0" />
-                </linearGradient>
+                <filter id="chrome-aura-blur" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="22" />
+                </filter>
+                <radialGradient id="chrome-aura-1" cx="50%" cy="50%" r="55%">
+                  <stop offset="0%"   stopColor={t.accent  ?? "#E84DB5"} stopOpacity="0.55" />
+                  <stop offset="55%"  stopColor={t.accent2 ?? "#4DDFE8"} stopOpacity="0.32" />
+                  <stop offset="100%" stopColor={t.accent  ?? "#E84DB5"} stopOpacity="0" />
+                </radialGradient>
+                <radialGradient id="chrome-aura-2" cx="50%" cy="50%" r="55%">
+                  <stop offset="0%"   stopColor="#FF7B54" stopOpacity="0.5"  />
+                  <stop offset="60%"  stopColor="#3DC3A8" stopOpacity="0.3"  />
+                  <stop offset="100%" stopColor="#C8CDD4" stopOpacity="0"    />
+                </radialGradient>
               </defs>
-              <rect x="0" y="28"  width="200" height="14" fill="url(#sunset-band1)" />
-              <rect x="0" y="58"  width="200" height="18" fill="url(#sunset-band2)" />
-              <rect x="0" y="90"  width="200" height="16" fill="url(#sunset-band3)" />
-              <rect x="0" y="120" width="200" height="14" fill="url(#sunset-band4)" />
+              <ellipse cx="85"  cy="72" rx="82" ry="70" fill="url(#chrome-aura-1)" filter="url(#chrome-aura-blur)" />
+              <ellipse cx="120" cy="92" rx="78" ry="66" fill="url(#chrome-aura-2)" filter="url(#chrome-aura-blur)" />
             </svg>
           );
         }
@@ -480,10 +509,9 @@ function Hero({ t, biz, bookHref, kickerOverride, ctaOverride }: {
           <div style={{ position: "absolute", top: 60, right: -30, width: 140, height: 140, background: t.accent, opacity: 0.35, borderRadius: "50% 55% 45% 55% / 55% 45% 55% 45%" }} />
         );
       })()}
-      <div style={{ position: "absolute", top: 18, right: 26, fontSize: 16, color: t.accent }}>❀</div>
       <div style={{ position: "relative", zIndex: 2, textAlign: "center" }}>
-        <div style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: 2, textTransform: "uppercase" as const, color: t.muted, display: "flex", justifyContent: "center", alignItems: "center", gap: 8, marginBottom: 8 }}>
-          <span style={{ color: t.accent }}>{t.id === "y2k" ? "★" : "ꕥ"}</span> open & cozy <span style={{ color: t.accent }}>{t.id === "y2k" ? "★" : "ꕥ"}</span>
+        <div style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: 2, textTransform: "uppercase" as const, color: t.muted, marginBottom: 8 }}>
+          open & cozy
         </div>
         <h1 style={{ fontFamily: t.displayFont, fontStyle: "italic", fontWeight: t.displayWeight, fontSize: 54, lineHeight: 0.95, letterSpacing: "-0.02em", color: t.ink, margin: 0 }}>
           {biz.name.split(" ")[0]}<br /><span style={{ color: t.accent }}>{biz.name.split(" ").slice(1).join(" ")}</span>

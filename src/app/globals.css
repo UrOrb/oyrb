@@ -505,21 +505,6 @@
   background-size: 220px 220px;
 }
 
-/* Planets + generic alien + saucer + ooze splashes layered on root as an
-   after-element using a single composite SVG. Positioned fixed so it
-   follows the viewport; pointer-events disabled so it never blocks UI. */
-[data-oyrb-theme="galactic"]::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
-  opacity: 0.9;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 1000' preserveAspectRatio='xMidYMid slice'><defs><radialGradient id='p1' cx='35%25' cy='35%25'><stop offset='0%25' stop-color='%234AC6E8'/><stop offset='100%25' stop-color='%232D1B4E'/></radialGradient><radialGradient id='p2' cx='30%25' cy='30%25'><stop offset='0%25' stop-color='%23FF8C3D'/><stop offset='100%25' stop-color='%23C63FAF'/></radialGradient></defs><g opacity='0.28'><!-- ring planet top-left --><g transform='translate(110 130)'><circle r='46' fill='url(%23p1)'/><ellipse rx='80' ry='14' fill='none' stroke='%234AC6E8' stroke-width='3' transform='rotate(-18)'/></g><!-- striped planet bottom-right --><g transform='translate(1460 860)'><circle r='58' fill='url(%23p2)'/><path d='M-58 -8 Q0 -14 58 -8' fill='none' stroke='%23FFD83D' stroke-width='3' opacity='0.8'/><path d='M-56 14 Q0 22 56 14' fill='none' stroke='%23FFD83D' stroke-width='3' opacity='0.8'/></g><!-- small planet mid-right --><circle cx='1500' cy='300' r='22' fill='%238FD934' opacity='0.7'/></g><g opacity='0.3' fill='%238FD934'><!-- generic round-headed alien bottom-left --><g transform='translate(80 820)'><ellipse cx='0' cy='0' rx='28' ry='32'/><ellipse cx='-8' cy='-6' rx='4' ry='6' fill='%230F0A1A'/><ellipse cx='8' cy='-6' rx='4' ry='6' fill='%230F0A1A'/><rect x='-4' y='30' width='3' height='18'/><rect x='1' y='30' width='3' height='18'/></g></g><g opacity='0.28' fill='%23C63FAF'><!-- generic flying saucer top-right --><g transform='translate(1340 180)'><ellipse cx='0' cy='0' rx='54' ry='10'/><path d='M-28 -2 Q0 -24 28 -2' fill='%23C63FAF'/><circle cx='-18' cy='6' r='3' fill='%23FFD83D'/><circle cx='0' cy='6' r='3' fill='%23FFD83D'/><circle cx='18' cy='6' r='3' fill='%23FFD83D'/></g></g><g opacity='0.3'><!-- generic atomic molecule mid-left --><g transform='translate(140 480)'><circle r='5' fill='%234AC6E8'/><circle cx='24' cy='-14' r='7' fill='%238FD934'/><circle cx='24' cy='14' r='6' fill='%23C63FAF'/><circle cx='-20' cy='0' r='6' fill='%23FFD83D'/><line x1='0' y1='0' x2='24' y2='-14' stroke='%23F5F0FF' stroke-width='1.5'/><line x1='0' y1='0' x2='24' y2='14' stroke='%23F5F0FF' stroke-width='1.5'/><line x1='0' y1='0' x2='-20' y2='0' stroke='%23F5F0FF' stroke-width='1.5'/></g></g><g><!-- generic ooze splashes --><path opacity='0.45' fill='%238FD934' d='M1500 540 q10 -24 30 -14 q18 -4 10 16 q12 10 -6 18 q2 20 -18 10 q-14 8 -18 -8 q-14 -8 2 -22z'/><path opacity='0.4' fill='%234AC6E8' d='M40 280 q8 -18 22 -10 q14 -2 8 12 q10 8 -4 14 q2 14 -14 8 q-10 6 -14 -6 q-10 -6 2 -18z'/><path opacity='0.4' fill='%23C63FAF' d='M780 920 q6 -14 18 -8 q10 -2 6 10 q8 6 -4 10 q0 12 -12 6 q-8 4 -12 -4 q-8 -4 4 -14z'/></g></svg>");
-}
-
 /* Layered container styling — any inline-white / dark surface becomes a
    Deep Cosmic translucent panel with subtle rainbow border + glow. */
 [data-oyrb-theme="galactic"] [style*="background: #FFFFFF"],
@@ -839,18 +824,6 @@
    negative space. Each orb uses radial gradients combining chrome silver
    + iridescent oil-slick tones. aria-hidden implicit (pseudo-element).
    pointer-events: none so they never block UI. */
-[data-oyrb-theme="chrome"]::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.85;
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 1000' preserveAspectRatio='xMidYMid slice'><defs><radialGradient id='o1' cx='30%25' cy='28%25'><stop offset='0%25' stop-color='%23EEF0F5'/><stop offset='35%25' stop-color='%23E84DB5'/><stop offset='70%25' stop-color='%234DDFE8'/><stop offset='100%25' stop-color='%23050507'/></radialGradient><radialGradient id='o2' cx='35%25' cy='30%25'><stop offset='0%25' stop-color='%23EEF0F5'/><stop offset='40%25' stop-color='%23FF7B54'/><stop offset='75%25' stop-color='%233DC3A8'/><stop offset='100%25' stop-color='%23050507'/></radialGradient><radialGradient id='o3' cx='32%25' cy='32%25'><stop offset='0%25' stop-color='%23C8CDD4'/><stop offset='45%25' stop-color='%234DDFE8'/><stop offset='80%25' stop-color='%23E84DB5'/><stop offset='100%25' stop-color='%23050507'/></radialGradient></defs><circle cx='140'  cy='170'  r='56' fill='url(%23o1)'/><circle cx='1450' cy='120'  r='44' fill='url(%23o2)'/><circle cx='1500' cy='820'  r='72' fill='url(%23o3)'/><circle cx='90'   cy='860'  r='38' fill='url(%23o2)'/><circle cx='800'  cy='940'  r='30' fill='url(%23o1)'/></svg>");
-}
-
 /* Glass-chrome containers — inline-white surfaces become Deep Steel
    translucent panels with iridescent rainbow borders. 0.92 opaque
    fallback + @supports upgrade to 0.7 + backdrop-blur. */
