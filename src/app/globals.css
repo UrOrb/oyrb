@@ -810,48 +810,32 @@
 /* Shared utility: soft translucent-white aura pattern for services SECTION
    (background + blur) — themes can opt in by using the :where chain. */
 
-/* ── Neon Dream Island ── studio / luxe / clean normal aura, original
-   side-aura from both edges, clean panels also get translucent white. */
-[data-oyrb-theme="neon"] [data-oyrb-services="studio"],
-[data-oyrb-theme="neon"] [data-oyrb-services="luxe"],
-[data-oyrb-theme="neon"] [data-oyrb-services="clean"] {
-  position: relative;
-}
+/* ── Neon Dream Island ──
+   · Studio: keep the soft text-shadow aura on h2/h3/p (unchanged).
+   · Luxe + Clean: one single translucent-white aura BEHIND the whole
+     services section — no per-item / per-heading auras. Text-shadow
+     rules removed. The section gets a soft rounded white tint with
+     subtle shadow so the sky-blue bg peeks at the edges.
+   · Original: no aura at all; instead each service row (<a> inside the
+     services section) gets a crisp 2px white trim outline with a hint
+     of white glow so the individual items read.
+   · Clean Hours/Location panels keep their translucent-white fill. */
 [data-oyrb-theme="neon"] [data-oyrb-services="studio"] h2,
 [data-oyrb-theme="neon"] [data-oyrb-services="studio"] h3,
-[data-oyrb-theme="neon"] [data-oyrb-services="studio"] p,
-[data-oyrb-theme="neon"] [data-oyrb-services="luxe"] h2,
-[data-oyrb-theme="neon"] [data-oyrb-services="luxe"] h3,
-[data-oyrb-theme="neon"] [data-oyrb-services="luxe"] p,
-[data-oyrb-theme="neon"] [data-oyrb-services="clean"] h2,
-[data-oyrb-theme="neon"] [data-oyrb-services="clean"] h3,
-[data-oyrb-theme="neon"] [data-oyrb-services="clean"] p {
+[data-oyrb-theme="neon"] [data-oyrb-services="studio"] p {
   text-shadow: 0 0 20px rgba(255, 255, 255, 0.55), 0 0 6px rgba(255, 255, 255, 0.4);
 }
-[data-oyrb-theme="neon"] [data-oyrb-services="original"] {
-  position: relative;
+[data-oyrb-theme="neon"] [data-oyrb-services="luxe"],
+[data-oyrb-theme="neon"] [data-oyrb-services="clean"] {
+  background: rgba(255, 255, 255, 0.45) !important;
+  border-radius: 28px !important;
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.45), 0 4px 20px rgba(94, 53, 177, 0.08) !important;
 }
-[data-oyrb-theme="neon"] [data-oyrb-services="original"]::before,
-[data-oyrb-theme="neon"] [data-oyrb-services="original"]::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 28%;
-  pointer-events: none;
-  z-index: 0;
-}
-[data-oyrb-theme="neon"] [data-oyrb-services="original"]::before {
-  left: 0;
-  background: linear-gradient(to right, rgba(255, 255, 255, 0.5), transparent);
-}
-[data-oyrb-theme="neon"] [data-oyrb-services="original"]::after {
-  right: 0;
-  background: linear-gradient(to left, rgba(255, 255, 255, 0.5), transparent);
-}
-[data-oyrb-theme="neon"] [data-oyrb-services="original"] > * {
-  position: relative;
-  z-index: 1;
+[data-oyrb-theme="neon"] [data-oyrb-services="original"] a {
+  outline: 2px solid rgba(255, 255, 255, 0.85) !important;
+  outline-offset: 4px;
+  border-radius: 12px !important;
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.35) !important;
 }
 [data-oyrb-theme="neon"] [data-oyrb-clean-panel] {
   background: rgba(255, 255, 255, 0.48) !important;

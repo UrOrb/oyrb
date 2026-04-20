@@ -262,7 +262,7 @@ export async function searchPublicListings(opts: {
   return data
     .map((row) => {
       const biz = (Array.isArray(row.businesses) ? row.businesses[0] : row.businesses) as
-        | { business_name?: string | null; profile_image_url?: string | null; category?: string | null }
+        | { business_name?: string | null; profile_image_url?: string | null; service_category?: string | null }
         | null;
       return toPublicListing({
         ...(row as DirectoryListing & { created_at?: string }),
@@ -305,7 +305,7 @@ export async function getRecentListings(limit = 8): Promise<PublicListing[]> {
   return data
     .map((row) => {
       const biz = (Array.isArray(row.businesses) ? row.businesses[0] : row.businesses) as
-        | { business_name?: string | null; profile_image_url?: string | null; category?: string | null }
+        | { business_name?: string | null; profile_image_url?: string | null; service_category?: string | null }
         | null;
       return toPublicListing({
         ...(row as DirectoryListing & { created_at?: string }),
@@ -345,7 +345,7 @@ export async function getPublicListingBySlug(
     .maybeSingle();
   if (!data) return null;
   const biz = (Array.isArray(data.businesses) ? data.businesses[0] : data.businesses) as
-    | { business_name?: string | null; profile_image_url?: string | null; category?: string | null }
+    | { business_name?: string | null; profile_image_url?: string | null; service_category?: string | null }
     | null;
   return toPublicListing({
     ...(data as DirectoryListing & { created_at?: string }),
