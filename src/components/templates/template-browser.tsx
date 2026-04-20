@@ -196,27 +196,15 @@ export function TemplateBrowser({ themes }: { themes: TemplateTheme[] }) {
 }
 
 function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
-  // Mobile: the group spans the full row and its pills scroll horizontally
-  // inside with a fade-mask at the edges hinting there's more off-screen.
-  // Desktop: shrinks to content width so Category + Plan sit side by side.
-  //
-  // `min-w-0` + `w-full md:w-auto` is load-bearing — without a width
-  // constraint the inner `overflow-x-auto` never kicks in on mobile and
-  // pills past the viewport simply get clipped.
+  // Pills wrap onto a second row on mobile when they don't fit in one line
+  // — no horizontal scroll, no hidden cut-off pills. On desktop the row is
+  // wide enough that wrapping never triggers.
   return (
-    <div className="flex w-full min-w-0 items-center gap-2 md:w-auto md:max-w-full">
+    <div className="flex w-full items-center gap-2 md:w-auto">
       <span className="hidden shrink-0 text-[10px] font-semibold uppercase tracking-widest text-[#A3A3A3] sm:inline">
         {label}
       </span>
-      <div
-        className="-mx-1 flex min-w-0 flex-1 flex-nowrap gap-1.5 overflow-x-auto px-1 [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] md:flex-initial [&::-webkit-scrollbar]:hidden"
-        style={{
-          maskImage:
-            "linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%)",
-          WebkitMaskImage:
-            "linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%)",
-        }}
-      >
+      <div className="flex flex-1 flex-wrap gap-1.5 md:flex-initial">
         {children}
       </div>
     </div>

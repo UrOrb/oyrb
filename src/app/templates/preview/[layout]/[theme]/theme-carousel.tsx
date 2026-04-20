@@ -125,29 +125,55 @@ export function ThemeCarousel({ layout: initialLayout, initialThemeId, themeIds 
     return () => window.removeEventListener("keydown", onKey);
   }, [cycleTheme, showExplainer]);
 
-  // Theme-scroller refs. Touch-swipe and chevron-click handlers are scoped
-  // to this element — swipes on the preview itself no longer hijack theme
-  // changes (per the mobile UX brief: scroller-only swipes change themes).
+  // Theme-scroller + preview refs. Swipe-to-cycle handlers bind to a
+  // wrapper covering BOTH the scroller row and the preview area below.
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const activePillRef = useRef<HTMLButtonElement | null>(null);
+  const swipeWrapperRef = useRef<HTMLDivElement | null>(null);
 
-  // Horizontal swipe detection on the scroller. Vertical swipes pass
-  // through so the page keeps scrolling normally.
-  const touchStart = useRef<{ x: number; y: number } | null>(null);
-  const onScrollerTouchStart = (e: React.TouchEvent) => {
-    const t = e.touches[0];
-    touchStart.current = { x: t.clientX, y: t.clientY };
-  };
-  const onScrollerTouchEnd = (e: React.TouchEvent) => {
-    if (!touchStart.current) return;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - touchStart.current.x;
-    const dy = t.clientY - touchStart.current.y;
-    touchStart.current = null;
-    // Ignore near-vertical swipes (preserve page scroll) and taps (<40px).
-    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
-    cycleTheme(dx < 0 ? 1 : -1);
-  };
+  // Pointer-based swipe-to-cycle. Native pointer events cover both touch
+  // and pen. `touch-action: pan-y` on the wrapper (set inline below) lets
+  // vertical page scroll through while reserving horizontal for this
+  // handler — that's what was missing before: the scroller's native
+  // overflow-x-auto was eating every horizontal touch before the delta
+  // could grow past the 50px threshold.
+  useEffect(() => {
+    const el = swipeWrapperRef.current;
+    if (!el) return;
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+    let tracking = false;
+
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType !== "touch" && e.pointerType !== "pen") return;
+      startX = e.clientX;
+      startY = e.clientY;
+      startTime = Date.now();
+      tracking = true;
+    };
+    const onUp = (e: PointerEvent) => {
+      if (!tracking) return;
+      tracking = false;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      // Ignore slow drags (treated as scroll/selection), short taps (<50px),
+      // and near-vertical swipes (preserve page scroll).
+      if (Date.now() - startTime > 800) return;
+      if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
+      cycleTheme(dx < 0 ? 1 : -1);
+    };
+    const onCancel = () => { tracking = false; };
+
+    el.addEventListener("pointerdown", onDown);
+    el.addEventListener("pointerup", onUp);
+    el.addEventListener("pointercancel", onCancel);
+    return () => {
+      el.removeEventListener("pointerdown", onDown);
+      el.removeEventListener("pointerup", onUp);
+      el.removeEventListener("pointercancel", onCancel);
+    };
+  }, [cycleTheme]);
 
   // Keep the active theme pill centered in the scroller as selection changes.
   // Honors prefers-reduced-motion — instant jump instead of smooth scroll.
@@ -205,7 +231,13 @@ export function ThemeCarousel({ layout: initialLayout, initialThemeId, themeIds 
   const signupHref = `/signup?layout=${encodeURIComponent(layout)}&theme=${encodeURIComponent(themeId)}`;
 
   return (
-    <div className="relative overflow-x-hidden">
+    <div
+      ref={swipeWrapperRef}
+      className="relative overflow-x-hidden"
+      // Reserve horizontal touch for the swipe handler; pass vertical
+      // through so the page keeps scrolling naturally.
+      style={{ touchAction: "pan-y" }}
+    >
       {/* ── Sticky selector panel ── */}
       <div className="sticky top-0 z-50 border-b border-white/10 bg-[#111] text-white">
         <div className="mx-auto flex max-w-[1400px] flex-col gap-3 px-4 py-3 md:gap-2 md:py-2">
@@ -297,10 +329,12 @@ export function ThemeCarousel({ layout: initialLayout, initialThemeId, themeIds 
 
             <div
               ref={scrollerRef}
-              onTouchStart={onScrollerTouchStart}
-              onTouchEnd={onScrollerTouchEnd}
               className="-mx-1 flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              style={{ scrollSnapType: "x proximity" }}
+              // touch-action: pan-y lets the page scroll vertically but
+              // stops the native horizontal pill scroll from eating
+              // mobile swipes — those now reach the wrapper's swipe
+              // handler and cycle themes instead.
+              style={{ scrollSnapType: "x proximity", touchAction: "pan-y" }}
             >
               {themeIds.map((id) => {
                 const t = TEMPLATE_THEMES[id];
