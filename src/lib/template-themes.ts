@@ -6,6 +6,10 @@ export interface TemplateTheme {
   name: string;
   vibe: string;
   category: "feminine" | "editorial" | "natural" | "bold" | "minimal" | "street";
+  /** Hand-picked featured theme — surfaces in the "⭐ Featured Templates"
+   *  row on /templates. Flip this flag per-theme to rotate the featured set
+   *  without code changes elsewhere. */
+  is_featured?: boolean;
   // palette
   bg: string;
   surface: string;
@@ -719,6 +723,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
     name: "Harajuku Cloud",
     vibe: "Airy · kawaii · cotton candy · dreamy pastels",
     category: "feminine",
+    is_featured: true,
     bg: "#FFFFFF",            // Crisp White — main surface
     surface: "#FAFCFE",       // Whisper White — card backgrounds
     ink: "#3D4A55",           // Soft Charcoal — headings
@@ -774,6 +779,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
     name: "Red Velvet Sorbet",
     vibe: "Romantic · warm · dessert-luxury · strawberry & rose-gold",
     category: "feminine",
+    is_featured: true,
     bg: "#FBF4EC",            // Cream — main surface
     surface: "#FFF9F2",       // Whisper Cream — layered cards
     ink: "#5C3534",            // Rich Bordeaux — headings
@@ -885,6 +891,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
     name: "Cool Quartz",
     vibe: "Medical-spa · glass & steel · frosted ice · clinical luxe",
     category: "minimal",
+    is_featured: true,
     bg: "#F4F6F7",            // Pearl White — main surface
     surface: "#FBFCFD",       // Frost White — layered cards
     ink: "#1A1F26",            // Obsidian — headings
@@ -940,6 +947,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
     name: "Floral Latte",
     vibe: "Quiet luxury · bleached oak · dried pampas · timeless warm neutrals",
     category: "natural",
+    is_featured: true,
     bg: "#F7F1E8",            // Ivory — main surface
     surface: "#FCF7EF",       // Whisper Ivory — layered cards
     ink: "#2A1E14",            // Dark Cocoa — headings
@@ -1002,6 +1010,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
     name: "League Lead",
     vibe: "Athletic · kinetic · sneaker-drop · championship energy",
     category: "bold",
+    is_featured: true,
     bg: "#FFFFFF",            // Pure White — main surface
     surface: "#F5F5F5",       // Hot White — layered cards
     ink: "#0A0A0A",            // Matte Black — headings
@@ -1317,6 +1326,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
     name: "Unicorn Candy-Cloud",
     vibe: "Maximalist · sugar-rush · mesh gradient · iridescent · unicorn",
     category: "feminine",
+    is_featured: true,
     bg: "#FF61A6",            // Bubblegum Pink fallback — mesh gradient applied via scoped CSS
     surface: "rgba(255,255,255,0.65)",  // Glass panel
     ink: "#2A1240",            // Twilight Plum — headings

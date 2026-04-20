@@ -3,7 +3,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { Nav } from "@/components/marketing/nav";
 import { Footer } from "@/components/marketing/footer";
 import { TEMPLATE_THEMES, LAYOUT_TYPES } from "@/lib/template-themes";
-import { TemplateAccordion } from "@/components/templates/template-accordion";
+import { TemplateBrowser } from "@/components/templates/template-browser";
 
 const THEME_LIST = Object.values(TEMPLATE_THEMES);
 const THEME_COUNT = THEME_LIST.length;
@@ -43,13 +43,9 @@ export default function TemplatesPage() {
         </div>
       </section>
 
-      {/* ── Accordion of layouts ── */}
+      {/* ── Theme browser — filterable, category-grouped ── */}
       <div className="mx-auto w-full max-w-[1300px] px-6 py-16">
-        <TemplateAccordion
-          layouts={LAYOUT_TYPES}
-          themes={THEME_LIST}
-          defaultLayout="bold"
-        />
+        <TemplateBrowser themes={THEME_LIST} />
       </div>
 
       {/* ── CTA ── */}
