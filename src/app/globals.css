@@ -772,6 +772,36 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
+ * Floral Latte — page-level text + footer depth
+ * ─────────────────────────────────────────────────────────────────────────
+ * Mocha-dominant theme with cream cards. `ink`/`muted` are Dark Cocoa so
+ * body + headings render correctly on cream surfaces. These two rules
+ * fix the remaining cases: any element carrying the mocha bg inline
+ * (sticky top bar, hero strip) forces white text so it reads on the
+ * dark background, and the footer deepens to Espresso Shadow with a
+ * caramel hairline on its top edge.
+ * Limited to `[data-oyrb-theme="latte"]` — no other theme touched.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+/* Force white text on any inline-styled element whose background matches
+   the mocha tone (templates use `#6B4F3B` + alpha variants like
+   `#6B4F3Bf5` for translucent sticky bars — the substring selector
+   matches both). */
+[data-oyrb-theme="latte"] [style*="#6B4F3B"] {
+  color: #FFFFFF !important;
+}
+
+/* Footer — deeper Espresso Shadow + caramel hairline on top edge */
+[data-oyrb-theme="latte"] footer {
+  background: #3D2817 !important;
+  color: #FFFFFF !important;
+  border-top: 1px solid rgba(184, 138, 90, 0.5) !important;
+}
+[data-oyrb-theme="latte"] footer * {
+  color: #FFFFFF !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
  * Chrome Oracle — MAXIMALIST sci-fi chrome theme
  * ─────────────────────────────────────────────────────────────────────────
  * Fourth MAXIMALIST-tier theme (after Candy, Galactic, Sunset). Scoped to

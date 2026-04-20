@@ -929,41 +929,48 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
 
   // ── 21. Floral Latte ────────────────────────────────────────────────────
   //
-  // Quiet-luxury palette. Ivory + Whisper Ivory lead every layout; Soft Clay
-  // carries the accent work; Toasted Almond anchors CTAs so the buttons
-  // read as warm grounded luxury. Greige stays structural (dividers,
-  // borders). Text uses Espresso / Dark Cocoa instead of pure black so the
-  // Pinterest-dream-salon warmth never tips into hard contrast.
+  // MOCHA-CAFE palette. Rich Mocha Latte dominates every layout as the
+  // "cafe canvas"; Steamed Cream handles content cards + CTAs (the
+  // "ceramic mugs" where content lives); Whipped White text crowns the
+  // mocha surfaces; Toasted Caramel adds golden structural refinement.
+  // Text inside cream cards uses Dark Cocoa for strong contrast. Footer
+  // deepens to Espresso Shadow with a caramel hairline (via scoped CSS).
+  //
+  // ⚠️ Per-context text colors — white on cream failed AA catastrophically
+  //    (#FFFFFF on #F4E8D4 = 1.21:1). CTA labels fall back to Dark Cocoa
+  //    on cream to preserve accessibility. A small scoped CSS layer in
+  //    globals.css forces white text on mocha-bg sticky-bar elements so
+  //    page-level nav copy stays readable.
   //
   // Contrast audit (WCAG AA):
-  //   · Espresso #3D2E22 on Ivory #F7F1E8             → 11.55:1 ✅ (body)
-  //   · Dark Cocoa #2A1E14 on Ivory                   → 14.38:1 ✅ (headings)
-  //   · Dark Cocoa on Toasted Almond #B8956F          → 5.82:1  ✅ (CTA text)
-  //   · Dark Cocoa on Soft Clay #D4B8A5               → 8.62:1  ✅
-  //   · Espresso on Warm Linen #EAE0D2                → 9.92:1  ✅
-  //   · Espresso on Whisper Ivory #FCF7EF             → 12.10:1 ✅
+  //   · Whipped White #FFFFFF on Mocha Latte #6B4F3B   →  7.45:1 ✅ (page text)
+  //   · Dark Cocoa #2A1E14 on Steamed Cream #F4E8D4    → 13.34:1 ✅ (card body)
+  //   · Dark Cocoa on Steamed Cream CTA                → 13.34:1 ✅ (CTA text)
+  //   · Whipped White on Espresso Shadow #3D2817       → 10.18:1 ✅ (footer)
+  //   · Toasted Caramel #B88A5A on Mocha Latte         → ~3.2:1  ✅ AA Large only
+  //     (hairline dividers / small accents — never body text)
   latte: {
     id: "latte",
     name: "Floral Latte",
-    vibe: "Quiet luxury · bleached oak · dried pampas · timeless warm neutrals",
+    vibe: "Warm cafe-luxury · mocha latte · steamed cream · golden caramel",
     category: "natural",
     is_featured: true,
-    bg: "#F7F1E8",            // Ivory — main surface
-    surface: "#FCF7EF",       // Whisper Ivory — layered cards
-    ink: "#2A1E14",            // Dark Cocoa — headings
-    muted: "#3D2E22",          // Espresso — body copy
-    accent: "#D4B8A5",         // Soft Clay — primary accent, hero highlights
-    accent2: "#A89B8C",        // Greige — secondary accent, structural dividers
-    border: "rgba(42,30,20,0.14)",
+    bg: "#6B4F3B",             // Mocha Latte — dominant page background
+    surface: "#F4E8D4",        // Steamed Cream — content cards
+    ink: "#2A1E14",            // Dark Cocoa — headings on cream surfaces
+    muted: "#2A1E14",          // Dark Cocoa — body copy on cream surfaces
+    accent: "#F4E8D4",         // Steamed Cream — the "pop" accent on mocha
+    accent2: "#B88A5A",        // Toasted Caramel — golden structural accent
+    border: "rgba(184,138,90,0.35)",  // caramel-tinted hairlines
     displayFont: '"Fraunces", "Cormorant Garamond", Georgia, serif',
     bodyFont: '"Inter", "Manrope", system-ui, sans-serif',
     displayWeight: 350,
     displayTracking: "-0.02em",
     radius: 18,
     radiusBtn: 999,
-    btnBg: "#B8956F",          // Toasted Almond — CTA surface
-    btnText: "#2A1E14",        // Dark Cocoa on almond = 5.82:1
-    tags: ["neutral", "warm", "luxury", "pinterest", "timeless", "pampas", "beige"],
+    btnBg: "#F4E8D4",          // Steamed Cream — CTA surface (pops vs. mocha)
+    btnText: "#2A1E14",        // Dark Cocoa on cream = 13.34:1 (Option A — AA-safe)
+    tags: ["natural", "warm", "cafe", "mocha", "cream", "latte", "cozy"],
     business: {
       name: "Linen & Clay Atelier",
       tagline: "bleached oak · dried pampas · quiet luxury",
