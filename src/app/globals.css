@@ -741,3 +741,32 @@
     border: 1px solid #1F1240 !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Dark Knight & Amazon — depth treatments
+ * ─────────────────────────────────────────────────────────────────────────
+ * Small scoped CSS layer that gives the theme real sectional depth —
+ * footers deepen to Obsidian with a Victory Gold hairline, and a subtle
+ * Graphite Depth gradient tints the bottom of the page. Pure color tokens
+ * can't deliver this on their own; the rest of the theme stays standard.
+ * Limited to `[data-oyrb-theme="knight"]` — no other theme touched.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+/* Subtle depth gradient at the bottom of the page for after-hours vault
+   mood. Layered via background-image so the inline `bg` color on the
+   template root still wins for the base fill. */
+[data-oyrb-theme="knight"] {
+  background-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    transparent 70%,
+    rgba(46, 50, 58, 0.35) 100%
+  );
+  background-attachment: fixed;
+}
+
+/* Footer — deeper-than-body Obsidian + 1px gold hairline on the top edge */
+[data-oyrb-theme="knight"] footer {
+  background: #060A12 !important;
+  border-top: 1px solid rgba(201, 168, 92, 0.45) !important;
+}

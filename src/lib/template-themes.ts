@@ -1178,44 +1178,50 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
 
   // ── 25. Dark Knight & Amazon ────────────────────────────────────────────
   //
-  // Watch-boutique palette. Pure Alabaster + Whisper Alabaster lead every
-  // layout; Royal Cobalt anchors CTAs and the single confident "action"
-  // moment; Gotham Graphite carries headings + body for sleek weight;
-  // Victory Gold is decorative-only (borders, icon strokes, refined frame
-  // details — never text). Reads like a high-end watch boutique, not a
-  // costume or comic-book theme.
+  // MIDNIGHT-VAULT-LUXURY palette. Deep Midnight Vault Navy dominates
+  // every layout like the walls of a private watch room after hours; Dusk
+  // Navy cards layer slightly lighter for depth; Victory Gold is the
+  // "brass and candlelight" — headings, CTAs, premium accents; Pure
+  // Alabaster handles body copy for readable contrast; Graphite Depth
+  // adds structural sophistication. Footer takes an Obsidian deeper-than-
+  // bg tone with a gold hairline border (via scoped CSS in globals.css).
   //
-  // STANDARD color-only theme. Do NOT apply the League Lead typography
-  // override pattern — fonts and casing stay at each layout's defaults.
+  // IMPORTANT differentiation vs. First Avenger:
+  //   · First Avenger — Heroic Navy #0A1F3D (brighter, daytime authority)
+  //   · Dark Knight   — Midnight Vault #0E1420 (deeper, after-hours vault)
+  //
+  // STANDARD color-only theme for palette/typography; a small footer +
+  // depth CSS layer in globals.css targets `[data-oyrb-theme="knight"]`
+  // only. No other theme is affected.
   //
   // Contrast audit (WCAG AA):
-  //   · Midnight Graphite #1A1D24 on Alabaster #FAFBFC → 16.05:1 ✅ (headings)
-  //   · Gotham Graphite #2E323A on Alabaster           → 12.33:1 ✅ (body)
-  //   · Alabaster on Royal Cobalt #2B5BD4              → 5.78:1  ✅ (CTA text)
-  //   · Alabaster on Gotham Graphite                   → 12.33:1 ✅
-  //   · Gotham Graphite on Victory Gold #C9A85C        → 5.60:1  ✅ (if text on gold)
-  //   · Victory Gold on Alabaster                      → 2.20:1  ❌ — never text
+  //   · Pure Alabaster #FAFBFC on Midnight Vault #0E1420  → 17.07:1 ✅ (body)
+  //   · Victory Gold   #C9A85C on Midnight Vault          →  8.05:1 ✅ (heads)
+  //   · Victory Gold   on Dusk Navy #1A2230               → ~7.1:1  ✅ (card heads)
+  //   · Pure Alabaster on Dusk Navy                       → ~15:1   ✅ (card body)
+  //   · Midnight Vault on Victory Gold CTA                →  8.05:1 ✅
+  //   · Graphite Depth #2E323A on Midnight Vault          → ~1.4:1  ❌ — structural only
   knight: {
     id: "knight",
     name: "Dark Knight & Amazon",
-    vibe: "Watch boutique · cobalt & gold accents · premium modernism",
+    vibe: "Midnight luxury · gold accents · after-hours watch vault",
     category: "editorial",
-    bg: "#FAFBFC",            // Pure Alabaster — main surface
-    surface: "#FFFFFF",       // Whisper Alabaster — layered cards
-    ink: "#1A1D24",            // Midnight Graphite — headings
-    muted: "#2E323A",          // Gotham Graphite — body copy
-    accent: "#2B5BD4",         // Royal Cobalt — primary accent / hero highlight
-    accent2: "#C9A85C",        // Victory Gold — decorative premium accent (non-text)
-    border: "rgba(26,29,36,0.16)",
+    bg: "#0E1420",             // Midnight Vault Navy — dominant background
+    surface: "#1A2230",        // Dusk Navy — layered cards (slightly lighter)
+    ink: "#C9A85C",            // Victory Gold — headings (brass-and-candlelight)
+    muted: "#FAFBFC",          // Pure Alabaster — body copy on dark surfaces
+    accent: "#C9A85C",         // Victory Gold — primary accent + hero highlights
+    accent2: "#2E323A",        // Graphite Depth — secondary structural surface
+    border: "rgba(201,168,92,0.28)",   // Gold-tinted hairlines
     displayFont: '"Fraunces", "Playfair Display", Georgia, serif',
     bodyFont: '"Inter", system-ui, sans-serif',
     displayWeight: 450,
     displayTracking: "-0.02em",
     radius: 4,
     radiusBtn: 6,
-    btnBg: "#2B5BD4",          // Royal Cobalt — CTA surface
-    btnText: "#FAFBFC",        // Alabaster on cobalt = 5.78:1
-    tags: ["editorial", "premium", "boutique", "cobalt", "gold", "modernist"],
+    btnBg: "#C9A85C",          // Victory Gold — CTA surface
+    btnText: "#0E1420",        // Midnight Vault on Gold = 8.05:1
+    tags: ["editorial", "premium", "midnight", "gold", "vault", "luxury"],
     business: {
       name: "Atelier Gotham",
       tagline: "precision consulting · boutique beauty · private clientele",
