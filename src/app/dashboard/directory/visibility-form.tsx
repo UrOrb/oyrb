@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { saveVisibilitySettings, presetToggles } from "./actions";
+import { saveVisibilitySettings } from "./actions";
+import { presetToggles } from "./presets";
 import type { VisibilityPreset } from "@/lib/directory";
 
 type Toggles = {
