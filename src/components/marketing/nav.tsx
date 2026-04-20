@@ -19,6 +19,9 @@ export function Nav() {
         </Link>
 
         <nav className="hidden items-center gap-8 text-sm text-[#525252] md:flex">
+          <Link href="/find" className="hover:text-[#0A0A0A] transition-colors">
+            Find Pros
+          </Link>
           <Link href="/features" className="hover:text-[#0A0A0A] transition-colors">
             Features
           </Link>
@@ -60,6 +63,7 @@ export function Nav() {
       {open && (
         <div className="border-t border-[#E7E5E4] bg-[#FAFAF9] px-6 pb-6 pt-4 md:hidden">
           <nav className="flex flex-col gap-4 text-sm">
+            <Link href="/find" onClick={() => setOpen(false)}>Find Pros</Link>
             <Link href="/features" onClick={() => setOpen(false)}>Features</Link>
             <Link href="/templates" onClick={() => setOpen(false)}>Templates</Link>
             <Link href="/pricing" onClick={() => setOpen(false)}>Pricing</Link>
