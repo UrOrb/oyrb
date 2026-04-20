@@ -152,7 +152,7 @@ const ALL_THEMES = [
   "luxe", "earth", "street", "y2k",
   "rose", "sage", "slate", "noir",
   "citrus", "colorblock",
-  "riot", "mochi", "linden", "harajuku", "sorbet", "amethyst", "quartz", "latte", "league", "crimson", "avenger", "knight",
+  "riot", "mochi", "linden", "harajuku", "sorbet", "amethyst", "quartz", "latte", "league", "crimson", "avenger", "knight", "neon",
 ];
 const STARTER_THEMES = ["aura", "minimal", "bold"];
 
@@ -543,9 +543,14 @@ export function SiteBuilder({ business, hours, services, origin }: Props) {
                 <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
                   {allowedThemes.map((t) => {
                     const selected = draft.template_theme === t;
-                    // League Lead is the one "high-impact" theme that also
-                    // transforms typography (see TEMPLATE_THEMES.league).
-                    const isHighImpact = t === "league";
+                    // Subtitle map for "enhanced" or visually distinct themes so
+                    // the picker sets accurate expectations. Standard color-only
+                    // themes render no subtitle.
+                    const subtitle =
+                      t === "league"   ? { text: "⚡ Bold style — uppercase headings", color: "#D4FF00" } :
+                      t === "neon"     ? { text: "✨ Saturated kawaii — bold style", color: "#FFD54F" } :
+                      t === "harajuku" ? { text: "☁︎ Soft kawaii — pastel style",    color: "#F5C8D1" } :
+                      null;
                     return (
                       <button
                         key={t}
@@ -556,9 +561,12 @@ export function SiteBuilder({ business, hours, services, origin }: Props) {
                         }`}
                       >
                         {t}
-                        {isHighImpact && (
-                          <span className={`mt-0.5 block text-[9px] font-normal normal-case tracking-normal ${selected ? "text-[#D4FF00]" : "text-[#525252]"}`}>
-                            ⚡ Bold style — uppercase headings
+                        {subtitle && (
+                          <span
+                            className="mt-0.5 block text-[9px] font-normal normal-case tracking-normal"
+                            style={{ color: selected ? subtitle.color : "#525252" }}
+                          >
+                            {subtitle.text}
                           </span>
                         )}
                       </button>

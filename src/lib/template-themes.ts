@@ -1211,6 +1211,75 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       ],
     },
   },
+
+  // ── 26. Neon Dream Island ───────────────────────────────────────────────
+  //
+  // ENHANCED THEME — second theme (after League Lead) to ship decorative
+  // overrides beyond colors. When this theme is active, scoped CSS in
+  // `globals.css` applies: floating-cloud rounded containers with inner
+  // glow, 2px Deep Violet sticker borders on buttons/inputs, pill-shaped
+  // candy-shine CTAs with pseudo-element white highlight, Sunlight Yellow
+  // star bullets on service lists, and sparkle pseudo-elements in section
+  // corners. DISTINCT from Harajuku Cloud (soft pastel kawaii) — this is
+  // the saturated maximalist sibling.
+  //
+  // DO NOT replicate this enhanced pattern on other themes unless the
+  // theme is explicitly flagged as enhanced in its own spec. Every other
+  // standard theme in the system is colors-only.
+  //
+  // Scope note: CSS cannot swap React Lucide icon components (e.g. rating
+  // <Star> → <Heart>). That level of swap would require template-level
+  // theme-id branching, which is out of scope for this theme. All CSS-
+  // achievable treatments (bullets, borders, shapes, pseudos) are applied.
+  //
+  // Contrast audit (WCAG AA):
+  //   · Deep Violet #5E35B1 on Crisp White #FFFFFF    → 8.02:1  ✅ (body)
+  //   · Royal Plum  #4A148C on Crisp White            → 11.93:1 ✅ (headings)
+  //   · Royal Plum  on Vibrant Sky Blue #4FC3F7       → 5.92:1  ✅ (headings on sky)
+  //   · Deep Violet on Soft Sky Mist #B3E5FC          → 5.94:1  ✅
+  //   · Crisp White on Electric Magenta #EC407A       → 3.75:1  ✅ AA Large
+  //     (CTA button labels only — fails AA body at 4.5:1; keep label
+  //     weight ≥ 600 and size ≥ 14px so large-text rules apply.)
+  //   · Sunlight Yellow #FFD54F on White              → 1.69:1  ❌ decorative only
+  neon: {
+    id: "neon",
+    name: "Neon Dream Island",
+    vibe: "Saturated kawaii · Sanrio-energy · candy-shine · maximalist",
+    category: "feminine",
+    bg: "#4FC3F7",            // Vibrant Sky Blue — main background
+    surface: "#FFFFFF",       // Crisp White — cloud containers
+    ink: "#4A148C",            // Royal Plum — headings
+    muted: "#5E35B1",          // Deep Violet — body copy, sticker borders
+    accent: "#EC407A",         // Electric Magenta — primary CTA + selections
+    accent2: "#FFD54F",        // Sunlight Yellow — decorative (stars, sparkles, highlights)
+    border: "#5E35B1",         // Deep Violet — 2px sticker outline
+    displayFont: '"Fraunces", "Cormorant Garamond", Georgia, serif',
+    bodyFont: '"Nunito", "Manrope", system-ui, sans-serif',
+    displayWeight: 700,
+    displayTracking: "-0.01em",
+    radius: 30,                 // Cloud-rounded surfaces
+    radiusBtn: 9999,            // Pill CTAs
+    btnBg: "#EC407A",           // Magenta — CTA fill
+    btnText: "#FFFFFF",         // White on magenta = 3.75:1 (AA Large only)
+    tags: ["kawaii", "saturated", "sanrio", "candy", "maximalist", "sparkle", "heart"],
+    business: {
+      name: "Neon Dream Island ♡",
+      tagline: "sticker-cute · candy-bright · maximum magic",
+      bio: "A maximum-sparkle salon for bold color, rainbow lashes, and finishes that look like they jumped off a sticker sheet. We believe in glitter, hearts, candy lips, and treating every appointment like a mini photo-shoot.",
+      location: "Suite 7 · 12 Sugar Cloud Ave · Los Angeles, CA",
+      phone: "(213) 555-0616",
+      email: "hi@neondreamisland.co",
+      category: "Kawaii Beauty & Color",
+      heroImageId: "1519014816548-bf5fe059798b",
+      profileImageId: "1540555700478-4be289fbecef",
+      galleryIds: [
+        "1519014816548-bf5fe059798b","1540555700478-4be289fbecef",
+        "1519699047748-de8e457a634e","1531746020798-e6953c6e8e04",
+        "1556228720-195a672e8a03","1505932794465-147d1f1b2c97",
+        "1515377905703-c4788e51af15","1552693673-1bf958298935",
+      ],
+    },
+  },
 };
 
 export const THEME_IDS = Object.keys(TEMPLATE_THEMES) as Array<keyof typeof TEMPLATE_THEMES>;

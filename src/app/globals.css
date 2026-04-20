@@ -121,3 +121,127 @@
   height: 3px !important;
   background: #0A0A0A !important;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Neon Dream Island — enhanced theme overrides
+ * ─────────────────────────────────────────────────────────────────────────
+ * The SECOND theme-scoped override layer (after League Lead). Scoped to
+ * `[data-oyrb-theme="neon"]`. Applies: floating-cloud white containers
+ * with inner glow + soft drop shadow, 2px Deep Violet sticker borders on
+ * buttons/inputs, pill-shaped candy-shine CTAs with ::before white oval
+ * highlight, Sunlight Yellow star bullets on service lists, and sparkle
+ * pseudo-elements in section corners.
+ *
+ * DISTINCT from Harajuku Cloud (soft pastel kawaii). This is the
+ * saturated maximalist sibling. Both themes coexist.
+ *
+ * ⚠️  Do NOT add similar overrides for other themes. This pattern is
+ *     reserved for themes explicitly flagged as "enhanced" in their spec.
+ *
+ * Scope note: CSS cannot swap React Lucide icon components (rating
+ * <Star> → <Heart>). Only CSS-achievable treatments ship here.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+/* Floating-cloud containers — white surfaces get inner glow + soft shadow.
+   We target any element whose inline background is white (cards, form
+   containers) so the effect lands without touching layout code. */
+[data-oyrb-theme="neon"] [style*="background: #FFFFFF"],
+[data-oyrb-theme="neon"] [style*="background: #FFF"],
+[data-oyrb-theme="neon"] [style*="background:#FFFFFF"],
+[data-oyrb-theme="neon"] [style*="background:#FFF"],
+[data-oyrb-theme="neon"] [style*="backgroundColor: #FFFFFF"],
+[data-oyrb-theme="neon"] [style*="backgroundColor:#FFFFFF"],
+[data-oyrb-theme="neon"] [style*="background-color: #FFFFFF"],
+[data-oyrb-theme="neon"] [style*="background-color: #FFF"],
+[data-oyrb-theme="neon"] [style*="background: white"] {
+  box-shadow:
+    inset 0 0 12px rgba(255, 255, 255, 0.6),
+    0 4px 20px rgba(94, 53, 177, 0.08) !important;
+  border-radius: 30px !important;
+}
+
+/* Sticker-style borders on interactive surfaces */
+[data-oyrb-theme="neon"] button,
+[data-oyrb-theme="neon"] input[type="text"],
+[data-oyrb-theme="neon"] input[type="email"],
+[data-oyrb-theme="neon"] input[type="tel"],
+[data-oyrb-theme="neon"] input[type="date"],
+[data-oyrb-theme="neon"] input[type="time"],
+[data-oyrb-theme="neon"] input[type="number"],
+[data-oyrb-theme="neon"] textarea,
+[data-oyrb-theme="neon"] select {
+  border: 2px solid #5E35B1 !important;
+}
+
+/* Candy-shine pill CTAs — primary buttons get the hero treatment */
+[data-oyrb-theme="neon"] a[href*="book"],
+[data-oyrb-theme="neon"] a[role="button"],
+[data-oyrb-theme="neon"] button {
+  position: relative;
+  border-radius: 9999px !important;
+  overflow: visible;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+[data-oyrb-theme="neon"] a[href*="book"]::before,
+[data-oyrb-theme="neon"] a[role="button"]::before,
+[data-oyrb-theme="neon"] button::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 12px;
+  width: 18px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  transform: rotate(-15deg);
+  pointer-events: none;
+}
+[data-oyrb-theme="neon"] a[href*="book"]:hover,
+[data-oyrb-theme="neon"] a[role="button"]:hover,
+[data-oyrb-theme="neon"] button:hover {
+  transform: scale(1.03);
+  box-shadow: 0 8px 24px rgba(236, 64, 122, 0.35);
+}
+
+/* Sunlight Yellow star bullets on service lists */
+[data-oyrb-theme="neon"] ul {
+  list-style: none;
+  padding-left: 1.5em;
+}
+[data-oyrb-theme="neon"] ul > li {
+  position: relative;
+}
+[data-oyrb-theme="neon"] ul > li::before {
+  content: '★';
+  position: absolute;
+  left: -1.4em;
+  top: 0;
+  color: #FFD54F;
+  font-size: 1em;
+  line-height: inherit;
+}
+
+/* Decorative sparkles — scattered in section corners via pseudo-elements.
+   Kept low z-index + pointer-events:none so they never block content. */
+[data-oyrb-theme="neon"] section {
+  position: relative;
+}
+[data-oyrb-theme="neon"] section::before,
+[data-oyrb-theme="neon"] section::after {
+  content: '✦';
+  position: absolute;
+  color: #FFD54F;
+  font-size: 18px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.85;
+}
+[data-oyrb-theme="neon"] section::before {
+  top: 12px;
+  right: 18px;
+}
+[data-oyrb-theme="neon"] section::after {
+  bottom: 16px;
+  left: 22px;
+  font-size: 14px;
+}
