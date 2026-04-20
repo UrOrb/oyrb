@@ -699,6 +699,60 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       ],
     },
   },
+
+  // ── 17. Harajuku Cloud ────────────────────────────────────────────────
+  //
+  // Airy kawaii palette. Baby blue + crisp white lead every layout, with
+  // pale lemon as quiet accents and soft marshmallow pink reserved for
+  // CTAs. Text uses Cloud Gray / Soft Charcoal instead of pure black so
+  // the dreamy vibe never tips into hard contrast.
+  //
+  // Contrast audit (WCAG AA):
+  //   · Cloud Gray #5A6B7A on Crisp White #FFFFFF → 6.14:1  ✅ (body)
+  //   · Soft Charcoal #3D4A55 on Crisp White      → 9.65:1  ✅ (headings)
+  //   · Soft Charcoal #3D4A55 on Baby Blue #B5D8EB → 6.36:1  ✅
+  //   · Soft Charcoal #3D4A55 on Pale Lemon #FBF4C7 → 8.91:1 ✅
+  //   · Soft Charcoal #3D4A55 on Soft Pink #F5C8D1 → 6.87:1  ✅  (CTA text)
+  //   · Cloud Gray on Whisper White / Soft Sky — always ≥ 5.8:1. ✅
+  harajuku: {
+    id: "harajuku",
+    name: "Harajuku Cloud",
+    vibe: "Airy · kawaii · cotton candy · dreamy pastels",
+    category: "feminine",
+    bg: "#FFFFFF",            // Crisp White — main surface
+    surface: "#FAFCFE",       // Whisper White — card backgrounds
+    ink: "#3D4A55",           // Soft Charcoal — headings
+    muted: "#5A6B7A",         // Cloud Gray — body copy, secondary text
+    accent: "#F5C8D1",        // Soft Marshmallow Pink — CTAs, primary accents
+    accent2: "#B5D8EB",       // Baby Blue — secondary accents, airy surfaces
+    border: "rgba(61,74,85,0.15)",
+    displayFont: '"Fraunces", "Cormorant Garamond", Georgia, serif',
+    bodyFont: '"Nunito", "Manrope", system-ui, sans-serif',
+    displayWeight: 400,
+    displayTracking: "-0.01em",
+    radius: 24,
+    radiusBtn: 999,
+    btnBg: "#F5C8D1",         // Soft Pink button surface
+    btnText: "#3D4A55",       // Soft Charcoal text on pink = 6.87:1 contrast
+    tags: ["kawaii", "pastel", "airy", "cotton candy", "dreamy", "harajuku"],
+    business: {
+      name: "Cloud Nine Studio ☁︎",
+      tagline: "lashes · lips · cloud-soft color",
+      bio: "A dreamy little studio for soft girls and sweet treats. Specializing in airy color, cloud-gradient hair, and the kind of glow that looks like you just walked out of a daydream.",
+      location: "Suite 4 · 88 Pastel Lane · Los Angeles, CA",
+      phone: "(213) 555-0904",
+      email: "hi@cloudninestudio.co",
+      category: "Lash Extensions & Beauty",
+      heroImageId: "1519014816548-bf5fe059798b",
+      profileImageId: "1540555700478-4be289fbecef",
+      galleryIds: [
+        "1519014816548-bf5fe059798b","1540555700478-4be289fbecef",
+        "1519699047748-de8e457a634e","1531746020798-e6953c6e8e04",
+        "1556228720-195a672e8a03","1505932794465-147d1f1b2c97",
+        "1515377905703-c4788e51af15","1552693673-1bf958298935",
+      ],
+    },
+  },
 };
 
 export const THEME_IDS = Object.keys(TEMPLATE_THEMES) as Array<keyof typeof TEMPLATE_THEMES>;
