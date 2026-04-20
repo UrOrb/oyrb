@@ -808,6 +808,62 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       ],
     },
   },
+
+  // ── 19. Amethyst Mist ───────────────────────────────────────────────────
+  //
+  // Ethereal spa-luxury palette. White Linen leads every layout as the main
+  // surface; Pale Lavender carries the accent work; Muted Periwinkle anchors
+  // CTAs so buttons read as refined wellness rather than cartoon purple.
+  // Silver Birch stays structural (dividers, borders). Text uses Twilight
+  // Plum / Deep Amethyst in place of pure black so the calm never tips into
+  // hard contrast.
+  //
+  // Contrast audit (WCAG AA):
+  //   · Twilight Plum #5C5470 on White Linen #FBFAF7     → 6.98:1  ✅ (body)
+  //   · Deep Amethyst  #3F3852 on White Linen            → 10.47:1 ✅ (headings)
+  //   · Deep Amethyst  #3F3852 on Muted Periwinkle #A8B0D4 → 5.16:1 ✅ (CTA)
+  //   · Deep Amethyst  #3F3852 on Pale Lavender #D9CCE3  → 7.14:1  ✅
+  //   · Twilight Plum  #5C5470 on Mist Lavender #EDE5F2  → 5.94:1  ✅
+  //   · Twilight Plum  #5C5470 on Whisper Linen #FFFFFC  → 7.13:1  ✅
+  amethyst: {
+    id: "amethyst",
+    name: "Amethyst Mist",
+    vibe: "Ethereal · spa-luxury · lavender mist · meditative",
+    category: "feminine",
+    bg: "#FBFAF7",            // White Linen — main surface
+    surface: "#FFFFFC",       // Whisper Linen — layered cards
+    ink: "#3F3852",            // Deep Amethyst — headings
+    muted: "#5C5470",          // Twilight Plum — body copy
+    accent: "#D9CCE3",         // Pale Lavender — primary accent, hero highlights
+    accent2: "#A8B0D4",        // Muted Periwinkle — secondary accent, CTAs
+    border: "rgba(63,56,82,0.14)", // derived from Deep Amethyst; Silver Birch tone
+    displayFont: '"Fraunces", "Cormorant Garamond", Georgia, serif',
+    bodyFont: '"Inter", "Manrope", system-ui, sans-serif',
+    displayWeight: 350,
+    displayTracking: "-0.015em",
+    radius: 20,
+    radiusBtn: 999,
+    btnBg: "#A8B0D4",          // Muted Periwinkle — elegant CTA surface
+    btnText: "#3F3852",        // Deep Amethyst text on periwinkle = 5.16:1
+    tags: ["ethereal", "spa", "lavender", "calm", "meditative", "wellness"],
+    business: {
+      name: "Mist & Linen Atelier",
+      tagline: "quiet beauty · slow rituals · lavender hours",
+      bio: "An appointment-only wellness atelier for slow, sensory facials and bespoke skin ceremonies. Think fresh linen, polished silver, a little lavender steam, and the kind of quiet that actually makes your shoulders drop.",
+      location: "Studio 3 · 27 Birch Lane · Portland, OR",
+      phone: "(503) 555-0218",
+      email: "hello@mistandlinen.co",
+      category: "Facials & Wellness",
+      heroImageId: "1540555700478-4be289fbecef",
+      profileImageId: "1519699047748-de8e457a634e",
+      galleryIds: [
+        "1540555700478-4be289fbecef","1519699047748-de8e457a634e",
+        "1515377905703-c4788e51af15","1552693673-1bf958298935",
+        "1505932794465-147d1f1b2c97","1519014816548-bf5fe059798b",
+        "1531746020798-e6953c6e8e04","1556228720-195a672e8a03",
+      ],
+    },
+  },
 };
 
 export const THEME_IDS = Object.keys(TEMPLATE_THEMES) as Array<keyof typeof TEMPLATE_THEMES>;

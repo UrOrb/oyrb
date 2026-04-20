@@ -152,7 +152,7 @@ const ALL_THEMES = [
   "luxe", "earth", "street", "y2k",
   "rose", "sage", "slate", "noir",
   "citrus", "colorblock",
-  "riot", "mochi", "linden", "harajuku", "sorbet",
+  "riot", "mochi", "linden", "harajuku", "sorbet", "amethyst",
 ];
 const STARTER_THEMES = ["aura", "minimal", "bold"];
 
@@ -560,7 +560,7 @@ export function SiteBuilder({ business, hours, services, origin }: Props) {
                 {subscriptionTier === "starter" && (
                   <p className="mt-2 text-[11px] text-[#B8896B]">
                     Starter includes 3 themes.{" "}
-                    <a href="/pricing" className="font-medium underline">Upgrade to Studio</a> for all 16.
+                    <a href="/pricing" className="font-medium underline">Upgrade to Studio</a> for all {ALL_THEMES.length}.
                   </p>
                 )}
               </div>

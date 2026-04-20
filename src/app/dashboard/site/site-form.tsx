@@ -25,14 +25,14 @@ const LAYOUTS = [
   { id: "bold", label: "Bold — big type, high contrast" },
 ];
 
-// Complete theme list (all 16). Starter tier is limited to the first 3;
+// Complete theme list. Starter tier is limited to the first 3;
 // Studio and Scale tiers unlock every theme.
 const ALL_THEMES = [
   "aura", "minimal", "bold",           // Starter: these 3 are always available
   "luxe", "earth", "street", "y2k",
   "rose", "sage", "slate", "noir",
   "citrus", "colorblock",
-  "riot", "mochi", "linden",
+  "riot", "mochi", "linden", "harajuku", "sorbet", "amethyst",
 ];
 const STARTER_THEMES = ["aura", "minimal", "bold"];
 
