@@ -104,7 +104,7 @@ export function CleanTemplate({ business, services, hours, theme, content, isEdi
         <div className="grid gap-8 md:grid-cols-[1fr_320px]">
 
           {/* Left: Services */}
-          <main>
+          <main data-oyrb-services="clean">
             <h2 className="mb-1 text-xl font-semibold" style={{ fontFamily: displayFont }}>{c("section_services_title", "Select a service")}</h2>
             <p className="mb-6 text-sm" style={{ color: muted }}>
               {svcs.length} services available · {bizLocation}
@@ -114,6 +114,7 @@ export function CleanTemplate({ business, services, hours, theme, content, isEdi
               {svcs.map((svc) => (
                 <div
                   key={svc.id}
+                  data-oyrb-service-item="true"
                   className="group flex cursor-pointer items-center gap-4 py-4 -mx-3 px-3 transition-colors"
                   style={{ borderBottom: `1px solid ${border}`, borderRadius: radius / 2 }}
                 >
@@ -157,7 +158,7 @@ export function CleanTemplate({ business, services, hours, theme, content, isEdi
             </div>
 
             {/* Hours card */}
-            <div className="p-5" style={{ borderRadius: radius, border: `1px solid ${border}` }}>
+            <div data-oyrb-clean-panel="hours" className="p-5" style={{ borderRadius: radius, border: `1px solid ${border}` }}>
               <h3 className="mb-3 text-sm font-semibold">{c("section_hours_title", "Hours")}</h3>
               <div className="flex flex-col gap-2">
                 {hrs.map((h) => (
@@ -172,7 +173,7 @@ export function CleanTemplate({ business, services, hours, theme, content, isEdi
             </div>
 
             {/* Location card */}
-            <div className="p-5" style={{ borderRadius: radius, border: `1px solid ${border}` }}>
+            <div data-oyrb-clean-panel="location" className="p-5" style={{ borderRadius: radius, border: `1px solid ${border}` }}>
               <h3 className="mb-2 text-sm font-semibold">{c("section_location_title", "Location")}</h3>
               <p className="flex items-start gap-1.5 text-xs" style={{ color: muted }}>
                 <MapPin size={12} className="mt-0.5 shrink-0" />{bizLocation}

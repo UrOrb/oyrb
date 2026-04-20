@@ -147,7 +147,7 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
       )}
 
       {/* ── Services ── */}
-      <section className="mx-auto max-w-5xl px-6 pb-16">
+      <section data-oyrb-services="studio" className="mx-auto max-w-5xl px-6 pb-16">
         <div className="mb-6 flex items-center gap-3">
           <h2 className="text-2xl font-semibold" style={{ fontFamily: displayFont }}>{c("section_services_title", "Services")}</h2>
           <span className="h-0.5 flex-1" style={{ background: `linear-gradient(90deg, ${accent} 0%, ${accent2} 100%)` }} />
@@ -156,6 +156,7 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
           {svcs.map((svc, i) => (
             <div
               key={svc.id}
+              data-oyrb-service-item="true"
               className="overflow-hidden shadow-sm"
               style={{ backgroundColor: surface, borderRadius: radius }}
             >

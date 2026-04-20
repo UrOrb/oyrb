@@ -119,7 +119,7 @@ export function LuxeTemplate({ business, services, hours, theme, content, isEdit
       </section>
 
       {/* ── Services ── */}
-      <section className="py-20">
+      <section data-oyrb-services="luxe" className="py-20">
         <div className="mx-auto max-w-3xl px-6">
           <div className="mb-12 flex items-center justify-center gap-3">
             <span className="h-px w-12" style={{ backgroundColor: accent2 }} />
@@ -136,6 +136,7 @@ export function LuxeTemplate({ business, services, hours, theme, content, isEdit
             {svcs.map((svc, i) => (
               <div
                 key={svc.id}
+                data-oyrb-service-item="true"
                 className="group flex items-start gap-6 py-6"
                 style={i < svcs.length - 1 ? { borderBottom: `1px solid ${border}` } : {}}
               >

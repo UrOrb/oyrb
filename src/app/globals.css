@@ -795,6 +795,233 @@
   color: #FFFFFF !important;
 }
 
+/* ═════════════════════════════════════════════════════════════════════════
+ * Batched services auras + panel treatments
+ * ═════════════════════════════════════════════════════════════════════════
+ * Hooks — templates expose these data attrs:
+ *   [data-oyrb-services="studio|luxe|clean|original"] on the section
+ *   [data-oyrb-service-item="true"] on each card/row
+ *   [data-oyrb-clean-panel="hours"|"location"] on Clean's right-column cards
+ *
+ * Each block below is `[data-oyrb-theme="<id>"] [data-oyrb-services="<layout>"] …`
+ * so nothing bleeds across themes or layouts.
+ * ═════════════════════════════════════════════════════════════════════════ */
+
+/* Shared utility: soft translucent-white aura pattern for services SECTION
+   (background + blur) — themes can opt in by using the :where chain. */
+
+/* ── Neon Dream Island ── studio / luxe / clean normal aura, original
+   side-aura from both edges, clean panels also get translucent white. */
+[data-oyrb-theme="neon"] [data-oyrb-services="studio"],
+[data-oyrb-theme="neon"] [data-oyrb-services="luxe"],
+[data-oyrb-theme="neon"] [data-oyrb-services="clean"] {
+  position: relative;
+}
+[data-oyrb-theme="neon"] [data-oyrb-services="studio"] h2,
+[data-oyrb-theme="neon"] [data-oyrb-services="studio"] h3,
+[data-oyrb-theme="neon"] [data-oyrb-services="studio"] p,
+[data-oyrb-theme="neon"] [data-oyrb-services="luxe"] h2,
+[data-oyrb-theme="neon"] [data-oyrb-services="luxe"] h3,
+[data-oyrb-theme="neon"] [data-oyrb-services="luxe"] p,
+[data-oyrb-theme="neon"] [data-oyrb-services="clean"] h2,
+[data-oyrb-theme="neon"] [data-oyrb-services="clean"] h3,
+[data-oyrb-theme="neon"] [data-oyrb-services="clean"] p {
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.55), 0 0 6px rgba(255, 255, 255, 0.4);
+}
+[data-oyrb-theme="neon"] [data-oyrb-services="original"] {
+  position: relative;
+}
+[data-oyrb-theme="neon"] [data-oyrb-services="original"]::before,
+[data-oyrb-theme="neon"] [data-oyrb-services="original"]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 28%;
+  pointer-events: none;
+  z-index: 0;
+}
+[data-oyrb-theme="neon"] [data-oyrb-services="original"]::before {
+  left: 0;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.5), transparent);
+}
+[data-oyrb-theme="neon"] [data-oyrb-services="original"]::after {
+  right: 0;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.5), transparent);
+}
+[data-oyrb-theme="neon"] [data-oyrb-services="original"] > * {
+  position: relative;
+  z-index: 1;
+}
+[data-oyrb-theme="neon"] [data-oyrb-clean-panel] {
+  background: rgba(255, 255, 255, 0.48) !important;
+}
+
+/* ── Galactic Bender ── luxe + clean only, light-violet-white aura */
+[data-oyrb-theme="galactic"] [data-oyrb-services="luxe"] h2,
+[data-oyrb-theme="galactic"] [data-oyrb-services="luxe"] h3,
+[data-oyrb-theme="galactic"] [data-oyrb-services="luxe"] p,
+[data-oyrb-theme="galactic"] [data-oyrb-services="clean"] h2,
+[data-oyrb-theme="galactic"] [data-oyrb-services="clean"] h3,
+[data-oyrb-theme="galactic"] [data-oyrb-services="clean"] p {
+  text-shadow: 0 0 22px rgba(245, 240, 255, 0.55), 0 0 6px rgba(198, 63, 175, 0.3);
+}
+
+/* ── Chrome Oracle ── luxe + original + clean, soft blue tint */
+[data-oyrb-theme="chrome"] [data-oyrb-services="luxe"] h2,
+[data-oyrb-theme="chrome"] [data-oyrb-services="luxe"] h3,
+[data-oyrb-theme="chrome"] [data-oyrb-services="luxe"] p,
+[data-oyrb-theme="chrome"] [data-oyrb-services="original"] a,
+[data-oyrb-theme="chrome"] [data-oyrb-services="clean"] h2,
+[data-oyrb-theme="chrome"] [data-oyrb-services="clean"] h3,
+[data-oyrb-theme="chrome"] [data-oyrb-services="clean"] p {
+  text-shadow: 0 0 22px rgba(77, 223, 232, 0.55), 0 0 6px rgba(200, 205, 212, 0.4);
+}
+
+/* ── Liquid Sunset Trip ── clean (+ panels) + original, white aura */
+[data-oyrb-theme="sunset"] [data-oyrb-services="clean"] h2,
+[data-oyrb-theme="sunset"] [data-oyrb-services="clean"] h3,
+[data-oyrb-theme="sunset"] [data-oyrb-services="clean"] p,
+[data-oyrb-theme="sunset"] [data-oyrb-services="original"] a {
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.6), 0 0 6px rgba(255, 255, 255, 0.4);
+}
+[data-oyrb-theme="sunset"] [data-oyrb-clean-panel] {
+  background: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* ── Unicorn Candy-Cloud ── luxe + clean + original, white aura */
+[data-oyrb-theme="candy"] [data-oyrb-services="luxe"] h2,
+[data-oyrb-theme="candy"] [data-oyrb-services="luxe"] h3,
+[data-oyrb-theme="candy"] [data-oyrb-services="luxe"] p,
+[data-oyrb-theme="candy"] [data-oyrb-services="clean"] h2,
+[data-oyrb-theme="candy"] [data-oyrb-services="clean"] h3,
+[data-oyrb-theme="candy"] [data-oyrb-services="clean"] p,
+[data-oyrb-theme="candy"] [data-oyrb-services="original"] a {
+  text-shadow: 0 0 22px rgba(255, 255, 255, 0.6), 0 0 6px rgba(255, 255, 255, 0.4);
+}
+
+/* ── Floral Latte ── studio/luxe/clean cream outline around each service;
+   clean hours + location cards also get cream square outlines */
+[data-oyrb-theme="latte"] [data-oyrb-service-item="true"] {
+  outline: 1.5px solid rgba(244, 232, 212, 0.85);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+[data-oyrb-theme="latte"] [data-oyrb-clean-panel] {
+  outline: 1.5px solid rgba(244, 232, 212, 0.85);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* ── First Avenger ── luxe + clean + original items, white outline */
+[data-oyrb-theme="avenger"] [data-oyrb-services="luxe"] [data-oyrb-service-item="true"],
+[data-oyrb-theme="avenger"] [data-oyrb-services="clean"] [data-oyrb-service-item="true"] {
+  outline: 1.5px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+[data-oyrb-theme="avenger"] [data-oyrb-services="original"] a {
+  outline: 1.5px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ── Cool Quartz ── luxe + original violet-pink tint */
+[data-oyrb-theme="quartz"] [data-oyrb-services="luxe"] h2,
+[data-oyrb-theme="quartz"] [data-oyrb-services="luxe"] h3,
+[data-oyrb-theme="quartz"] [data-oyrb-services="luxe"] p,
+[data-oyrb-theme="quartz"] [data-oyrb-services="original"] a {
+  text-shadow: 0 0 24px rgba(159, 120, 186, 0.55), 0 0 6px rgba(216, 148, 190, 0.4);
+}
+
+/* ── Red Velvet Sorbet ── luxe + original mustard highlight */
+[data-oyrb-theme="sorbet"] [data-oyrb-services="luxe"] [data-oyrb-service-item="true"],
+[data-oyrb-theme="sorbet"] [data-oyrb-services="original"] a {
+  background-color: rgba(230, 196, 93, 0.22) !important;
+}
+
+/* ── Harajuku Cloud ── luxe + original light gray behind service names */
+[data-oyrb-theme="harajuku"] [data-oyrb-services="luxe"] h3,
+[data-oyrb-theme="harajuku"] [data-oyrb-services="original"] a {
+  text-shadow: 0 0 16px rgba(220, 220, 228, 0.65), 0 0 4px rgba(220, 220, 228, 0.45);
+}
+
+/* ── Linden ── luxe + original soft white glow behind each name */
+[data-oyrb-theme="linden"] [data-oyrb-services="luxe"] h3,
+[data-oyrb-theme="linden"] [data-oyrb-services="original"] a {
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.55), 0 0 5px rgba(255, 255, 255, 0.4);
+}
+
+/* ── Mochi Room ── clean + luxe + original, light pastel blue aura on
+   services + clean panels. */
+[data-oyrb-theme="mochi"] [data-oyrb-service-item="true"],
+[data-oyrb-theme="mochi"] [data-oyrb-services="original"] a,
+[data-oyrb-theme="mochi"] [data-oyrb-clean-panel] {
+  background-color: rgba(181, 216, 235, 0.35) !important;
+}
+
+/* ── Color Block ── luxe only, white aura behind service menu */
+[data-oyrb-theme="colorblock"] [data-oyrb-services="luxe"] h3,
+[data-oyrb-theme="colorblock"] [data-oyrb-services="luxe"] [data-oyrb-service-item="true"] > div > span {
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.6), 0 0 5px rgba(255, 255, 255, 0.4);
+}
+
+/* ── Citrus ── original items light apricot trim */
+[data-oyrb-theme="citrus"] [data-oyrb-services="original"] a {
+  outline: 1.5px solid rgba(253, 186, 116, 0.55);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Noir ── luxe + original services soft aura */
+[data-oyrb-theme="noir"] [data-oyrb-services="luxe"] h3,
+[data-oyrb-theme="noir"] [data-oyrb-services="original"] a {
+  text-shadow: 0 0 20px rgba(230, 221, 238, 0.5), 0 0 5px rgba(230, 221, 238, 0.35);
+}
+
+/* ── Slate ── clean only, light navy aura behind each service item */
+[data-oyrb-theme="slate"] [data-oyrb-services="clean"] [data-oyrb-service-item="true"] {
+  background-color: rgba(30, 58, 110, 0.08) !important;
+  border-radius: 4px;
+}
+
+/* ── Y2K ── clean services + panels white aura; luxe/original price box */
+[data-oyrb-theme="y2k"] [data-oyrb-services="clean"] [data-oyrb-service-item="true"],
+[data-oyrb-theme="y2k"] [data-oyrb-clean-panel] {
+  background-color: rgba(255, 255, 255, 0.45) !important;
+}
+
+/* ── Aura theme ── luxe/clean/original chocolate highlight + rounded outline */
+[data-oyrb-theme="aura"] [data-oyrb-service-item="true"],
+[data-oyrb-theme="aura"] [data-oyrb-services="original"] a {
+  background-color: rgba(91, 58, 39, 0.08) !important;
+  outline: 1.5px solid rgba(91, 58, 39, 0.2);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ── Crimson Luxe ── very light pastel apricot page bg + citrus-yellow
+   dividers between service items. Keeps Ferrari red on CTAs (untouched). */
+[data-oyrb-theme="crimson"] {
+  background-color: #FDF2E9 !important;
+}
+[data-oyrb-theme="crimson"] [data-oyrb-service-item="true"] + [data-oyrb-service-item="true"] {
+  border-top: 1.5px solid rgba(255, 213, 79, 0.85) !important;
+}
+
+/* ── Dark Knight & Amazon ── hero decoration already removed via original.tsx
+   null-branch; here the body bg gets a soft leather-sheen radial + conic
+   layer on top of the existing deep-black + gold hairline footer. */
+[data-oyrb-theme="knight"] {
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(40, 40, 40, 0.5) 0%, transparent 55%),
+    radial-gradient(ellipse at 70% 80%, rgba(20, 20, 22, 0.8) 0%, transparent 60%),
+    #050507 !important;
+  background-attachment: fixed !important;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════ */
+
 /* ─────────────────────────────────────────────────────────────────────────
  * Slate — hero mobile centering
  * ─────────────────────────────────────────────────────────────────────────

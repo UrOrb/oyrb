@@ -298,10 +298,12 @@ function Hero({ t, biz, bookHref, kickerOverride, ctaOverride }: {
             </svg>
           );
         }
-        // riot + amethyst — remove the blob entirely. Hero dimensions are
-        // driven by the content inside, and the blob was position:absolute,
-        // so returning null leaves vertical spacing exactly intact.
-        if (t.id === "riot" || t.id === "amethyst") {
+        // riot + amethyst + knight — remove the blob entirely. Hero
+        // dimensions are driven by the content inside, and the blob was
+        // position:absolute, so returning null leaves vertical spacing
+        // exactly intact. Knight then gets a leather-sheen bg treatment
+        // via scoped CSS in globals.css.
+        if (t.id === "riot" || t.id === "amethyst" || t.id === "knight") {
           return null;
         }
         if (t.id === "mochi") {
@@ -541,6 +543,9 @@ function Hero({ t, biz, bookHref, kickerOverride, ctaOverride }: {
 
 // ── Service row — 5 distinct styles ──────────────────────────────────────────
 function ServiceRow({ t, svc, last, bookHref }: { t: TemplateTheme; svc: SampleService; last: boolean; bookHref: string }) {
+  // Every ServiceRow renders a single top-level container; we tag it with
+  // the same data attr used in the other templates so theme-scoped CSS
+  // (service-item outlines, auras, etc.) has a uniform selector.
   if (t.id === "bold" || t.id === "citrus") return (
     <a href={bookHref} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, background: t.surface, padding: "18px 16px", borderRadius: 8, textDecoration: "none", marginBottom: 10 }}>
       <div style={{ flex: 1 }}>
@@ -715,7 +720,7 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
         </section>
 
         {/* ── Services ── */}
-        <section style={{ padding: "8px 22px 32px", background: t.bg }}>
+        <section data-oyrb-services="original" style={{ padding: "8px 22px 32px", background: t.bg }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 16 }}>
             <h2 style={{ fontFamily: t.displayFont, fontWeight: t.displayWeight, fontSize: 28, color: t.ink, margin: 0, fontStyle: t.id === "aura" ? "italic" : "normal", letterSpacing: t.displayTracking }}>{c("section_services_title", "Services")}</h2>
             <div style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: 1.5, color: t.muted, textTransform: "uppercase" as const }}>{services.length} offered</div>
