@@ -152,7 +152,7 @@ const ALL_THEMES = [
   "luxe", "earth", "street", "y2k",
   "rose", "sage", "slate", "noir",
   "citrus", "colorblock",
-  "riot", "mochi", "linden", "harajuku", "sorbet", "amethyst", "quartz", "latte", "league",
+  "riot", "mochi", "linden", "harajuku", "sorbet", "amethyst", "quartz", "latte", "league", "crimson",
 ];
 const STARTER_THEMES = ["aura", "minimal", "bold"];
 

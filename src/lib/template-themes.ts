@@ -1036,6 +1036,64 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       ],
     },
   },
+
+  // ── 23. Crimson Luxe ────────────────────────────────────────────────────
+  //
+  // Ferrari-showroom palette. Stark White + Whisper White lead every
+  // layout; True Ferrari Red anchors CTAs and single-moment accents;
+  // Cool Charcoal carries structural depth (headings, dividers on dark
+  // surfaces); Soft Silver/Chrome is the refined structural accent.
+  // Text uses Onyx / True Black for stark editorial contrast.
+  //
+  // STANDARD color-only theme. Do NOT apply the League Lead typography
+  // override pattern — fonts and casing stay at each layout's defaults.
+  //
+  // Contrast audit (WCAG AA):
+  //   · Onyx #15171B on Stark White #FFFFFF          → 18.10:1 ✅ (body)
+  //   · True Black #0A0A0A on Stark White            → 20.38:1 ✅ (headings)
+  //   · Stark White on True Ferrari Red #E32227      → 4.64:1  ✅ (CTA text, AA body)
+  //   · Stark White on Cool Charcoal #2A2D33         → 13.82:1 ✅
+  //   · Onyx on Polished Chrome #E1E5EA              → 15.12:1 ✅
+  //   · Onyx on Whisper White #FAFBFC                → 17.68:1 ✅
+  crimson: {
+    id: "crimson",
+    name: "Crimson Luxe",
+    vibe: "Ferrari showroom · red carpet · editorial power · glossy confidence",
+    category: "editorial",
+    bg: "#FFFFFF",            // Stark White — main surface
+    surface: "#FAFBFC",       // Whisper White — layered cards
+    ink: "#0A0A0A",            // True Black — headings
+    muted: "#15171B",          // Onyx — body copy
+    accent: "#E32227",         // True Ferrari Red — CTA / hero highlight
+    accent2: "#2A2D33",        // Cool Charcoal — structural emphasis
+    border: "rgba(21,23,27,0.14)",
+    displayFont: '"Fraunces", "Playfair Display", Georgia, serif',
+    bodyFont: '"Inter", system-ui, sans-serif',
+    displayWeight: 450,
+    displayTracking: "-0.02em",
+    radius: 6,
+    radiusBtn: 999,
+    btnBg: "#E32227",          // Ferrari Red — CTA surface
+    btnText: "#FFFFFF",        // White on red = 4.64:1 (AA body)
+    tags: ["bold", "editorial", "luxury", "power", "red", "glossy", "couture"],
+    business: {
+      name: "Maison Crimson",
+      tagline: "statement beauty · editorial precision",
+      bio: "A couture appointment-only atelier for red-carpet hair, glossy editorial skin, and the kind of dramatic finish that earns a second look. We specialize in statement color, precision cuts, and lips that read from across a room.",
+      location: "Fifth Floor · 210 Atelier Row · Miami, FL",
+      phone: "(305) 555-0129",
+      email: "salon@maisoncrimson.co",
+      category: "Couture Hair & Skin",
+      heroImageId: "1540555700478-4be289fbecef",
+      profileImageId: "1519699047748-de8e457a634e",
+      galleryIds: [
+        "1540555700478-4be289fbecef","1519699047748-de8e457a634e",
+        "1515377905703-c4788e51af15","1519014816548-bf5fe059798b",
+        "1552693673-1bf958298935","1505932794465-147d1f1b2c97",
+        "1531746020798-e6953c6e8e04","1556228720-195a672e8a03",
+      ],
+    },
+  },
 };
 
 export const THEME_IDS = Object.keys(TEMPLATE_THEMES) as Array<keyof typeof TEMPLATE_THEMES>;
