@@ -20,13 +20,6 @@ export default function PrivacyPage() {
         </h1>
         <p className="mt-2 text-sm text-[#737373]">Last updated: {LAST_UPDATED}</p>
 
-        <div className="mt-6 rounded-md border border-amber-300 bg-amber-100 p-4 text-sm text-amber-900">
-          <strong>⚠️ Draft — pending legal review.</strong> This Privacy Policy
-          is in draft form. Final language will be published before public
-          launch. Current text is scaffolded best-effort copy and is{" "}
-          <em>not</em> the final agreement.
-        </div>
-
         <div className="mt-10 space-y-8 text-[#2a2a2a]">
           <section className="space-y-3">
             <h2 className="font-display text-2xl font-medium">1. Overview</h2>
