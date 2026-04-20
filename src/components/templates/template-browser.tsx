@@ -179,12 +179,13 @@ export function TemplateBrowser({ themes }: { themes: TemplateTheme[] }) {
           );
         })}
 
-      {/* Back-to-top floating button */}
+      {/* Back-to-top floating button — bottom-LEFT to avoid colliding with
+          the help widget in the bottom-right. ≥44x44 tap target per iOS AHIG. */}
       {showBackToTop && (
         <button
           type="button"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-6 right-6 z-30 inline-flex items-center gap-1.5 rounded-full bg-[#0A0A0A] px-4 py-2.5 text-xs font-medium text-white shadow-lg transition-opacity hover:opacity-90"
+          className="fixed bottom-4 left-4 z-30 inline-flex min-h-[44px] min-w-[44px] items-center gap-1.5 rounded-full bg-[#0A0A0A] px-4 py-3 text-xs font-medium text-white shadow-lg transition-opacity hover:opacity-90"
           aria-label="Back to top"
         >
           <ArrowUp size={14} /> Back to top
@@ -195,12 +196,16 @@ export function TemplateBrowser({ themes }: { themes: TemplateTheme[] }) {
 }
 
 function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  // `min-w-0` is load-bearing: without it the flex parent lets this element
+  // grow to its content width, which defeats the inner `overflow-x-auto` and
+  // pushes the page past the mobile viewport. With min-w-0 the inner scroller
+  // clips + scrolls horizontally inside the shared parent width.
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 max-w-full items-center gap-2">
       <span className="hidden text-[10px] font-semibold uppercase tracking-widest text-[#A3A3A3] sm:inline">
         {label}
       </span>
-      <div className="-mx-1 flex flex-nowrap gap-1.5 overflow-x-auto px-1">
+      <div className="-mx-1 flex min-w-0 flex-nowrap gap-1.5 overflow-x-auto px-1">
         {children}
       </div>
     </div>

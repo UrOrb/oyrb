@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Shuffle, HelpCircle, X } from "lucide-react";
+import { Shuffle, HelpCircle, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { TEMPLATE_THEMES, LAYOUT_TYPES } from "@/lib/template-themes";
 import { SAMPLE_SERVICES_BY_CATEGORY, SAMPLE_HOURS } from "@/lib/template-images";
 import { BoldTemplate } from "@/components/templates/bold";
@@ -125,21 +125,44 @@ export function ThemeCarousel({ layout: initialLayout, initialThemeId, themeIds 
     return () => window.removeEventListener("keydown", onKey);
   }, [cycleTheme, showExplainer]);
 
-  // Touch swipe — horizontal on the preview area cycles themes.
+  // Theme-scroller refs. Touch-swipe and chevron-click handlers are scoped
+  // to this element — swipes on the preview itself no longer hijack theme
+  // changes (per the mobile UX brief: scroller-only swipes change themes).
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const activePillRef = useRef<HTMLButtonElement | null>(null);
+
+  // Horizontal swipe detection on the scroller. Vertical swipes pass
+  // through so the page keeps scrolling normally.
   const touchStart = useRef<{ x: number; y: number } | null>(null);
-  const onTouchStart = (e: React.TouchEvent) => {
+  const onScrollerTouchStart = (e: React.TouchEvent) => {
     const t = e.touches[0];
     touchStart.current = { x: t.clientX, y: t.clientY };
   };
-  const onTouchEnd = (e: React.TouchEvent) => {
+  const onScrollerTouchEnd = (e: React.TouchEvent) => {
     if (!touchStart.current) return;
     const t = e.changedTouches[0];
     const dx = t.clientX - touchStart.current.x;
     const dy = t.clientY - touchStart.current.y;
     touchStart.current = null;
-    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
+    // Ignore near-vertical swipes (preserve page scroll) and taps (<40px).
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
     cycleTheme(dx < 0 ? 1 : -1);
   };
+
+  // Keep the active theme pill centered in the scroller as selection changes.
+  // Honors prefers-reduced-motion — instant jump instead of smooth scroll.
+  useEffect(() => {
+    const pill = activePillRef.current;
+    if (!pill) return;
+    const prefersReduced =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    pill.scrollIntoView({
+      behavior: prefersReduced ? "auto" : "smooth",
+      inline: "center",
+      block: "nearest",
+    });
+  }, [themeId]);
 
   const theme = TEMPLATE_THEMES[themeId];
   const layoutLabel = LAYOUT_TYPES.find((l) => l.id === layout)?.name ?? layout;
@@ -150,7 +173,7 @@ export function ThemeCarousel({ layout: initialLayout, initialThemeId, themeIds 
   const signupHref = `/signup?layout=${encodeURIComponent(layout)}&theme=${encodeURIComponent(themeId)}`;
 
   return (
-    <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} className="relative">
+    <div className="relative overflow-x-hidden">
       {/* ── Sticky selector panel ── */}
       <div className="sticky top-0 z-50 border-b border-white/10 bg-[#111] text-white">
         <div className="mx-auto flex max-w-[1400px] flex-col gap-3 px-4 py-3 md:gap-2 md:py-2">
@@ -219,12 +242,32 @@ export function ThemeCarousel({ layout: initialLayout, initialThemeId, themeIds 
             </button>
           </div>
 
-          {/* Theme selector row — horizontal scroll carousel of swatches */}
+          {/* Theme selector row — chevron-flanked horizontal carousel with
+              scoped touch-swipe (mobile) + trackpad scroll (desktop) + click
+              selection. Dots below reinforce carousel position. */}
           <div className="flex items-center gap-2">
             <span className="shrink-0 text-[10px] font-semibold uppercase tracking-widest text-white/50">
               Theme
             </span>
-            <div className="-mx-1 flex items-center gap-1.5 overflow-x-auto px-1 pb-0.5">
+
+            {/* Left chevron — tap/click cycles one theme back. Min tap target
+                44x44 for iOS accessibility. */}
+            <button
+              type="button"
+              onClick={() => cycleTheme(-1)}
+              aria-label="Previous theme"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 md:h-9 md:w-9"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            <div
+              ref={scrollerRef}
+              onTouchStart={onScrollerTouchStart}
+              onTouchEnd={onScrollerTouchEnd}
+              className="-mx-1 flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              style={{ scrollSnapType: "x proximity" }}
+            >
               {themeIds.map((id) => {
                 const t = TEMPLATE_THEMES[id];
                 if (!t) return null;
@@ -232,11 +275,13 @@ export function ThemeCarousel({ layout: initialLayout, initialThemeId, themeIds 
                 return (
                   <button
                     key={id}
+                    ref={active ? activePillRef : null}
                     type="button"
                     onClick={() => selectTheme(id)}
                     title={t.name}
                     aria-label={t.name}
                     aria-pressed={active}
+                    style={{ scrollSnapAlign: "center" }}
                     className={`group relative shrink-0 rounded-full border px-2.5 py-1 transition-all ${
                       active
                         ? "border-white bg-white/15 ring-1 ring-white"
@@ -269,6 +314,41 @@ export function ThemeCarousel({ layout: initialLayout, initialThemeId, themeIds 
                 );
               })}
             </div>
+
+            {/* Right chevron */}
+            <button
+              type="button"
+              onClick={() => cycleTheme(1)}
+              aria-label="Next theme"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 md:h-9 md:w-9"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+
+          {/* Dot indicators — mirror the active theme position. Clickable so
+              keyboard / screen-reader users also have a way to jump. */}
+          <div
+            role="tablist"
+            aria-label="Theme position"
+            className="flex items-center justify-center gap-1 pt-0.5"
+          >
+            {themeIds.map((id, i) => {
+              const active = id === themeId;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  aria-label={`Theme ${i + 1} of ${themeIds.length}`}
+                  onClick={() => selectTheme(id)}
+                  className={`rounded-full transition-all ${
+                    active ? "h-1.5 w-5 bg-white" : "h-1.5 w-1.5 bg-white/30 hover:bg-white/60"
+                  }`}
+                />
+              );
+            })}
           </div>
         </div>
       </div>

@@ -17,7 +17,7 @@ export const metadata = {
 
 export default function TemplatesPage() {
   return (
-    <div className="flex flex-col bg-[#FAFAF8]">
+    <div className="flex flex-col overflow-x-hidden bg-[#FAFAF8]">
       <Nav />
 
       {/* ── Hero ── */}
