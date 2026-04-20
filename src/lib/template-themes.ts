@@ -1094,6 +1094,64 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       ],
     },
   },
+
+  // ── 24. First Avenger ───────────────────────────────────────────────────
+  //
+  // Heroic-professional palette. Cloud White + Whisper White lead every
+  // layout; Action Red anchors CTAs as the single "spark" moment; Heroic
+  // Navy carries body copy and structural depth; Ink Navy for headings;
+  // Steel Gray stays decorative (dividers, borders). Reads like a trusted
+  // bridal consultant — classic comic-book energy filtered through a
+  // Wall Street restraint filter. Never patriotic-cliché.
+  //
+  // STANDARD color-only theme. Do NOT apply the League Lead typography
+  // override pattern — fonts and casing stay at each layout's defaults.
+  //
+  // Contrast audit (WCAG AA):
+  //   · Ink Navy #0A1F3D on Cloud White #FBFCFD      → 16.00:1 ✅ (headings)
+  //   · Heroic Navy #1B3766 on Cloud White           → 11.40:1 ✅ (body)
+  //   · Cloud White on Action Red #D62828            → 4.89:1  ✅ (CTA, AA body)
+  //   · Cloud White on Heroic Navy #1B3766           → 11.40:1 ✅
+  //   · Ink Navy on Light Steel #D4D8DC              → 12.55:1 ✅
+  avenger: {
+    id: "avenger",
+    name: "First Avenger",
+    vibe: "Heroic-professional · trusted · classic · confident navy + red",
+    category: "editorial",
+    bg: "#FBFCFD",            // Cloud White — main surface
+    surface: "#FFFFFF",       // Whisper White — layered cards
+    ink: "#0A1F3D",            // Ink Navy — headings
+    muted: "#1B3766",          // Heroic Navy — body copy
+    accent: "#D62828",         // Action Red — CTA / statement highlight
+    accent2: "#1B3766",        // Heroic Navy — structural emphasis
+    border: "rgba(10,31,61,0.16)",
+    displayFont: '"Fraunces", "Playfair Display", Georgia, serif',
+    bodyFont: '"Inter", system-ui, sans-serif',
+    displayWeight: 500,
+    displayTracking: "-0.02em",
+    radius: 6,
+    radiusBtn: 6,
+    btnBg: "#D62828",          // Action Red — CTA surface
+    btnText: "#FBFCFD",        // Cloud White on Red = 4.89:1
+    tags: ["bold", "professional", "navy", "classic", "trusted", "bridal"],
+    business: {
+      name: "Vanguard & Veil",
+      tagline: "bridal precision · editorial calm · big-day beauty",
+      bio: "A bridal-first studio for big-day hair, editorial skin, and confidence-first consulting. We run timed rehearsals, on-site teams, and a calm room on the morning of — so the only surprise left is how you feel walking out.",
+      location: "Third Floor · 91 Marlow Street · New York, NY",
+      phone: "(212) 555-0407",
+      email: "studio@vanguardveil.co",
+      category: "Bridal & Event Beauty",
+      heroImageId: "1605497788044-5a32c7078486",
+      profileImageId: "1540555700478-4be289fbecef",
+      galleryIds: [
+        "1605497788044-5a32c7078486","1540555700478-4be289fbecef",
+        "1519699047748-de8e457a634e","1515377905703-c4788e51af15",
+        "1552693673-1bf958298935","1549236177-f9b0031756eb",
+        "1559599101-f09722fb4948","1560869713-7d0a29430803",
+      ],
+    },
+  },
 };
 
 export const THEME_IDS = Object.keys(TEMPLATE_THEMES) as Array<keyof typeof TEMPLATE_THEMES>;
