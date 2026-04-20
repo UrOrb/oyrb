@@ -1035,7 +1035,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(718) 555-0145",
       email: "team@leaguelead.co",
       category: "Performance Beauty Studio",
-      heroImageId: "1519014816548-bf5fe059798b",
+      heroImageId: "/league-hero.avif",
       profileImageId: "1540555700478-4be289fbecef",
       galleryIds: [
         "1519014816548-bf5fe059798b","1540555700478-4be289fbecef",
