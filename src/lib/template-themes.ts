@@ -1280,6 +1280,77 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       ],
     },
   },
+
+  // ── 27. Unicorn Candy-Cloud ─────────────────────────────────────────────
+  //
+  // MAXIMALIST THEME — highest decoration tier, above standard (colors-
+  // only) and enhanced (League Lead / Neon Dream Island). Scoped CSS in
+  // `globals.css` adds: tri-color radial mesh gradient background, faint
+  // sparkle overlay, glassmorphism panels with iridescent rainbow border,
+  // pill-shape candy CTAs with sparkle clusters, lollipop-swirl bullets,
+  // pulse-on-hover animation (respects `prefers-reduced-motion`), and a
+  // print stylesheet that strips the gradient for clean bookings.
+  //
+  // DISTINCT from Neon Dream Island (saturated kawaii with solid sky blue
+  // background). Unicorn Candy-Cloud is the maximalist sugar-rush sibling
+  // — gradient mesh, glass panels, iridescent borders. Both coexist.
+  //
+  // ⚠️  This is the most invasive theme-scoped override layer in the
+  //     codebase. Only reuse this pattern for themes explicitly flagged
+  //     MAXIMALIST in their spec.
+  //
+  // Scope note: CSS cannot shape heart-bubble price wrappers, inject a
+  // rainbow-arc divider between sections, or run a cursor trail without
+  // template-level React changes. Those elements are omitted; everything
+  // CSS-achievable ships. Cursor trail also omitted per spec fallback
+  // (complexity vs. motion-safety trade-off — prefers-reduced-motion users
+  // would need it disabled anyway).
+  //
+  // Contrast audit (WCAG AA):
+  //   · Deep Plum #3F1B5F on Lemonade Yellow #FFEB3B  → 11.20:1 ✅ (CTA)
+  //   · Twilight Plum #2A1240 on 0.65 glass (blurred) → ~11:1   ✅ (headings)
+  //   · Deep Plum on 0.65 glass (blurred over pink)   → ~9.4:1  ✅ (body)
+  //   · Deep Plum directly on purple gradient patch   → 1.92:1  ❌
+  //     (text MUST stay inside glass panels — enforced by container rule)
+  candy: {
+    id: "candy",
+    name: "Unicorn Candy-Cloud",
+    vibe: "Maximalist · sugar-rush · mesh gradient · iridescent · unicorn",
+    category: "feminine",
+    bg: "#FF61A6",            // Bubblegum Pink fallback — mesh gradient applied via scoped CSS
+    surface: "rgba(255,255,255,0.65)",  // Glass panel
+    ink: "#2A1240",            // Twilight Plum — headings
+    muted: "#3F1B5F",          // Deep Plum — body copy
+    accent: "#FF61A6",         // Bubblegum Pink — secondary accent
+    accent2: "#00E0D5",        // Bright Turquoise — fresh accent
+    border: "rgba(63,27,95,0.2)",
+    displayFont: '"Fraunces", "Cormorant Garamond", Georgia, serif',
+    bodyFont: '"Nunito", "Manrope", system-ui, sans-serif',
+    displayWeight: 700,
+    displayTracking: "-0.01em",
+    radius: 24,                 // Glass-panel rounded
+    radiusBtn: 9999,            // Pill CTA
+    btnBg: "#FFEB3B",           // Lemonade Yellow — CTA fill
+    btnText: "#3F1B5F",         // Deep Plum on yellow = 11.20:1
+    tags: ["maximalist", "unicorn", "candy", "gradient", "glassmorphism", "rainbow", "sugar"],
+    business: {
+      name: "Unicorn Candy-Cloud ✦",
+      tagline: "sugar rush · rainbow sparkle · fantasy finish",
+      bio: "A sugar-rush studio for holographic nails, rainbow hair, unicorn lashes, and finishes that look like they fell off a Lisa Frank sticker sheet. We believe more is more, glitter is mandatory, and every appointment ends with a photo moment.",
+      location: "Suite 99 · 22 Candyfloss Blvd · Los Angeles, CA",
+      phone: "(213) 555-0901",
+      email: "hi@unicorncandycloud.co",
+      category: "Fantasy Beauty & Color",
+      heroImageId: "1540555700478-4be289fbecef",
+      profileImageId: "1519014816548-bf5fe059798b",
+      galleryIds: [
+        "1540555700478-4be289fbecef","1519014816548-bf5fe059798b",
+        "1519699047748-de8e457a634e","1531746020798-e6953c6e8e04",
+        "1556228720-195a672e8a03","1505932794465-147d1f1b2c97",
+        "1515377905703-c4788e51af15","1552693673-1bf958298935",
+      ],
+    },
+  },
 };
 
 export const THEME_IDS = Object.keys(TEMPLATE_THEMES) as Array<keyof typeof TEMPLATE_THEMES>;
