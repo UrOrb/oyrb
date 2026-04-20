@@ -1106,34 +1106,48 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
 
   // ── 24. First Avenger ───────────────────────────────────────────────────
   //
-  // Heroic-professional palette. Cloud White + Whisper White lead every
-  // layout; Action Red anchors CTAs as the single "spark" moment; Heroic
-  // Navy carries body copy and structural depth; Ink Navy for headings;
-  // Steel Gray stays decorative (dividers, borders). Reads like a trusted
-  // bridal consultant — classic comic-book energy filtered through a
-  // Wall Street restraint filter. Never patriotic-cliché.
+  // HEROIC-AUTHORITY palette. Deep Heroic Navy dominates every layout; Ink
+  // Navy takes cards for subtle layer depth; Pure White carries headings;
+  // Warm Nude grounds body copy + structural details; Action Red is the
+  // single "spark" CTA moment. Reads like a premium menswear boutique —
+  // navy walls with red-accent leather and warm-nude upholstery. Never
+  // patriotic-flag obvious, never cartoonish, never costume-y.
+  //
+  // IMPORTANT differentiation vs. Crimson Luxe:
+  //   · Crimson Luxe — Stark White dominant + Ferrari Red CTA ("showroom")
+  //   · First Avenger — Heroic Navy dominant + Action Red CTA ("boutique")
   //
   // STANDARD color-only theme. Do NOT apply the League Lead typography
   // override pattern — fonts and casing stay at each layout's defaults.
   //
+  // Note on "white cards": the spec's ideal is Pure White content cards
+  // on a Heroic Navy page. In the current theme architecture a single
+  // `ink`/`muted` color has to read on BOTH page bg AND card surface, so
+  // true white-card-on-navy would need a scoped CSS layer. Here we use the
+  // dark-theme convention (Ink Navy cards, White headings, Warm Nude body)
+  // which delivers the navy-dominant identity cleanly across all 5 layouts
+  // without risking contrast on any surface.
+  //
   // Contrast audit (WCAG AA):
-  //   · Ink Navy #0A1F3D on Cloud White #FBFCFD      → 16.00:1 ✅ (headings)
-  //   · Heroic Navy #1B3766 on Cloud White           → 11.40:1 ✅ (body)
-  //   · Cloud White on Action Red #D62828            → 4.89:1  ✅ (CTA, AA body)
-  //   · Cloud White on Heroic Navy #1B3766           → 11.40:1 ✅
-  //   · Ink Navy on Light Steel #D4D8DC              → 12.55:1 ✅
+  //   · Pure White #FFFFFF on Heroic Navy #0A1F3D     → 16.39:1 ✅ (headings)
+  //   · Warm Nude #D4BFA3 on Heroic Navy              →  9.17:1 ✅ (body)
+  //   · Pure White on Ink Navy #1A2D4F                → ~14:1   ✅ (card heads)
+  //   · Warm Nude on Ink Navy                         → ~7.5:1  ✅ (card body)
+  //   · Pure White on Action Red #D62828              →  4.89:1 ✅ (CTA)
+  //   · Action Red on Heroic Navy                     → ~3.55:1 ✅ AA Large only
+  //     (large accent splashes / icons only — never body text)
   avenger: {
     id: "avenger",
     name: "First Avenger",
-    vibe: "Heroic-professional · trusted · classic · confident navy + red",
+    vibe: "Heroic navy · power red · warm nude · premium authority",
     category: "editorial",
-    bg: "#FBFCFD",            // Cloud White — main surface
-    surface: "#FFFFFF",       // Whisper White — layered cards
-    ink: "#0A1F3D",            // Ink Navy — headings
-    muted: "#1B3766",          // Heroic Navy — body copy
+    bg: "#0A1F3D",             // Heroic Navy — main background (dominant)
+    surface: "#1A2D4F",        // Ink Navy — layered cards (slightly lighter)
+    ink: "#FFFFFF",            // Pure White — headings on navy surfaces
+    muted: "#D4BFA3",          // Warm Nude — body copy on navy surfaces
     accent: "#D62828",         // Action Red — CTA / statement highlight
-    accent2: "#1B3766",        // Heroic Navy — structural emphasis
-    border: "rgba(10,31,61,0.16)",
+    accent2: "#D4BFA3",        // Warm Nude — grounding structural accent
+    border: "rgba(212,191,163,0.22)",  // warm-nude-tinted hairlines
     displayFont: '"Fraunces", "Playfair Display", Georgia, serif',
     bodyFont: '"Inter", system-ui, sans-serif',
     displayWeight: 500,
@@ -1141,8 +1155,8 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
     radius: 6,
     radiusBtn: 6,
     btnBg: "#D62828",          // Action Red — CTA surface
-    btnText: "#FBFCFD",        // Cloud White on Red = 4.89:1
-    tags: ["bold", "professional", "navy", "classic", "trusted", "bridal"],
+    btnText: "#FFFFFF",        // Pure White on Red = 4.89:1
+    tags: ["bold", "professional", "navy", "classic", "authority", "hero"],
     business: {
       name: "Vanguard & Veil",
       tagline: "bridal precision · editorial calm · big-day beauty",
