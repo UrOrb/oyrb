@@ -1299,7 +1299,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(213) 555-0616",
       email: "hi@neondreamisland.co",
       category: "Kawaii Beauty & Color",
-      heroImageId: "1519014816548-bf5fe059798b",
+      heroImageId: "/neon-hero.avif",
       profileImageId: "1540555700478-4be289fbecef",
       galleryIds: [
         "1519014816548-bf5fe059798b","1540555700478-4be289fbecef",
