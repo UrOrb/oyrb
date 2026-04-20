@@ -286,16 +286,25 @@ function SiteCard({ business }: { business: { id: string; business_name: string;
     <div className="overflow-hidden rounded-lg border border-[#E7E5E4] bg-white transition-colors hover:border-[#B8896B]">
       <a href={siteUrl} target="_blank" rel="noreferrer" className="group block" aria-label={`View ${business.business_name} live`}>
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#FAFAF9]">
+          {/*
+            Iframe thumbnail: render 4× the container width/height (so the
+            iframe boots a desktop-sized viewport that loads the real site
+            layout), then scale down to 25% to fit the card exactly. This
+            approach is resolution-independent — the iframe fills cleanly
+            at 300px (mobile) AND 600px+ (desktop) without stretching or
+            empty bars. Previously a fixed 1200×900 / scale(0.3) combo
+            gave a 360×270 footprint that was too small on desktop cards.
+          */}
           <iframe
             src={siteUrl}
             title={`${business.business_name} preview`}
             loading="lazy"
             className="absolute left-0 top-0 origin-top-left"
             style={{
-              width: "1200px",
-              height: "900px",
+              width: "400%",
+              height: "400%",
               border: 0,
-              transform: "scale(0.3)",
+              transform: "scale(0.25)",
               pointerEvents: "none",
             }}
           />

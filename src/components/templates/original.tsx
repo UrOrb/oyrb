@@ -149,7 +149,10 @@ function Hero({ t, biz, bookHref, kickerOverride, ctaOverride }: {
   );
 
   if (t.id === "street" || t.id === "slate") return (
-    <div style={{ background: t.bg, color: t.ink, padding: "20px 18px 28px", position: "relative" }}>
+    <div
+      data-oyrb-slate-hero={t.id === "slate" ? "true" : undefined}
+      style={{ background: t.bg, color: t.ink, padding: "20px 18px 28px", position: "relative" }}
+    >
       <div style={{ fontFamily: "monospace", fontSize: 10, color: t.accent, letterSpacing: 2, marginBottom: 8 }}>
         {k("// STUDIO · EST_2019 · ACCEPTING CLIENTS")}
       </div>

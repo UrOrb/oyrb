@@ -787,6 +787,22 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
+ * Slate — hero mobile centering
+ * ─────────────────────────────────────────────────────────────────────────
+ * The Slate + Street hero branch in original.tsx renders the same markup
+ * for both themes; left-aligned by default. Slate's content reads off-
+ * center on narrow mobile viewports. This rule only fires under 768px
+ * and only when the hero carries `data-oyrb-slate-hero="true"` (set on
+ * the Slate branch only) — Street stays left-aligned, Slate desktop
+ * stays left-aligned, every other theme is untouched.
+ * ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  [data-oyrb-slate-hero="true"] {
+    text-align: center;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
  * Chrome Oracle — MAXIMALIST sci-fi chrome theme
  * ─────────────────────────────────────────────────────────────────────────
  * Fourth MAXIMALIST-tier theme (after Candy, Galactic, Sunset). Scoped to

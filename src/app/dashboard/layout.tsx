@@ -1,19 +1,12 @@
-import Link from "next/link";
-import Image from "next/image";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusiness, listMySites } from "@/lib/current-site";
 import { SiteSwitcher } from "./site-switcher";
+import { AvatarMenu } from "./avatar-menu";
 
 export const metadata = {
   title: "Dashboard",
 };
-
-// Mirrors the favicon (src/app/icon.tsx): pink→magenta→purple gradient with
-// a pink/purple glow. Used for the avatar ring + fallback background so the
-// dashboard chrome ties back to the brand mark.
-const FAVICON_GRADIENT = "linear-gradient(135deg, #FF6EC7 0%, #D946EF 50%, #A855F7 100%)";
-const FAVICON_GLOW = "0 0 0 2px #fff, 0 0 0 3px #D946EF, 0 2px 8px rgba(217,70,239,0.45)";
 
 function initialFor(name: string | null | undefined, email: string | null | undefined) {
   const source = (name || email || "U").trim();
@@ -41,6 +34,14 @@ export default async function DashboardLayout({
   const initial = initialFor(fullName, user?.email);
   const altLabel = fullName || user?.email || "Your profile";
 
+  // Menu's "View my site" link. Prefer the active site if published; fall
+  // back to the first published site in the user's list. Null when nothing
+  // is published — menu item hides in that case.
+  const activePublished = activeBusiness?.is_published ? activeBusiness : null;
+  const firstPublished =
+    activePublished ?? mySites.find((s) => s.is_published) ?? null;
+  const viewSiteHref = firstPublished ? `/s/${firstPublished.slug}` : null;
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
@@ -59,28 +60,14 @@ export default async function DashboardLayout({
               )}
             </div>
             <div className="flex items-center gap-2">
-              <Link
-                href="/dashboard/settings"
-                aria-label="Open your profile settings"
-                title="Profile settings"
-                className="group relative inline-flex h-8 w-8 items-center justify-center overflow-hidden rounded-full text-xs font-semibold text-white shadow-sm outline-none ring-offset-2 transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-[#D946EF]"
-                style={{
-                  background: FAVICON_GRADIENT,
-                  boxShadow: FAVICON_GLOW,
-                }}
-              >
-                {profileImageUrl ? (
-                  <Image
-                    src={profileImageUrl}
-                    alt={altLabel}
-                    fill
-                    sizes="32px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <span className="select-none">{initial}</span>
-                )}
-              </Link>
+              <AvatarMenu
+                profileImageUrl={profileImageUrl}
+                initial={initial}
+                altLabel={altLabel}
+                email={user?.email ?? null}
+                displayName={fullName}
+                viewSiteHref={viewSiteHref}
+              />
             </div>
           </div>
         </header>

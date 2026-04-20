@@ -191,21 +191,25 @@ export function ThemeCarousel({ layout: initialLayout, initialThemeId, themeIds 
   }, [themeId]);
 
   // Desktop trackpad two-finger horizontal swipe cycles themes (one swipe →
-  // one theme). Scoped to the scroller element so vertical page scrolls and
-  // gestures over the preview below aren't hijacked. Accumulates deltaX with
-  // a cool-down so a single inertial swipe doesn't fire repeatedly.
+  // one theme). Bound to the whole swipe wrapper so a swipe over the
+  // preview area OR the pill row both work — vertical wheels pass
+  // through (deltaY > deltaX filter) so normal page scroll isn't hijacked.
+  // Accumulates deltaX with a cool-down so a single inertial trackpad
+  // swipe can't rapid-fire multiple theme changes. Shift+wheel is
+  // handled automatically — the browser translates it into deltaX.
   const wheelAcc = useRef(0);
   const wheelCooldownUntil = useRef(0);
   const wheelResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    const el = scrollerRef.current;
+    const el = swipeWrapperRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       // Predominantly-vertical events pass through (page scroll).
       if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
-      // Prevent Safari's "swipe to go back" from eating the gesture + block
-      // native horizontal scroll of the pill list (we're cycling themes
-      // instead).
+      // Threshold check — ignore micro-wiggles from a resting trackpad.
+      if (Math.abs(e.deltaX) < 12) return;
+      // Prevent Safari's "swipe to go back" from eating the gesture + stop
+      // any native horizontal scroll.
       e.preventDefault();
       const now = Date.now();
       if (now < wheelCooldownUntil.current) return;
@@ -215,7 +219,7 @@ export function ThemeCarousel({ layout: initialLayout, initialThemeId, themeIds 
       if (Math.abs(wheelAcc.current) > 80) {
         cycleTheme(wheelAcc.current > 0 ? 1 : -1);
         wheelAcc.current = 0;
-        wheelCooldownUntil.current = Date.now() + 450;
+        wheelCooldownUntil.current = Date.now() + 350;
       }
     };
     el.addEventListener("wheel", onWheel, { passive: false });
