@@ -196,16 +196,27 @@ export function TemplateBrowser({ themes }: { themes: TemplateTheme[] }) {
 }
 
 function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
-  // `min-w-0` is load-bearing: without it the flex parent lets this element
-  // grow to its content width, which defeats the inner `overflow-x-auto` and
-  // pushes the page past the mobile viewport. With min-w-0 the inner scroller
-  // clips + scrolls horizontally inside the shared parent width.
+  // Mobile: the group spans the full row and its pills scroll horizontally
+  // inside with a fade-mask at the edges hinting there's more off-screen.
+  // Desktop: shrinks to content width so Category + Plan sit side by side.
+  //
+  // `min-w-0` + `w-full md:w-auto` is load-bearing — without a width
+  // constraint the inner `overflow-x-auto` never kicks in on mobile and
+  // pills past the viewport simply get clipped.
   return (
-    <div className="flex min-w-0 max-w-full items-center gap-2">
-      <span className="hidden text-[10px] font-semibold uppercase tracking-widest text-[#A3A3A3] sm:inline">
+    <div className="flex w-full min-w-0 items-center gap-2 md:w-auto md:max-w-full">
+      <span className="hidden shrink-0 text-[10px] font-semibold uppercase tracking-widest text-[#A3A3A3] sm:inline">
         {label}
       </span>
-      <div className="-mx-1 flex min-w-0 flex-nowrap gap-1.5 overflow-x-auto px-1">
+      <div
+        className="-mx-1 flex min-w-0 flex-1 flex-nowrap gap-1.5 overflow-x-auto px-1 [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] md:flex-initial [&::-webkit-scrollbar]:hidden"
+        style={{
+          maskImage:
+            "linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%)",
+          WebkitMaskImage:
+            "linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%)",
+        }}
+      >
         {children}
       </div>
     </div>
@@ -225,7 +236,9 @@ function Pill({
     <button
       type="button"
       onClick={onClick}
-      className={`whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+      // `shrink-0` prevents flex from compressing pills so each one keeps
+      // its full width and the row scrolls cleanly past the viewport.
+      className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
         active
           ? "border-[#0A0A0A] bg-[#0A0A0A] text-white"
           : "border-[#E7E5E4] bg-white text-[#525252] hover:bg-[#FAFAF9]"

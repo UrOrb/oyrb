@@ -164,6 +164,38 @@ export function ThemeCarousel({ layout: initialLayout, initialThemeId, themeIds 
     });
   }, [themeId]);
 
+  // Desktop trackpad two-finger horizontal swipe cycles themes (one swipe →
+  // one theme). Scoped to the scroller element so vertical page scrolls and
+  // gestures over the preview below aren't hijacked. Accumulates deltaX with
+  // a cool-down so a single inertial swipe doesn't fire repeatedly.
+  const wheelAcc = useRef(0);
+  const wheelCooldownUntil = useRef(0);
+  const wheelResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      // Predominantly-vertical events pass through (page scroll).
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      // Prevent Safari's "swipe to go back" from eating the gesture + block
+      // native horizontal scroll of the pill list (we're cycling themes
+      // instead).
+      e.preventDefault();
+      const now = Date.now();
+      if (now < wheelCooldownUntil.current) return;
+      wheelAcc.current += e.deltaX;
+      if (wheelResetTimer.current) clearTimeout(wheelResetTimer.current);
+      wheelResetTimer.current = setTimeout(() => { wheelAcc.current = 0; }, 120);
+      if (Math.abs(wheelAcc.current) > 80) {
+        cycleTheme(wheelAcc.current > 0 ? 1 : -1);
+        wheelAcc.current = 0;
+        wheelCooldownUntil.current = Date.now() + 450;
+      }
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [cycleTheme]);
+
   const theme = TEMPLATE_THEMES[themeId];
   const layoutLabel = LAYOUT_TYPES.find((l) => l.id === layout)?.name ?? layout;
   const categoryKey = CATEGORY_MAP[theme.business.category] ?? "hair";
@@ -250,13 +282,15 @@ export function ThemeCarousel({ layout: initialLayout, initialThemeId, themeIds 
               Theme
             </span>
 
-            {/* Left chevron — tap/click cycles one theme back. Min tap target
-                44x44 for iOS accessibility. */}
+            {/* Left chevron — mobile only. Desktop users navigate via
+                two-finger trackpad scroll, Shift+wheel, or ← → keys; the
+                chevron would add visual clutter without a payoff. Min tap
+                target 44x44 for iOS accessibility. */}
             <button
               type="button"
               onClick={() => cycleTheme(-1)}
               aria-label="Previous theme"
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 md:h-9 md:w-9"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 md:hidden"
             >
               <ChevronLeft size={16} />
             </button>
@@ -315,12 +349,12 @@ export function ThemeCarousel({ layout: initialLayout, initialThemeId, themeIds 
               })}
             </div>
 
-            {/* Right chevron */}
+            {/* Right chevron — mobile only (see left chevron comment) */}
             <button
               type="button"
               onClick={() => cycleTheme(1)}
               aria-label="Next theme"
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 md:h-9 md:w-9"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 md:hidden"
             >
               <ChevronRight size={16} />
             </button>
