@@ -295,6 +295,33 @@ function Hero({ t, biz, bookHref, kickerOverride, ctaOverride }: {
             </svg>
           );
         }
+        // riot + amethyst — remove the blob entirely. Hero dimensions are
+        // driven by the content inside, and the blob was position:absolute,
+        // so returning null leaves vertical spacing exactly intact.
+        if (t.id === "riot" || t.id === "amethyst") {
+          return null;
+        }
+        if (t.id === "mochi") {
+          // Mochi Room — soft radial aura glow using the theme's own
+          // accent tokens (no hardcoded colors). SVG feGaussianBlur gives
+          // a reliable cross-browser soft-halo effect; the gradient fades
+          // to transparent so the glow has no defined edge.
+          return (
+            <svg aria-hidden="true" viewBox="0 0 200 160" preserveAspectRatio="xMidYMid meet" style={deco}>
+              <defs>
+                <filter id="mochi-aura-blur" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="14" />
+                </filter>
+                <radialGradient id="mochi-aura-grad" cx="50%" cy="50%" r="55%">
+                  <stop offset="0%"  stopColor={t.accent  ?? "#F5C8D1"} stopOpacity="0.55" />
+                  <stop offset="55%" stopColor={t.accent2 ?? "#B5D8EB"} stopOpacity="0.32" />
+                  <stop offset="100%" stopColor={t.accent ?? "#F5C8D1"} stopOpacity="0" />
+                </radialGradient>
+              </defs>
+              <ellipse cx="105" cy="80" rx="90" ry="75" fill="url(#mochi-aura-grad)" filter="url(#mochi-aura-blur)" />
+            </svg>
+          );
+        }
         if (t.id === "avenger") {
           // First Avenger — subtle diagonal stripe pattern (~38°) using
           // Heroic Navy (t.bg) + Ink/Midnight Navy (t.surface).
