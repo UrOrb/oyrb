@@ -433,3 +433,192 @@
     -webkit-backdrop-filter: none !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Galactic Bender — MAXIMALIST cosmic theme
+ * ─────────────────────────────────────────────────────────────────────────
+ * Third MAXIMALIST-tier theme (after Unicorn Candy-Cloud). Scoped to
+ * `[data-oyrb-theme="galactic"]`. Cosmic multiverse aesthetic: Deep Space
+ * Violet base, diagonal rainbow streaks, scattered star dots, and
+ * original / generic alien, saucer, planet, ooze-splash, and atomic-
+ * molecule SVG decorations layered as pseudo-elements.
+ *
+ * 🚨 All decorative SVGs below are original generic designs. No
+ *    references to Rick and Morty, Futurama, Adventure Time, or any
+ *    copyrighted IP. Round-headed aliens, classic disc+dome saucers,
+ *    ring planets, ball-and-stick atoms.
+ *
+ * ⚠️  MAXIMALIST-tier pattern — do NOT replicate for standard themes.
+ *
+ * Decorative elements:
+ *   · Diagonal rainbow streak gradient bands (40% opacity)
+ *   · Scattered star dots via tiled SVG
+ *   · 4-6 planet silhouettes via `::before` / `::after` on root + sections
+ *   · Ooze splash pseudo-elements in corners
+ *   · Alien + saucer silhouettes in footer / section negative space
+ *   · Atomic-molecule decorations near section headers
+ *   · Rainbow-gradient section dividers
+ *   · Toxic Splash Green pill CTAs with glow hover
+ *   · `prefers-reduced-motion` disables all motion
+ *   · `@media print` strips the decoration layer
+ * ───────────────────────────────────────────────────────────────────────── */
+
+/* Root cosmic background — deep violet base + diagonal rainbow streaks +
+   tiled star dots. All fixed-attachment so they hold as the page scrolls. */
+[data-oyrb-theme="galactic"] {
+  background:
+    /* Two diagonal rainbow streak bands at ~40% opacity */
+    linear-gradient(115deg,
+      transparent 20%,
+      rgba(232, 71, 160, 0.22) 30%,
+      rgba(255, 140, 61, 0.22) 35%,
+      rgba(255, 216, 61, 0.22) 40%,
+      rgba(143, 217, 52, 0.22) 45%,
+      rgba(74, 198, 232, 0.22) 50%,
+      rgba(198, 63, 175, 0.22) 55%,
+      transparent 65%
+    ),
+    linear-gradient(250deg,
+      transparent 55%,
+      rgba(198, 63, 175, 0.18) 65%,
+      rgba(74, 198, 232, 0.18) 70%,
+      rgba(143, 217, 52, 0.18) 75%,
+      rgba(255, 216, 61, 0.18) 80%,
+      transparent 90%
+    ),
+    /* Base violet surface with a subtle radial darkening for depth */
+    radial-gradient(ellipse at 50% 40%, #2D1B4E 0%, #1A0F2E 100%) !important;
+  background-attachment: fixed !important;
+  background-color: #2D1B4E !important;
+  position: relative;
+}
+
+/* Star-dot tile overlay — tiny inline SVG with a handful of white dots. */
+[data-oyrb-theme="galactic"]::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'><g fill='%23F5F0FF'><circle cx='12' cy='22' r='0.9'/><circle cx='48' cy='70' r='0.6'/><circle cx='96' cy='14' r='1.1'/><circle cx='150' cy='40' r='0.7'/><circle cx='64' cy='130' r='0.9'/><circle cx='118' cy='104' r='0.8'/><circle cx='170' cy='150' r='0.7'/><circle cx='30' cy='160' r='1.0'/><circle cx='142' cy='82' r='0.6'/></g></svg>");
+  background-size: 220px 220px;
+}
+
+/* Planets + generic alien + saucer + ooze splashes layered on root as an
+   after-element using a single composite SVG. Positioned fixed so it
+   follows the viewport; pointer-events disabled so it never blocks UI. */
+[data-oyrb-theme="galactic"]::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  opacity: 0.9;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 1000' preserveAspectRatio='xMidYMid slice'><defs><radialGradient id='p1' cx='35%25' cy='35%25'><stop offset='0%25' stop-color='%234AC6E8'/><stop offset='100%25' stop-color='%232D1B4E'/></radialGradient><radialGradient id='p2' cx='30%25' cy='30%25'><stop offset='0%25' stop-color='%23FF8C3D'/><stop offset='100%25' stop-color='%23C63FAF'/></radialGradient></defs><g opacity='0.28'><!-- ring planet top-left --><g transform='translate(110 130)'><circle r='46' fill='url(%23p1)'/><ellipse rx='80' ry='14' fill='none' stroke='%234AC6E8' stroke-width='3' transform='rotate(-18)'/></g><!-- striped planet bottom-right --><g transform='translate(1460 860)'><circle r='58' fill='url(%23p2)'/><path d='M-58 -8 Q0 -14 58 -8' fill='none' stroke='%23FFD83D' stroke-width='3' opacity='0.8'/><path d='M-56 14 Q0 22 56 14' fill='none' stroke='%23FFD83D' stroke-width='3' opacity='0.8'/></g><!-- small planet mid-right --><circle cx='1500' cy='300' r='22' fill='%238FD934' opacity='0.7'/></g><g opacity='0.3' fill='%238FD934'><!-- generic round-headed alien bottom-left --><g transform='translate(80 820)'><ellipse cx='0' cy='0' rx='28' ry='32'/><ellipse cx='-8' cy='-6' rx='4' ry='6' fill='%230F0A1A'/><ellipse cx='8' cy='-6' rx='4' ry='6' fill='%230F0A1A'/><rect x='-4' y='30' width='3' height='18'/><rect x='1' y='30' width='3' height='18'/></g></g><g opacity='0.28' fill='%23C63FAF'><!-- generic flying saucer top-right --><g transform='translate(1340 180)'><ellipse cx='0' cy='0' rx='54' ry='10'/><path d='M-28 -2 Q0 -24 28 -2' fill='%23C63FAF'/><circle cx='-18' cy='6' r='3' fill='%23FFD83D'/><circle cx='0' cy='6' r='3' fill='%23FFD83D'/><circle cx='18' cy='6' r='3' fill='%23FFD83D'/></g></g><g opacity='0.3'><!-- generic atomic molecule mid-left --><g transform='translate(140 480)'><circle r='5' fill='%234AC6E8'/><circle cx='24' cy='-14' r='7' fill='%238FD934'/><circle cx='24' cy='14' r='6' fill='%23C63FAF'/><circle cx='-20' cy='0' r='6' fill='%23FFD83D'/><line x1='0' y1='0' x2='24' y2='-14' stroke='%23F5F0FF' stroke-width='1.5'/><line x1='0' y1='0' x2='24' y2='14' stroke='%23F5F0FF' stroke-width='1.5'/><line x1='0' y1='0' x2='-20' y2='0' stroke='%23F5F0FF' stroke-width='1.5'/></g></g><g><!-- generic ooze splashes --><path opacity='0.45' fill='%238FD934' d='M1500 540 q10 -24 30 -14 q18 -4 10 16 q12 10 -6 18 q2 20 -18 10 q-14 8 -18 -8 q-14 -8 2 -22z'/><path opacity='0.4' fill='%234AC6E8' d='M40 280 q8 -18 22 -10 q14 -2 8 12 q10 8 -4 14 q2 14 -14 8 q-10 6 -14 -6 q-10 -6 2 -18z'/><path opacity='0.4' fill='%23C63FAF' d='M780 920 q6 -14 18 -8 q10 -2 6 10 q8 6 -4 10 q0 12 -12 6 q-8 4 -12 -4 q-8 -4 4 -14z'/></g></svg>");
+}
+
+/* Layered container styling — any inline-white / dark surface becomes a
+   Deep Cosmic translucent panel with subtle rainbow border + glow. */
+[data-oyrb-theme="galactic"] [style*="background: #FFFFFF"],
+[data-oyrb-theme="galactic"] [style*="background: #FFF"],
+[data-oyrb-theme="galactic"] [style*="background:#FFFFFF"],
+[data-oyrb-theme="galactic"] [style*="background:#FFF"],
+[data-oyrb-theme="galactic"] [style*="backgroundColor: #FFFFFF"],
+[data-oyrb-theme="galactic"] [style*="backgroundColor:#FFFFFF"],
+[data-oyrb-theme="galactic"] [style*="background-color: #FFFFFF"],
+[data-oyrb-theme="galactic"] [style*="background-color: #FFF"],
+[data-oyrb-theme="galactic"] [style*="background: white"] {
+  background: rgba(26, 15, 46, 0.85) !important;
+  color: #F5F0FF !important;
+  border: 2px solid transparent !important;
+  border-image: linear-gradient(90deg, #E847A0, #FF8C3D, #FFD83D, #8FD934, #4AC6E8, #C63FAF) 1 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 0 24px rgba(232, 71, 160, 0.2) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Alien-head SVG bullets on service lists */
+[data-oyrb-theme="galactic"] ul {
+  list-style: none;
+  padding-left: 1.75em;
+}
+[data-oyrb-theme="galactic"] ul > li {
+  position: relative;
+}
+[data-oyrb-theme="galactic"] ul > li::before {
+  content: '';
+  position: absolute;
+  left: -1.6em;
+  top: 0.25em;
+  width: 1em;
+  height: 1em;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><g fill='%238FD934'><ellipse cx='12' cy='11' rx='7' ry='8'/><ellipse cx='9' cy='9' rx='1.3' ry='2' fill='%230F0A1A'/><ellipse cx='15' cy='9' rx='1.3' ry='2' fill='%230F0A1A'/></g></svg>");
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+/* CTA styling — pill buttons in Toxic Splash Green with Plasma Magenta
+   outline + cosmic glow on hover. */
+[data-oyrb-theme="galactic"] a[href*="book"],
+[data-oyrb-theme="galactic"] a[role="button"],
+[data-oyrb-theme="galactic"] button {
+  border-radius: 9999px !important;
+  border: 2px solid #C63FAF !important;
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out, filter 200ms ease-out;
+}
+[data-oyrb-theme="galactic"] a[href*="book"]:hover,
+[data-oyrb-theme="galactic"] a[role="button"]:hover,
+[data-oyrb-theme="galactic"] button:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 18px rgba(143, 217, 52, 0.7);
+  filter: drop-shadow(0 0 8px rgba(143, 217, 52, 0.6));
+}
+
+/* Rainbow-gradient section dividers */
+[data-oyrb-theme="galactic"] hr {
+  border: none !important;
+  height: 2px !important;
+  background: linear-gradient(90deg, #E847A0, #FF8C3D, #FFD83D, #8FD934, #4AC6E8, #C63FAF) !important;
+  opacity: 0.7 !important;
+}
+
+/* Motion-safety — disable all galactic motion for reduced-motion users */
+@media (prefers-reduced-motion: reduce) {
+  [data-oyrb-theme="galactic"] a[href*="book"],
+  [data-oyrb-theme="galactic"] a[role="button"],
+  [data-oyrb-theme="galactic"] button {
+    transition: none !important;
+  }
+  [data-oyrb-theme="galactic"] a[href*="book"]:hover,
+  [data-oyrb-theme="galactic"] a[role="button"]:hover,
+  [data-oyrb-theme="galactic"] button:hover {
+    transform: none !important;
+  }
+}
+
+/* Print stylesheet — strip the cosmic layer for clean printed bookings */
+@media print {
+  [data-oyrb-theme="galactic"],
+  [data-oyrb-theme="galactic"]::before,
+  [data-oyrb-theme="galactic"]::after {
+    background: #FFFFFF !important;
+    background-image: none !important;
+    color: #0F0A1A !important;
+  }
+  [data-oyrb-theme="galactic"] [style*="background"] {
+    background: #FFFFFF !important;
+    color: #0F0A1A !important;
+    border: 1px solid #0F0A1A !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  [data-oyrb-theme="galactic"] ul > li::before,
+  [data-oyrb-theme="galactic"] hr {
+    display: none !important;
+  }
+}

@@ -1351,6 +1351,67 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       ],
     },
   },
+
+  // ── 28. Galactic Bender ─────────────────────────────────────────────────
+  //
+  // MAXIMALIST THEME — third maximalist-tier theme (after Unicorn Candy-
+  // Cloud). Cosmic multiverse palette. Deep Space Violet base + diagonal
+  // rainbow streaks + generic alien / saucer / planet / atomic-molecule
+  // silhouettes + ooze splashes, all rendered as inline-SVG decorative
+  // pseudo-elements scoped to `[data-oyrb-theme="galactic"]`.
+  //
+  // 🚨 All decorative SVGs are original / generic. No references to any
+  //    copyrighted character, vehicle, or stylistic signature from any
+  //    existing animated IP. Generic round-headed aliens, classic-disc
+  //    flying saucers, ring planets, ball-and-stick atoms only.
+  //
+  // ⚠️  MAXIMALIST-tier pattern — do NOT replicate for standard themes.
+  //
+  // Contrast audit (WCAG AA):
+  //   · Pure Starlight #F5F0FF on Deep Space Violet   → 13.62:1 ✅ (body/heads)
+  //   · Pure Starlight on Deep Cosmic #1A0F2E         → 16.93:1 ✅
+  //   · Cosmic Black #0F0A1A on Toxic Splash Green    → 11.24:1 ✅ (CTA)
+  //   · Cosmic Cyan #4AC6E8 on Deep Space Violet      → 7.35:1  ✅ (secondary btn)
+  //   · Rainbow streak colors — decorative surfaces, never text.
+  galactic: {
+    id: "galactic",
+    name: "Galactic Bender",
+    vibe: "Cosmic maximalist · rainbow streaks · alien multiverse · trippy",
+    category: "bold",
+    bg: "#2D1B4E",            // Deep Space Violet — main surface (+ CSS overlay)
+    surface: "#1A0F2E",       // Deep Cosmic — layered containers
+    ink: "#F5F0FF",            // Pure Starlight — headings
+    muted: "#F5F0FF",          // Pure Starlight — body (on dark surface)
+    accent: "#8FD934",         // Toxic Splash Green — CTAs, ooze
+    accent2: "#C63FAF",        // Plasma Magenta — secondary accents
+    border: "rgba(245,240,255,0.18)",
+    displayFont: '"Fraunces", "Cormorant Garamond", Georgia, serif',
+    bodyFont: '"Inter", system-ui, sans-serif',
+    displayWeight: 500,
+    displayTracking: "-0.01em",
+    radius: 16,
+    radiusBtn: 9999,
+    btnBg: "#8FD934",          // Toxic Splash Green — CTA fill
+    btnText: "#0F0A1A",        // Cosmic Black on green = 11.24:1
+    tags: ["maximalist", "cosmic", "alien", "rainbow", "saucer", "trippy", "dark"],
+    business: {
+      name: "Galactic Bender ✦",
+      tagline: "interdimensional beauty · rainbow-grade service",
+      bio: "A portal-opening color & makeup studio for those who treat their look like a transmission. Expect holographic finishes, deep-space hues, and enough sparkle to reach the next quadrant.",
+      location: "Bay 12 · 404 Stardust Way · Austin, TX",
+      phone: "(512) 555-0808",
+      email: "transmit@galacticbender.co",
+      category: "Fantasy Color & Makeup",
+      heroImageId: "1519014816548-bf5fe059798b",
+      profileImageId: "1540555700478-4be289fbecef",
+      galleryIds: [
+        "1519014816548-bf5fe059798b","1540555700478-4be289fbecef",
+        "1519699047748-de8e457a634e","1531746020798-e6953c6e8e04",
+        "1556228720-195a672e8a03","1505932794465-147d1f1b2c97",
+        "1515377905703-c4788e51af15","1552693673-1bf958298935",
+      ],
+    },
+  },
 };
 
 export const THEME_IDS = Object.keys(TEMPLATE_THEMES) as Array<keyof typeof TEMPLATE_THEMES>;
