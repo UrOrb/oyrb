@@ -1491,7 +1491,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(619) 555-0245",
       email: "studio@liquidsunsettrip.co",
       category: "Color & Makeup Studio",
-      heroImageId: "1515377905703-c4788e51af15",
+      heroImageId: "/sunset-hero.avif",
       profileImageId: "1540555700478-4be289fbecef",
       galleryIds: [
         "1515377905703-c4788e51af15","1540555700478-4be289fbecef",
