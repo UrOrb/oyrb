@@ -17,7 +17,7 @@ const SECTIONS: Section[] = [
   {
     label: "Templates",
     heading: "A site that actually looks like your brand.",
-    body: "95 professionally designed templates across 5 layouts and 19 themes — built specifically for beauty professionals. Customize your colors, fonts, and content. Switch templates anytime without losing your data.",
+    body: "100 professionally designed templates across 5 layouts and 20 themes — built specifically for beauty professionals. Customize your colors, fonts, and content. Switch templates anytime without losing your data.",
     visual: "#EDE8E3",
     image: "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/features-page-01-1776552359.jpg",
   },

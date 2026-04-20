@@ -864,6 +864,61 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       ],
     },
   },
+
+  // ── 20. Cool Quartz ─────────────────────────────────────────────────────
+  //
+  // Medical-spa palette. Pearl White + Frost White lead every layout; Icy
+  // Blue-Gray handles accent surfaces; Slate anchors CTAs so the buttons
+  // read as glass-and-steel precision. Cool Silver stays structural
+  // (dividers, borders). Text uses Graphite / Obsidian instead of pure
+  // black so the clinical polish never goes harsh.
+  //
+  // Contrast audit (WCAG AA):
+  //   · Graphite #2D3540 on Pearl White #F4F6F7        → 11.40:1 ✅ (body)
+  //   · Obsidian #1A1F26 on Pearl White                → 15.14:1 ✅ (headings)
+  //   · Pearl White on Slate #5A6770                   → 5.50:1  ✅ (CTA text)
+  //   · Graphite on Icy Blue-Gray #C4D1D9              → 8.92:1  ✅
+  //   · Graphite on Mist Gray #E1E6EA                  → 10.40:1 ✅
+  //   · Graphite on Frost White #FBFCFD                → 12.30:1 ✅
+  quartz: {
+    id: "quartz",
+    name: "Cool Quartz",
+    vibe: "Medical-spa · glass & steel · frosted ice · clinical luxe",
+    category: "minimal",
+    bg: "#F4F6F7",            // Pearl White — main surface
+    surface: "#FBFCFD",       // Frost White — layered cards
+    ink: "#1A1F26",            // Obsidian — headings
+    muted: "#2D3540",          // Graphite — body copy
+    accent: "#C4D1D9",         // Icy Blue-Gray — primary accent, hero highlights
+    accent2: "#A8B2BA",        // Cool Silver — secondary accent, dividers
+    border: "rgba(26,31,38,0.14)",
+    displayFont: '"Inter", "Helvetica Neue", system-ui, sans-serif',
+    bodyFont: '"Inter", system-ui, sans-serif',
+    displayWeight: 500,
+    displayTracking: "-0.02em",
+    radius: 8,
+    radiusBtn: 6,
+    btnBg: "#5A6770",          // Slate — CTA surface
+    btnText: "#F4F6F7",        // Pearl White text on slate = 5.50:1
+    tags: ["minimal", "clinical", "modern", "medical-spa", "cool", "precision"],
+    business: {
+      name: "Quartz & Atelier",
+      tagline: "advanced skin · precision finish · glass-house calm",
+      bio: "A modern medical-spa atelier for results-driven facials, precision injectables, and laser refinement. Our treatment suites are quiet, cool, and engineered for exacting work — think operating-theatre clean with atelier craftsmanship.",
+      location: "8th Floor · 1220 Glass Tower · Chicago, IL",
+      phone: "(312) 555-0471",
+      email: "concierge@quartzatelier.co",
+      category: "Medical Aesthetics & Skin",
+      heroImageId: "1519014816548-bf5fe059798b",
+      profileImageId: "1540555700478-4be289fbecef",
+      galleryIds: [
+        "1519014816548-bf5fe059798b","1540555700478-4be289fbecef",
+        "1519699047748-de8e457a634e","1515377905703-c4788e51af15",
+        "1552693673-1bf958298935","1505932794465-147d1f1b2c97",
+        "1531746020798-e6953c6e8e04","1556228720-195a672e8a03",
+      ],
+    },
+  },
 };
 
 export const THEME_IDS = Object.keys(TEMPLATE_THEMES) as Array<keyof typeof TEMPLATE_THEMES>;
