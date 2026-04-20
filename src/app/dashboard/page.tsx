@@ -7,6 +7,8 @@ import { CheckoutPoller } from "./checkout-poller";
 import { ApplyPendingTemplate } from "./apply-pending-template";
 import { getAccountSummary } from "@/lib/account";
 import { TIERS, fmtMoney } from "@/lib/plans";
+import { getGoalSnapshot } from "@/lib/goal-tracking";
+import { GoalMeter } from "./goal-meter";
 
 export default async function DashboardPage({
   searchParams,
@@ -140,6 +142,10 @@ export default async function DashboardPage({
   const monthRevenue = (revenueRows ?? []).reduce((sum: number, b: any) => sum + (b.services?.price_cents ?? 0), 0);
   const siteUrl = `/s/${business.slug}`;
 
+  // Monthly income goal snapshot — computed on the server so the first
+  // paint has the real progress bar width, no flash of empty state.
+  const goalSnapshot = await getGoalSnapshot(user.id);
+
   return (
     <div>
       <ApplyPendingTemplate />
@@ -203,6 +209,13 @@ export default async function DashboardPage({
             <span className="text-xs text-[#A3A3A3]">→</span>
           </Link>
         </div>
+      </div>
+
+      {/* Monthly income goal meter. Rendered below the site cards so it
+          sits near the user's active workspace. Hidden entirely when the
+          user has toggled show_on_dashboard off (the component returns null). */}
+      <div className="mt-6">
+        <GoalMeter snapshot={goalSnapshot} />
       </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-3">

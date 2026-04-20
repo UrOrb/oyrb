@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 import { SettingsForm } from "./settings-form";
 import { PlanChangeForm } from "./plan-change-form";
 import { EndTrialButton } from "./end-trial-button";
+import { GoalForm } from "./goal-form";
 import { getCurrentBusiness } from "@/lib/current-site";
 import { getAccountSummary } from "@/lib/account";
+import { ensureGoalSettings } from "@/lib/goal-tracking";
 import {
   TIERS,
   ADDON_MONTHLY_CENTS,
@@ -26,6 +28,7 @@ export default async function SettingsPage({ searchParams }: Props) {
   const { siteId } = await searchParams;
   const business = await getCurrentBusiness(siteId);
   const account = await getAccountSummary();
+  const goalSettings = await ensureGoalSettings(user.id);
 
   if (!business) {
     return (
@@ -54,6 +57,19 @@ export default async function SettingsPage({ searchParams }: Props) {
           }}
           userEmail={user.email ?? ""}
         />
+      </div>
+
+      {/* Goal tracking — lives at anchor #goal so the dashboard's "Edit"
+          link jumps straight here. */}
+      <div id="goal" className="mt-8 scroll-mt-20 rounded-lg border border-[#E7E5E4] bg-white p-6">
+        <h2 className="text-base font-semibold">Goal Tracking</h2>
+        <p className="mt-0.5 text-xs text-[#737373]">
+          Set a monthly income target and choose what counts toward it. Progress is calculated across
+          all the sites you own; resets at the start of each UTC month.
+        </p>
+        <div className="mt-5">
+          <GoalForm initial={goalSettings} />
+        </div>
       </div>
     </div>
   );

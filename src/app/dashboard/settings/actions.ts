@@ -5,6 +5,60 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { stripe } from "@/lib/stripe";
 import { getCurrentBusiness } from "@/lib/current-site";
+import type { CountType } from "@/lib/goal-tracking";
+
+/**
+ * Updates the user's monthly income goal settings. Validates amount,
+ * enum-checks count_type, upserts one row per user. Mid-month goal
+ * changes do NOT reset accumulated earnings — the dashboard just
+ * recalculates % against the new amount on the next load.
+ */
+export async function updateGoalSettings(input: {
+  monthly_goal_amount: number;
+  count_type: CountType;
+  custom_title: string | null;
+  show_on_dashboard: boolean;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not authenticated" };
+
+  const amount = Number(input.monthly_goal_amount);
+  if (!Number.isFinite(amount) || amount < 0) {
+    return { ok: false, error: "Goal must be ≥ 0" };
+  }
+  if (amount > 1_000_000) {
+    return { ok: false, error: "Goal capped at $1,000,000" };
+  }
+  const validCountTypes: CountType[] = [
+    "confirmed_bookings",
+    "completed_appointments",
+    "deposits_received",
+  ];
+  if (!validCountTypes.includes(input.count_type)) {
+    return { ok: false, error: "Invalid count type" };
+  }
+
+  const { error } = await supabase
+    .from("user_goal_settings")
+    .upsert(
+      {
+        user_id: user.id,
+        monthly_goal_amount: amount,
+        count_type: input.count_type,
+        custom_title: input.custom_title?.slice(0, 40) || null,
+        show_on_dashboard: input.show_on_dashboard,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/settings");
+  return { ok: true };
+}
 
 export async function updateCustomDomain(formData: FormData) {
   const supabase = await createClient();
