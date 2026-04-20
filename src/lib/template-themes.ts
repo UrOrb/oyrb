@@ -1501,6 +1501,68 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       ],
     },
   },
+
+  // ── 30. Chrome Oracle ───────────────────────────────────────────────────
+  //
+  // MAXIMALIST THEME — fourth maximalist-tier theme (after Unicorn Candy-
+  // Cloud, Galactic Bender, Liquid Sunset Trip). Sci-fi liquid-chrome
+  // aesthetic: Void Black void + floating chrome orbs + iridescent oil-
+  // slick accents (coral / cyan / magenta / teal) + glass-chrome cards
+  // with rainbow gradient borders + chrome-gradient text on headings.
+  //
+  // Intentional distinction from other MAXIMALIST themes:
+  //   · Unicorn Candy-Cloud — sugary kawaii, mesh gradient
+  //   · Galactic Bender     — cosmic rainbow, alien multiverse
+  //   · Liquid Sunset Trip  — psychedelic watercolor sunset
+  //   · Chrome Oracle       — sculptural sci-fi chrome + black void
+  //
+  // ⚠️  MAXIMALIST-tier scoped-CSS pattern — do NOT replicate on standard
+  //     themes. Hero image pinned to /chrome-hero.avif (user-supplied).
+  //
+  // Contrast audit (WCAG AA):
+  //   · Pearl Chrome #EEF0F5 on Void Black #050507      → ~20:1  ✅ (body)
+  //   · Pearl Chrome on Deep Steel #3A3F48              →  9.2:1 ✅
+  //   · Void Black on Iridescent Magenta #E84DB5        →  5.4:1 ✅ (CTA)
+  //   · Iridescent colors as text on Void Black         → fail   ❌ decorative only
+  chrome: {
+    id: "chrome",
+    name: "Chrome Oracle",
+    vibe: "Liquid chrome · sci-fi sculpture · oil-slick iridescent · void",
+    category: "bold",
+    bg: "#050507",             // Void Black — true near-black void
+    surface: "#3A3F48",        // Deep Steel — glass-chrome card base
+    ink: "#EEF0F5",            // Pearl Chrome — headings
+    muted: "#EEF0F5",          // Pearl Chrome — body copy
+    accent: "#E84DB5",         // Iridescent Magenta — primary CTA
+    accent2: "#4DDFE8",        // Iridescent Cyan — secondary accent
+    border: "rgba(200,205,212,0.18)", // subtle chrome hairline
+    displayFont: '"Inter", "Helvetica Neue", system-ui, sans-serif',
+    bodyFont: '"Inter", system-ui, sans-serif',
+    displayWeight: 500,
+    displayTracking: "-0.02em",
+    radius: 20,
+    radiusBtn: 9999,
+    btnBg: "#E84DB5",          // Iridescent Magenta — CTA fill
+    btnText: "#050507",        // Void Black on Magenta = 5.40:1
+    tags: ["maximalist", "sci-fi", "chrome", "iridescent", "liquid-metal", "oracle"],
+    business: {
+      name: "Chrome Oracle",
+      tagline: "liquid metal · sculptural finish · future-forward beauty",
+      bio: "A sculptural-first studio for holographic color, chrome makeup, sci-fi editorial looks, and the kind of finish that photographs like a 3D render. We treat every client like a cover subject.",
+      location: "Floor 44 · 2077 Axiom Tower · Los Angeles, CA",
+      phone: "(213) 555-2077",
+      email: "studio@chromeoracle.co",
+      category: "Editorial & Futurist Beauty",
+      heroImageId: "/chrome-hero.avif",
+      profileImageId: "1540555700478-4be289fbecef",
+      galleryIds: [
+        "1519014816548-bf5fe059798b","1540555700478-4be289fbecef",
+        "1519699047748-de8e457a634e","1515377905703-c4788e51af15",
+        "1552693673-1bf958298935","1505932794465-147d1f1b2c97",
+        "1531746020798-e6953c6e8e04","1556228720-195a672e8a03",
+      ],
+    },
+  },
 };
 
 export const THEME_IDS = Object.keys(TEMPLATE_THEMES) as Array<keyof typeof TEMPLATE_THEMES>;

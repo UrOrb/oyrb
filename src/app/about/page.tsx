@@ -31,8 +31,8 @@ const FEATURES = [
   },
   {
     num: "02",
-    heading: "145 templates.",
-    em: "5 layouts. 29 themes.",
+    heading: "150 templates.",
+    em: "5 layouts. 30 themes.",
     body: "Professionally designed for how beauty pros present their craft. Built to be customized — made to be yours.",
   },
   {

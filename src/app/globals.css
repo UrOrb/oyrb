@@ -770,3 +770,180 @@
   background: #060A12 !important;
   border-top: 1px solid rgba(201, 168, 92, 0.45) !important;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Chrome Oracle — MAXIMALIST sci-fi chrome theme
+ * ─────────────────────────────────────────────────────────────────────────
+ * Fourth MAXIMALIST-tier theme (after Candy, Galactic, Sunset). Scoped to
+ * `[data-oyrb-theme="chrome"]`. Liquid-chrome holographic aesthetic over
+ * a deep Void Black void: floating chrome orb decorations, chrome-
+ * gradient text fill on headings, glass-chrome cards with iridescent
+ * rainbow borders, Iridescent Magenta pill CTAs with oil-slick glow.
+ *
+ * ⚠️  MAXIMALIST-tier pattern — do NOT replicate for standard themes.
+ *
+ * Scope note: chrome-gradient text uses `background-clip: text`. Browsers
+ * that don't support it gracefully fall back to solid Pearl Chrome (the
+ * theme's ink color) via the inline style already on headings.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+/* Deep void background + faint scattered star dots. Fixed attachment so
+   the void stays still as the page scrolls. */
+[data-oyrb-theme="chrome"] {
+  background: #050507 !important;
+  background-attachment: fixed !important;
+  position: relative;
+}
+[data-oyrb-theme="chrome"]::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.35;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'><g fill='%23EEF0F5'><circle cx='22' cy='28' r='0.6'/><circle cx='78' cy='60' r='0.8'/><circle cx='140' cy='20' r='0.5'/><circle cx='58' cy='140' r='0.9'/><circle cx='170' cy='180' r='0.6'/><circle cx='110' cy='90' r='0.4'/><circle cx='180' cy='110' r='0.7'/></g></svg>");
+  background-size: 260px 260px;
+}
+
+/* Floating chrome orbs — composite SVG pinned to the viewport corners +
+   negative space. Each orb uses radial gradients combining chrome silver
+   + iridescent oil-slick tones. aria-hidden implicit (pseudo-element).
+   pointer-events: none so they never block UI. */
+[data-oyrb-theme="chrome"]::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.85;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 1000' preserveAspectRatio='xMidYMid slice'><defs><radialGradient id='o1' cx='30%25' cy='28%25'><stop offset='0%25' stop-color='%23EEF0F5'/><stop offset='35%25' stop-color='%23E84DB5'/><stop offset='70%25' stop-color='%234DDFE8'/><stop offset='100%25' stop-color='%23050507'/></radialGradient><radialGradient id='o2' cx='35%25' cy='30%25'><stop offset='0%25' stop-color='%23EEF0F5'/><stop offset='40%25' stop-color='%23FF7B54'/><stop offset='75%25' stop-color='%233DC3A8'/><stop offset='100%25' stop-color='%23050507'/></radialGradient><radialGradient id='o3' cx='32%25' cy='32%25'><stop offset='0%25' stop-color='%23C8CDD4'/><stop offset='45%25' stop-color='%234DDFE8'/><stop offset='80%25' stop-color='%23E84DB5'/><stop offset='100%25' stop-color='%23050507'/></radialGradient></defs><circle cx='140'  cy='170'  r='56' fill='url(%23o1)'/><circle cx='1450' cy='120'  r='44' fill='url(%23o2)'/><circle cx='1500' cy='820'  r='72' fill='url(%23o3)'/><circle cx='90'   cy='860'  r='38' fill='url(%23o2)'/><circle cx='800'  cy='940'  r='30' fill='url(%23o1)'/></svg>");
+}
+
+/* Glass-chrome containers — inline-white surfaces become Deep Steel
+   translucent panels with iridescent rainbow borders. 0.92 opaque
+   fallback + @supports upgrade to 0.7 + backdrop-blur. */
+[data-oyrb-theme="chrome"] [style*="background: #FFFFFF"],
+[data-oyrb-theme="chrome"] [style*="background: #FFF"],
+[data-oyrb-theme="chrome"] [style*="background:#FFFFFF"],
+[data-oyrb-theme="chrome"] [style*="background:#FFF"],
+[data-oyrb-theme="chrome"] [style*="backgroundColor: #FFFFFF"],
+[data-oyrb-theme="chrome"] [style*="backgroundColor:#FFFFFF"],
+[data-oyrb-theme="chrome"] [style*="background-color: #FFFFFF"],
+[data-oyrb-theme="chrome"] [style*="background-color: #FFF"],
+[data-oyrb-theme="chrome"] [style*="background: white"] {
+  background: rgba(10, 10, 15, 0.92) !important;
+  color: #EEF0F5 !important;
+  border: 1.5px solid transparent !important;
+  border-image: linear-gradient(135deg, #FF7B54, #E84DB5, #4DDFE8, #3DC3A8) 1 !important;
+  border-radius: 20px !important;
+  box-shadow:
+    0 8px 40px rgba(232, 77, 181, 0.15),
+    0 0 0 1px rgba(200, 205, 212, 0.1) !important;
+}
+@supports (backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px)) {
+  [data-oyrb-theme="chrome"] [style*="background: #FFFFFF"],
+  [data-oyrb-theme="chrome"] [style*="background: #FFF"],
+  [data-oyrb-theme="chrome"] [style*="background:#FFFFFF"],
+  [data-oyrb-theme="chrome"] [style*="background:#FFF"],
+  [data-oyrb-theme="chrome"] [style*="backgroundColor: #FFFFFF"],
+  [data-oyrb-theme="chrome"] [style*="backgroundColor:#FFFFFF"],
+  [data-oyrb-theme="chrome"] [style*="background-color: #FFFFFF"],
+  [data-oyrb-theme="chrome"] [style*="background-color: #FFF"],
+  [data-oyrb-theme="chrome"] [style*="background: white"] {
+    background: rgba(58, 63, 72, 0.7) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+  }
+}
+
+/* Chrome-gradient text on headings only — body stays Pearl Chrome for
+   readability. Graceful fallback: browsers without background-clip:text
+   render the underlying color (inline color: ink = Pearl Chrome #EEF0F5). */
+[data-oyrb-theme="chrome"] h1,
+[data-oyrb-theme="chrome"] h2,
+[data-oyrb-theme="chrome"] h3 {
+  background: linear-gradient(135deg, #C8CDD4 0%, #FF7B54 30%, #E84DB5 50%, #4DDFE8 70%, #C8CDD4 100%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+          color: transparent;
+}
+
+/* Iridescent magenta pill CTAs with oil-slick glow on hover */
+[data-oyrb-theme="chrome"] a[href*="book"],
+[data-oyrb-theme="chrome"] a[role="button"],
+[data-oyrb-theme="chrome"] button {
+  border-radius: 9999px !important;
+  border: 1px solid transparent !important;
+  border-image: linear-gradient(135deg, #FF7B54, #E84DB5, #4DDFE8, #3DC3A8) 1 !important;
+  transition: box-shadow 250ms ease-out, transform 250ms ease-out;
+}
+[data-oyrb-theme="chrome"] a[href*="book"]:hover,
+[data-oyrb-theme="chrome"] a[role="button"]:hover,
+[data-oyrb-theme="chrome"] button:hover {
+  box-shadow: 0 0 24px rgba(232, 77, 181, 0.6), 0 0 48px rgba(77, 223, 232, 0.25);
+  transform: scale(1.02);
+}
+
+/* Iridescent section dividers */
+[data-oyrb-theme="chrome"] hr {
+  border: none !important;
+  height: 2px !important;
+  background: linear-gradient(90deg, #FF7B54, #E84DB5, #4DDFE8, #3DC3A8) !important;
+  opacity: 0.6 !important;
+}
+
+/* Service-list hover: Pearl Chrome → Iridescent Cyan */
+[data-oyrb-theme="chrome"] li {
+  transition: color 200ms ease-out;
+}
+[data-oyrb-theme="chrome"] li:hover {
+  color: #4DDFE8 !important;
+}
+
+/* Motion-safety — disable all chrome motion for reduced-motion users */
+@media (prefers-reduced-motion: reduce) {
+  [data-oyrb-theme="chrome"] a[href*="book"],
+  [data-oyrb-theme="chrome"] a[role="button"],
+  [data-oyrb-theme="chrome"] button,
+  [data-oyrb-theme="chrome"] li {
+    transition: none !important;
+  }
+  [data-oyrb-theme="chrome"] a[href*="book"]:hover,
+  [data-oyrb-theme="chrome"] a[role="button"]:hover,
+  [data-oyrb-theme="chrome"] button:hover {
+    transform: none !important;
+  }
+}
+
+/* Print stylesheet — strip the chrome layer for clean printed bookings */
+@media print {
+  [data-oyrb-theme="chrome"],
+  [data-oyrb-theme="chrome"]::before,
+  [data-oyrb-theme="chrome"]::after {
+    background: #FFFFFF !important;
+    background-image: none !important;
+    color: #050507 !important;
+  }
+  [data-oyrb-theme="chrome"] h1,
+  [data-oyrb-theme="chrome"] h2,
+  [data-oyrb-theme="chrome"] h3 {
+    background: none !important;
+    color: #050507 !important;
+    -webkit-text-fill-color: #050507 !important;
+  }
+  [data-oyrb-theme="chrome"] [style*="background"] {
+    background: #FFFFFF !important;
+    color: #050507 !important;
+    border: 1px solid #050507 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  [data-oyrb-theme="chrome"] hr {
+    background: #050507 !important;
+    opacity: 1 !important;
+  }
+}
