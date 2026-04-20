@@ -748,7 +748,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(213) 555-0904",
       email: "hi@cloudninestudio.co",
       category: "Lash Extensions & Beauty",
-      heroImageId: "1519014816548-bf5fe059798b",
+      heroImageId: "/harajuku-hero.avif",
       profileImageId: "1540555700478-4be289fbecef",
       galleryIds: [
         "1519014816548-bf5fe059798b","1540555700478-4be289fbecef",
@@ -860,7 +860,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(503) 555-0218",
       email: "hello@mistandlinen.co",
       category: "Facials & Wellness",
-      heroImageId: "1540555700478-4be289fbecef",
+      heroImageId: "/amethyst-hero.avif",
       profileImageId: "1519699047748-de8e457a634e",
       galleryIds: [
         "1540555700478-4be289fbecef","1519699047748-de8e457a634e",
@@ -916,7 +916,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(312) 555-0471",
       email: "concierge@quartzatelier.co",
       category: "Medical Aesthetics & Skin",
-      heroImageId: "1519014816548-bf5fe059798b",
+      heroImageId: "/quartz-hero.avif",
       profileImageId: "1540555700478-4be289fbecef",
       galleryIds: [
         "1519014816548-bf5fe059798b","1540555700478-4be289fbecef",
@@ -1093,7 +1093,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(305) 555-0129",
       email: "salon@maisoncrimson.co",
       category: "Couture Hair & Skin",
-      heroImageId: "1540555700478-4be289fbecef",
+      heroImageId: "/crimson-hero.avif",
       profileImageId: "1519699047748-de8e457a634e",
       galleryIds: [
         "1540555700478-4be289fbecef","1519699047748-de8e457a634e",
@@ -1371,7 +1371,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(213) 555-0901",
       email: "hi@unicorncandycloud.co",
       category: "Fantasy Beauty & Color",
-      heroImageId: "1540555700478-4be289fbecef",
+      heroImageId: "/candy-hero.avif",
       profileImageId: "1519014816548-bf5fe059798b",
       galleryIds: [
         "1540555700478-4be289fbecef","1519014816548-bf5fe059798b",
