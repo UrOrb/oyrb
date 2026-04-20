@@ -59,6 +59,15 @@
   * {
     @apply border-border;
   }
+  html,
+  body {
+    /* Global horizontal-overflow guard. Any element that accidentally grows
+       past the viewport (sticky bars with negative margins, rogue 3rd-party
+       widgets, misconfigured flex children) gets clipped instead of
+       triggering a left/right page shift on mobile. */
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
   body {
     @apply bg-background text-foreground;
   }

@@ -237,20 +237,20 @@ export function ThemeCarousel({ layout: initialLayout, initialThemeId, themeIds 
   return (
     <div
       ref={swipeWrapperRef}
-      className="relative overflow-x-hidden"
+      className="relative w-full max-w-[100vw] overflow-x-hidden"
       // Reserve horizontal touch for the swipe handler; pass vertical
       // through so the page keeps scrolling naturally.
       style={{ touchAction: "pan-y" }}
     >
       {/* ── Sticky selector panel ── */}
-      <div className="sticky top-0 z-50 border-b border-white/10 bg-[#111] text-white">
-        <div className="mx-auto flex max-w-[1400px] flex-col gap-3 px-4 py-3 md:gap-2 md:py-2">
+      <div className="sticky top-0 z-50 w-full max-w-[100vw] border-b border-white/10 bg-[#111] text-white">
+        <div className="mx-auto flex w-full min-w-0 max-w-[1400px] flex-col gap-3 px-4 py-3 md:gap-2 md:py-2">
           {/* Top row: crumb + dynamic CTA + surprise */}
-          <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex flex-wrap items-center gap-3">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex min-w-0 flex-wrap items-center gap-3">
               <a href="/templates" className="opacity-60 hover:opacity-100">← All Templates</a>
               <span className="opacity-30">|</span>
-              <span>
+              <span className="min-w-0">
                 <span className="opacity-60">Previewing:</span>{" "}
                 <span className="font-medium capitalize">{layoutLabel} layout</span>
                 <span className="opacity-50"> × </span>
@@ -275,12 +275,15 @@ export function ThemeCarousel({ layout: initialLayout, initialThemeId, themeIds 
             </div>
           </div>
 
-          {/* Layout selector row */}
-          <div className="flex items-center gap-2 overflow-x-auto">
+          {/* Layout selector row — `min-w-0` is load-bearing on the outer
+              flex so the overflow-x-auto inside can actually kick in on
+              mobile. Without it the inner row of pills expands the parent
+              past viewport width. */}
+          <div className="flex min-w-0 items-center gap-2">
             <span className="shrink-0 text-[10px] font-semibold uppercase tracking-widest text-white/50">
               Layout
             </span>
-            <div className="flex items-center gap-1.5">
+            <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {LAYOUT_TYPES.map((l) => {
                 const active = l.id === layout;
                 return (
@@ -310,10 +313,11 @@ export function ThemeCarousel({ layout: initialLayout, initialThemeId, themeIds 
             </button>
           </div>
 
-          {/* Theme selector row — chevron-flanked horizontal carousel with
-              scoped touch-swipe (mobile) + trackpad scroll (desktop) + click
-              selection. Dots below reinforce carousel position. */}
-          <div className="flex items-center gap-2">
+          {/* Theme selector row — horizontal carousel with scoped touch-
+              swipe (mobile) + trackpad scroll (desktop) + click selection.
+              Dots below reinforce carousel position. `min-w-0` on the outer
+              flex so the nested overflow-x-auto can clip properly. */}
+          <div className="flex min-w-0 items-center gap-2">
             <span className="shrink-0 text-[10px] font-semibold uppercase tracking-widest text-white/50">
               Theme
             </span>
