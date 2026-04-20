@@ -215,6 +215,39 @@ export function toPublicListing(
   };
 }
 
+// Directory rows don't have a direct FK to businesses (both relate to
+// auth.users by different columns), so PostgREST can't auto-embed the
+// business row. We fetch in two passes and stitch by user_id.
+type BizSidecar = {
+  business_name: string | null;
+  profile_image_url: string | null;
+  service_category: string | null;
+};
+
+async function loadBizByOwnerIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userIds: string[],
+): Promise<Map<string, BizSidecar>> {
+  const byOwner = new Map<string, BizSidecar>();
+  if (userIds.length === 0) return byOwner;
+  const { data } = await supabase
+    .from("businesses")
+    .select("owner_id, business_name, profile_image_url, service_category, created_at, is_published")
+    .in("owner_id", userIds)
+    .order("created_at", { ascending: true });
+  // Keep the oldest (first) business per owner — matches saveVisibilitySettings.
+  for (const row of data ?? []) {
+    const id = row.owner_id as string;
+    if (byOwner.has(id)) continue;
+    byOwner.set(id, {
+      business_name: (row.business_name as string | null) ?? null,
+      profile_image_url: (row.profile_image_url as string | null) ?? null,
+      service_category: (row.service_category as string | null) ?? null,
+    });
+  }
+  return byOwner;
+}
+
 /**
  * Search public listings with optional city + specialty filter.
  * Falls back to full-list when no params. Never exposes raw rows.
@@ -227,25 +260,9 @@ export async function searchPublicListings(opts: {
   const supabase = await createClient();
   const limit = Math.min(Math.max(opts.limit ?? 48, 1), 100);
 
-  // Join businesses to grab public-safe fields (name, profile photo,
-  // category). Only fields enabled by the pro's individual toggles are
-  // surfaced downstream via toPublicListing.
   let q = supabase
     .from("directory_listings")
-    .select(
-      `
-      user_id, is_listed, agreement_accepted_at, agreement_version,
-      show_business_name, show_avatar, show_profession, show_city,
-      show_specialty_tags, show_bio, show_booking_link, show_instagram,
-      show_tiktok, show_full_site_link, show_gallery,
-      show_accepting_clients, show_price_range,
-      allow_search_engine_indexing,
-      profession, city, state, specialties, bio, booking_url,
-      full_site_url, instagram_handle, tiktok_handle, accepting_clients,
-      price_range, slug, report_count, is_hidden_pending_review, created_at,
-      businesses!inner(business_name, profile_image_url, service_category)
-    `,
-    )
+    .select("*")
     .eq("is_listed", true)
     .eq("is_hidden_pending_review", false)
     .eq("agreement_version", DIRECTORY_AGREEMENT_VERSION)
@@ -259,11 +276,14 @@ export async function searchPublicListings(opts: {
   const { data, error } = await q;
   if (error || !data) return [];
 
+  const bizMap = await loadBizByOwnerIds(
+    supabase,
+    data.map((r) => r.user_id as string),
+  );
+
   return data
     .map((row) => {
-      const biz = (Array.isArray(row.businesses) ? row.businesses[0] : row.businesses) as
-        | { business_name?: string | null; profile_image_url?: string | null; service_category?: string | null }
-        | null;
+      const biz = bizMap.get(row.user_id as string);
       return toPublicListing({
         ...(row as DirectoryListing & { created_at?: string }),
         business_name: biz?.business_name ?? null,
@@ -282,31 +302,20 @@ export async function getRecentListings(limit = 8): Promise<PublicListing[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("directory_listings")
-    .select(
-      `
-      user_id, is_listed, agreement_accepted_at, agreement_version,
-      show_business_name, show_avatar, show_profession, show_city,
-      show_specialty_tags, show_bio, show_booking_link, show_instagram,
-      show_tiktok, show_full_site_link, show_gallery,
-      show_accepting_clients, show_price_range,
-      allow_search_engine_indexing,
-      profession, city, state, specialties, bio, booking_url,
-      full_site_url, instagram_handle, tiktok_handle, accepting_clients,
-      price_range, slug, report_count, is_hidden_pending_review, created_at,
-      businesses!inner(business_name, profile_image_url, service_category)
-    `,
-    )
+    .select("*")
     .eq("is_listed", true)
     .eq("is_hidden_pending_review", false)
     .eq("agreement_version", DIRECTORY_AGREEMENT_VERSION)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error || !data) return [];
+  const bizMap = await loadBizByOwnerIds(
+    supabase,
+    data.map((r) => r.user_id as string),
+  );
   return data
     .map((row) => {
-      const biz = (Array.isArray(row.businesses) ? row.businesses[0] : row.businesses) as
-        | { business_name?: string | null; profile_image_url?: string | null; service_category?: string | null }
-        | null;
+      const biz = bizMap.get(row.user_id as string);
       return toPublicListing({
         ...(row as DirectoryListing & { created_at?: string }),
         business_name: biz?.business_name ?? null,
@@ -324,29 +333,15 @@ export async function getPublicListingBySlug(
   const supabase = await createClient();
   const { data } = await supabase
     .from("directory_listings")
-    .select(
-      `
-      user_id, is_listed, agreement_accepted_at, agreement_version,
-      show_business_name, show_avatar, show_profession, show_city,
-      show_specialty_tags, show_bio, show_booking_link, show_instagram,
-      show_tiktok, show_full_site_link, show_gallery,
-      show_accepting_clients, show_price_range,
-      allow_search_engine_indexing,
-      profession, city, state, specialties, bio, booking_url,
-      full_site_url, instagram_handle, tiktok_handle, accepting_clients,
-      price_range, slug, report_count, is_hidden_pending_review, created_at,
-      businesses!inner(business_name, profile_image_url, service_category)
-    `,
-    )
+    .select("*")
     .eq("slug", slug)
     .eq("is_listed", true)
     .eq("is_hidden_pending_review", false)
     .eq("agreement_version", DIRECTORY_AGREEMENT_VERSION)
     .maybeSingle();
   if (!data) return null;
-  const biz = (Array.isArray(data.businesses) ? data.businesses[0] : data.businesses) as
-    | { business_name?: string | null; profile_image_url?: string | null; service_category?: string | null }
-    | null;
+  const bizMap = await loadBizByOwnerIds(supabase, [data.user_id as string]);
+  const biz = bizMap.get(data.user_id as string);
   return toPublicListing({
     ...(data as DirectoryListing & { created_at?: string }),
     business_name: biz?.business_name ?? null,
