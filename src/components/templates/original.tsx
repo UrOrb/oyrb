@@ -295,6 +295,98 @@ function Hero({ t, biz, bookHref, kickerOverride, ctaOverride }: {
             </svg>
           );
         }
+        if (t.id === "avenger") {
+          // First Avenger — subtle diagonal stripe pattern (~38°) using
+          // Heroic Navy (t.bg) + Ink/Midnight Navy (t.surface).
+          return (
+            <svg aria-hidden="true" viewBox="0 0 200 160" preserveAspectRatio="xMidYMid meet" style={deco}>
+              <g strokeLinecap="square">
+                <line x1="-20"  y1="160" x2="140" y2="-10" stroke={t.surface ?? "#1A2D4F"} strokeWidth="6" opacity="0.85" />
+                <line x1="20"   y1="160" x2="180" y2="-10" stroke={t.bg      ?? "#0A1F3D"} strokeWidth="6" opacity="0.8"  />
+                <line x1="60"   y1="160" x2="220" y2="-10" stroke={t.surface ?? "#1A2D4F"} strokeWidth="6" opacity="0.85" />
+                <line x1="100"  y1="160" x2="260" y2="-10" stroke={t.bg      ?? "#0A1F3D"} strokeWidth="6" opacity="0.8"  />
+              </g>
+            </svg>
+          );
+        }
+        if (t.id === "knight") {
+          // Dark Knight & Amazon — 3 gold hairline concentric arcs + a
+          // small gold dot, using Victory Gold (t.accent) at ~50%.
+          const gold = t.accent ?? "#C9A85C";
+          return (
+            <svg aria-hidden="true" viewBox="0 0 200 160" preserveAspectRatio="xMidYMid meet" style={deco}>
+              <g fill="none" stroke={gold} strokeLinecap="round" opacity="0.5">
+                <path d="M 30 130 A 80 80 0 0 1 170 70" strokeWidth="1" />
+                <path d="M 40 136 A 65 65 0 0 1 160 86" strokeWidth="1" />
+                <path d="M 52 140 A 50 50 0 0 1 148 100" strokeWidth="1" />
+              </g>
+              <circle cx="170" cy="66" r="2.4" fill={gold} opacity="0.8" />
+            </svg>
+          );
+        }
+        if (t.id === "neon") {
+          // Neon Dream Island — scattered hearts + 4-point sparkles in
+          // Electric Magenta (t.accent), Deep Violet (t.muted), and
+          // Sunlight Yellow (t.accent2), 70-90% opacity.
+          const magenta = t.accent  ?? "#EC407A";
+          const violet  = t.muted   ?? "#5E35B1";
+          const yellow  = t.accent2 ?? "#FFD54F";
+          return (
+            <svg aria-hidden="true" viewBox="0 0 200 160" preserveAspectRatio="xMidYMid meet" style={deco}>
+              {/* heart = two circles + diamond base via path */}
+              <path d="M40 60 a8 8 0 0 1 16 0 a8 8 0 0 1 16 0 q0 10 -16 22 q-16 -12 -16 -22 Z"
+                fill="none" stroke={magenta} strokeWidth="2" opacity="0.9" />
+              <path d="M110 30 a6 6 0 0 1 12 0 a6 6 0 0 1 12 0 q0 8 -12 18 q-12 -10 -12 -18 Z"
+                fill="none" stroke={violet} strokeWidth="1.8" opacity="0.8" />
+              <path d="M140 100 a5 5 0 0 1 10 0 a5 5 0 0 1 10 0 q0 7 -10 14 q-10 -7 -10 -14 Z"
+                fill="none" stroke={magenta} strokeWidth="1.6" opacity="0.75" />
+              {/* 4-point sparkles */}
+              <path d="M28 120 L32 108 L36 120 L32 132 Z M20 120 L44 120" fill={yellow} stroke={yellow} strokeWidth="1.5" opacity="0.9" />
+              <path d="M162 52 L165 42 L168 52 L165 62 Z M156 52 L174 52" fill={yellow} stroke={yellow} strokeWidth="1.2" opacity="0.85" />
+              <path d="M90 120 L92 112 L94 120 L92 128 Z M86 120 L98 120" fill={yellow} stroke={yellow} strokeWidth="1" opacity="0.7" />
+            </svg>
+          );
+        }
+        if (t.id === "sunset") {
+          // Liquid Sunset Trip — 3-4 horizontal gradient wash bands fading
+          // at the edges, using the theme's Acid Pink (accent), Teal Wash
+          // (accent2), and the palette's Warped Magenta (bg) + Psychedelic
+          // Blue (latter not in theme tokens — hardcoded for this deco).
+          const pink    = t.accent  ?? "#FF6EC7";
+          const teal    = t.accent2 ?? "#3DB5B0";
+          const magenta = t.bg      ?? "#C63FAF";
+          const blue    = "#4A7FD6";
+          return (
+            <svg aria-hidden="true" viewBox="0 0 200 160" preserveAspectRatio="xMidYMid meet" style={deco}>
+              <defs>
+                <linearGradient id="sunset-band1" x1="0%" x2="100%">
+                  <stop offset="0%" stopColor={pink} stopOpacity="0" />
+                  <stop offset="50%" stopColor={pink} stopOpacity="0.5" />
+                  <stop offset="100%" stopColor={pink} stopOpacity="0" />
+                </linearGradient>
+                <linearGradient id="sunset-band2" x1="0%" x2="100%">
+                  <stop offset="0%" stopColor={magenta} stopOpacity="0" />
+                  <stop offset="50%" stopColor={magenta} stopOpacity="0.45" />
+                  <stop offset="100%" stopColor={magenta} stopOpacity="0" />
+                </linearGradient>
+                <linearGradient id="sunset-band3" x1="0%" x2="100%">
+                  <stop offset="0%" stopColor={blue} stopOpacity="0" />
+                  <stop offset="50%" stopColor={blue} stopOpacity="0.45" />
+                  <stop offset="100%" stopColor={blue} stopOpacity="0" />
+                </linearGradient>
+                <linearGradient id="sunset-band4" x1="0%" x2="100%">
+                  <stop offset="0%" stopColor={teal} stopOpacity="0" />
+                  <stop offset="50%" stopColor={teal} stopOpacity="0.4" />
+                  <stop offset="100%" stopColor={teal} stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <rect x="0" y="28"  width="200" height="14" fill="url(#sunset-band1)" />
+              <rect x="0" y="58"  width="200" height="18" fill="url(#sunset-band2)" />
+              <rect x="0" y="90"  width="200" height="16" fill="url(#sunset-band3)" />
+              <rect x="0" y="120" width="200" height="14" fill="url(#sunset-band4)" />
+            </svg>
+          );
+        }
         if (t.id === "crimson") {
           // Crimson Luxe — chrome-hairline accent with small dots in
           // Soft Silver / Chrome (#C8CCD1 from the original spec, not in
