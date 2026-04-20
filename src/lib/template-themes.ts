@@ -1432,7 +1432,7 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       phone: "(512) 555-0808",
       email: "transmit@galacticbender.co",
       category: "Fantasy Color & Makeup",
-      heroImageId: "1519014816548-bf5fe059798b",
+      heroImageId: "/galactic-hero.avif",
       profileImageId: "1540555700478-4be289fbecef",
       galleryIds: [
         "1519014816548-bf5fe059798b","1540555700478-4be289fbecef",
