@@ -1152,6 +1152,65 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       ],
     },
   },
+
+  // ── 25. Dark Knight & Amazon ────────────────────────────────────────────
+  //
+  // Watch-boutique palette. Pure Alabaster + Whisper Alabaster lead every
+  // layout; Royal Cobalt anchors CTAs and the single confident "action"
+  // moment; Gotham Graphite carries headings + body for sleek weight;
+  // Victory Gold is decorative-only (borders, icon strokes, refined frame
+  // details — never text). Reads like a high-end watch boutique, not a
+  // costume or comic-book theme.
+  //
+  // STANDARD color-only theme. Do NOT apply the League Lead typography
+  // override pattern — fonts and casing stay at each layout's defaults.
+  //
+  // Contrast audit (WCAG AA):
+  //   · Midnight Graphite #1A1D24 on Alabaster #FAFBFC → 16.05:1 ✅ (headings)
+  //   · Gotham Graphite #2E323A on Alabaster           → 12.33:1 ✅ (body)
+  //   · Alabaster on Royal Cobalt #2B5BD4              → 5.78:1  ✅ (CTA text)
+  //   · Alabaster on Gotham Graphite                   → 12.33:1 ✅
+  //   · Gotham Graphite on Victory Gold #C9A85C        → 5.60:1  ✅ (if text on gold)
+  //   · Victory Gold on Alabaster                      → 2.20:1  ❌ — never text
+  knight: {
+    id: "knight",
+    name: "Dark Knight & Amazon",
+    vibe: "Watch boutique · cobalt & gold accents · premium modernism",
+    category: "editorial",
+    bg: "#FAFBFC",            // Pure Alabaster — main surface
+    surface: "#FFFFFF",       // Whisper Alabaster — layered cards
+    ink: "#1A1D24",            // Midnight Graphite — headings
+    muted: "#2E323A",          // Gotham Graphite — body copy
+    accent: "#2B5BD4",         // Royal Cobalt — primary accent / hero highlight
+    accent2: "#C9A85C",        // Victory Gold — decorative premium accent (non-text)
+    border: "rgba(26,29,36,0.16)",
+    displayFont: '"Fraunces", "Playfair Display", Georgia, serif',
+    bodyFont: '"Inter", system-ui, sans-serif',
+    displayWeight: 450,
+    displayTracking: "-0.02em",
+    radius: 4,
+    radiusBtn: 6,
+    btnBg: "#2B5BD4",          // Royal Cobalt — CTA surface
+    btnText: "#FAFBFC",        // Alabaster on cobalt = 5.78:1
+    tags: ["editorial", "premium", "boutique", "cobalt", "gold", "modernist"],
+    business: {
+      name: "Atelier Gotham",
+      tagline: "precision consulting · boutique beauty · private clientele",
+      bio: "A private-consultation studio for serious clientele — custom skin protocols, signature color systems, and long-view hair strategy. We work slowly, we work by referral, and we treat every appointment like a boardroom brief.",
+      location: "Penthouse Suite · 340 Steelworks · Chicago, IL",
+      phone: "(312) 555-0618",
+      email: "private@ateliergotham.co",
+      category: "Private Beauty Consultancy",
+      heroImageId: "1519014816548-bf5fe059798b",
+      profileImageId: "1540555700478-4be289fbecef",
+      galleryIds: [
+        "1519014816548-bf5fe059798b","1540555700478-4be289fbecef",
+        "1519699047748-de8e457a634e","1515377905703-c4788e51af15",
+        "1552693673-1bf958298935","1505932794465-147d1f1b2c97",
+        "1531746020798-e6953c6e8e04","1556228720-195a672e8a03",
+      ],
+    },
+  },
 };
 
 export const THEME_IDS = Object.keys(TEMPLATE_THEMES) as Array<keyof typeof TEMPLATE_THEMES>;
