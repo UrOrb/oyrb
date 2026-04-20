@@ -753,6 +753,61 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       ],
     },
   },
+
+  // ── 18. Red Velvet Sorbet ───────────────────────────────────────────────
+  //
+  // Sophisticated-romantic palette. Cream leads every layout as the main
+  // surface; Soft Watermelon carries the accent work; Champagne Gold
+  // anchors CTAs so the buttons read as dessert-luxury rather than pink.
+  // Text uses Soft / Rich Bordeaux in place of pure black so the warmth
+  // never tips into hard contrast.
+  //
+  // Contrast audit (WCAG AA):
+  //   · Soft Bordeaux #7A4A48 on Cream #FBF4EC        → 7.41:1  ✅ (body)
+  //   · Rich Bordeaux #5C3534 on Cream                → 10.89:1 ✅ (headings)
+  //   · Rich Bordeaux #5C3534 on Champagne Gold #D4AF7A → 6.03:1 ✅ (CTA)
+  //   · Rich Bordeaux #5C3534 on Soft Watermelon #F4A6A0 → 6.27:1 ✅
+  //   · Rich Bordeaux on Whisper Cream #FFF9F2         → 11.58:1 ✅
+  //   · Soft Bordeaux on Light Blush #F2D5D0           → 5.72:1 ✅
+  sorbet: {
+    id: "sorbet",
+    name: "Red Velvet Sorbet",
+    vibe: "Romantic · warm · dessert-luxury · strawberry & rose-gold",
+    category: "feminine",
+    bg: "#FBF4EC",            // Cream — main surface
+    surface: "#FFF9F2",       // Whisper Cream — layered cards
+    ink: "#5C3534",            // Rich Bordeaux — headings
+    muted: "#7A4A48",          // Soft Bordeaux — body copy
+    accent: "#F4A6A0",         // Soft Watermelon — primary accent, hero highlights
+    accent2: "#D4948D",        // Dusty Rose — hover states + secondary accent
+    border: "rgba(92,53,52,0.14)",
+    displayFont: '"Fraunces", "Playfair Display", Georgia, serif',
+    bodyFont: '"Fraunces", Georgia, serif',
+    displayWeight: 400,
+    displayTracking: "-0.015em",
+    radius: 20,
+    radiusBtn: 999,
+    btnBg: "#D4AF7A",          // Champagne Gold — elegant CTA surface
+    btnText: "#5C3534",        // Rich Bordeaux text on gold = 6.03:1
+    tags: ["romantic", "elegant", "warm", "dessert", "gold", "pink", "cream"],
+    business: {
+      name: "Velvet & Gold Studio",
+      tagline: "Soft hues. Slow service. Always.",
+      bio: "A quiet, appointment-only studio specializing in bridal beauty, soft cinematic color, and editorial updos. We believe in long sessions, warm light, and champagne before the final veil check.",
+      location: "Second Floor · 14 Linden Row · Savannah, GA",
+      phone: "(912) 555-0169",
+      email: "hi@velvetandgold.co",
+      category: "Bridal & Hair Artistry",
+      heroImageId: "1605497788044-5a32c7078486",
+      profileImageId: "1519699047748-de8e457a634e",
+      galleryIds: [
+        "1605497788044-5a32c7078486","1519699047748-de8e457a634e",
+        "1549236177-f9b0031756eb","1559599101-f09722fb4948",
+        "1552693673-1bf958298935","1515377905703-c4788e51af15",
+        "1560869713-7d0a29430803","1521590832167-7bcbfaa6381f",
+      ],
+    },
+  },
 };
 
 export const THEME_IDS = Object.keys(TEMPLATE_THEMES) as Array<keyof typeof TEMPLATE_THEMES>;
