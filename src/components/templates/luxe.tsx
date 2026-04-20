@@ -65,7 +65,7 @@ export function LuxeTemplate({ business, services, hours, theme, content, isEdit
   const hrs = hours ?? SAMPLE_HOURS;
 
   return (
-    <div className="min-h-screen font-sans" style={{ backgroundColor: bg, color: ink }}>
+    <div className="min-h-screen font-sans" data-oyrb-theme={theme?.id} style={{ backgroundColor: bg, color: ink }}>
 
       {/* ── Hero ── */}
       <section className="relative h-[70vh] min-h-[500px] w-full overflow-hidden">

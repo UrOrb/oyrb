@@ -63,3 +63,61 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * League Lead — typography override layer
+ * ─────────────────────────────────────────────────────────────────────────
+ * This block is the ONLY theme-scoped typography override in the codebase.
+ * It ships with the "League Lead" theme (see TEMPLATE_THEMES.league in
+ * src/lib/template-themes.ts). When that theme is active, each template's
+ * root <div> carries `data-oyrb-theme="league"`; these selectors then layer
+ * uppercase, bold weight, letter-spacing, italic headings, and stamp-feel
+ * borders on top of the layout's existing fonts.
+ *
+ * ⚠️  Do NOT add similar overrides for other themes. Every other theme
+ *     in the system is colors-only. League Lead is the intentional
+ *     exception because its Nike-inspired brief calls for high-impact
+ *     type treatments in addition to a palette swap.
+ *
+ * `!important` is required because templates set font-weight / border-
+ * radius inline via the theme config — we need to win the cascade.
+ * ───────────────────────────────────────────────────────────────────────── */
+[data-oyrb-theme="league"] h1,
+[data-oyrb-theme="league"] h2,
+[data-oyrb-theme="league"] h3,
+[data-oyrb-theme="league"] h4 {
+  text-transform: uppercase !important;
+  letter-spacing: -0.02em !important;
+  font-weight: 800 !important;
+}
+[data-oyrb-theme="league"] h1 {
+  font-style: italic;
+}
+[data-oyrb-theme="league"] button,
+[data-oyrb-theme="league"] a[href*="book"],
+[data-oyrb-theme="league"] a[role="button"] {
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  font-weight: 700 !important;
+  border-radius: 0 !important;
+}
+[data-oyrb-theme="league"] [class*="kicker"],
+[data-oyrb-theme="league"] [data-kicker],
+[data-oyrb-theme="league"] [data-section-label] {
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  font-weight: 700 !important;
+}
+/* Sharp corners on any inline-rounded surface that slipped past theme.radius */
+[data-oyrb-theme="league"] [style*="border-radius"],
+[data-oyrb-theme="league"] [style*="borderRadius"],
+[data-oyrb-theme="league"] img,
+[data-oyrb-theme="league"] button {
+  border-radius: 0 !important;
+}
+/* Stamp-feel horizontal rules — make section dividers pop */
+[data-oyrb-theme="league"] hr {
+  border: none !important;
+  height: 3px !important;
+  background: #0A0A0A !important;
+}

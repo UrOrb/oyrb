@@ -407,7 +407,7 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: t.bg, color: t.ink, fontFamily: t.bodyFont }}>
+    <div data-oyrb-theme={t.id} style={{ minHeight: "100vh", background: t.bg, color: t.ink, fontFamily: t.bodyFont }}>
 
       {/* ── Sticky top bar ── */}
       <div style={{

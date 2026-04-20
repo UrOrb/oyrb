@@ -152,7 +152,7 @@ const ALL_THEMES = [
   "luxe", "earth", "street", "y2k",
   "rose", "sage", "slate", "noir",
   "citrus", "colorblock",
-  "riot", "mochi", "linden", "harajuku", "sorbet", "amethyst", "quartz", "latte",
+  "riot", "mochi", "linden", "harajuku", "sorbet", "amethyst", "quartz", "latte", "league",
 ];
 const STARTER_THEMES = ["aura", "minimal", "bold"];
 
@@ -543,6 +543,9 @@ export function SiteBuilder({ business, hours, services, origin }: Props) {
                 <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
                   {allowedThemes.map((t) => {
                     const selected = draft.template_theme === t;
+                    // League Lead is the one "high-impact" theme that also
+                    // transforms typography (see TEMPLATE_THEMES.league).
+                    const isHighImpact = t === "league";
                     return (
                       <button
                         key={t}
@@ -553,6 +556,11 @@ export function SiteBuilder({ business, hours, services, origin }: Props) {
                         }`}
                       >
                         {t}
+                        {isHighImpact && (
+                          <span className={`mt-0.5 block text-[9px] font-normal normal-case tracking-normal ${selected ? "text-[#D4FF00]" : "text-[#525252]"}`}>
+                            ⚡ Bold style — uppercase headings
+                          </span>
+                        )}
                       </button>
                     );
                   })}

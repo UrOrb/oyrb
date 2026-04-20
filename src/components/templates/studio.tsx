@@ -68,7 +68,7 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
   const hrs = hours ?? SAMPLE_HOURS;
 
   return (
-    <div className="min-h-screen font-sans" style={{ backgroundColor: bg, color: ink }}>
+    <div className="min-h-screen font-sans" data-oyrb-theme={theme?.id} style={{ backgroundColor: bg, color: ink }}>
 
       {/* ── Header ── */}
       <header

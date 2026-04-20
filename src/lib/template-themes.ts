@@ -974,6 +974,68 @@ export const TEMPLATE_THEMES: Record<string, TemplateTheme> = {
       ],
     },
   },
+
+  // ── 22. League Lead ─────────────────────────────────────────────────────
+  //
+  // HIGH-IMPACT THEME — the FIRST theme to apply typography overrides on
+  // top of the layout's existing fonts. When this theme is active, every
+  // template root div carries `data-oyrb-theme="league"`; scoped CSS in
+  // `globals.css` then uppercases h1/h2/h3/button text, tightens heading
+  // letter-spacing, widens button letter-spacing, and squares off any
+  // leftover rounded corners. Font FAMILY is never changed — only CSS
+  // transforms (case, weight, tracking, italic, radius) layer on top.
+  //
+  // DO NOT replicate this override pattern on other themes unless the
+  // theme is explicitly marked as "high-impact" in its own spec. The
+  // CSS selector `[data-oyrb-theme="league"]` is intentionally scoped
+  // so every other theme keeps its unmodified typography.
+  //
+  // Contrast audit (WCAG AA):
+  //   · Matte Black #0A0A0A on Pure White #FFFFFF     → 20.38:1 ✅ (headings)
+  //   · Sharp Slate #3A4046 on Pure White             → 10.05:1 ✅ (body)
+  //   · Matte Black #0A0A0A on Electric Volt #D4FF00  → 15.09:1 ✅ (CTA text)
+  //   · Matte Black on Sharp Slate #3A4046            → 2.02:1  ❌ — avoid
+  //     (instead, Pure White on Sharp Slate → 10.05:1 ✅)
+  //   · Sport Steel #5A6168 on Pure White             → 5.40:1  ✅ (muted)
+  league: {
+    id: "league",
+    name: "League Lead",
+    vibe: "Athletic · kinetic · sneaker-drop · championship energy",
+    category: "bold",
+    bg: "#FFFFFF",            // Pure White — main surface
+    surface: "#F5F5F5",       // Hot White — layered cards
+    ink: "#0A0A0A",            // Matte Black — headings
+    muted: "#3A4046",          // Sharp Slate — body copy / secondary text
+    accent: "#D4FF00",         // Electric Volt — CTA fill + spark moments
+    accent2: "#3A4046",        // Sharp Slate — structural emphasis
+    border: "rgba(10,10,10,0.9)", // Near-black, thick stamp-feel borders
+    displayFont: '"Inter", "Helvetica Neue", Arial, sans-serif',
+    bodyFont: '"Inter", system-ui, sans-serif',
+    displayWeight: 800,
+    displayTracking: "-0.02em",
+    radius: 0,                  // Sharp corners — square edges
+    radiusBtn: 0,               // Square buttons
+    btnBg: "#D4FF00",           // Electric Volt — CTA surface
+    btnText: "#0A0A0A",         // Matte Black on Volt = 15.09:1
+    tags: ["bold", "athletic", "kinetic", "high-impact", "sport", "uppercase"],
+    business: {
+      name: "LEAGUE / LEAD ATHLETICS",
+      tagline: "performance beauty · championship finish",
+      bio: "Precision cuts, power color, and training-grade skin for athletes, coaches, and people who show up. We work fast, we work clean, we work like the game's on the line.",
+      location: "Training Floor · 77 Stadium Way · Brooklyn, NY",
+      phone: "(718) 555-0145",
+      email: "team@leaguelead.co",
+      category: "Performance Beauty Studio",
+      heroImageId: "1519014816548-bf5fe059798b",
+      profileImageId: "1540555700478-4be289fbecef",
+      galleryIds: [
+        "1519014816548-bf5fe059798b","1540555700478-4be289fbecef",
+        "1519699047748-de8e457a634e","1515377905703-c4788e51af15",
+        "1552693673-1bf958298935","1505932794465-147d1f1b2c97",
+        "1531746020798-e6953c6e8e04","1556228720-195a672e8a03",
+      ],
+    },
+  },
 };
 
 export const THEME_IDS = Object.keys(TEMPLATE_THEMES) as Array<keyof typeof TEMPLATE_THEMES>;

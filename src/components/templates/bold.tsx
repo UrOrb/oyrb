@@ -66,7 +66,7 @@ export function BoldTemplate({ business, services, hours, theme, content, isEdit
   const hrs = hours ?? SAMPLE_HOURS;
 
   return (
-    <div className="min-h-screen font-sans" style={{ backgroundColor: bg, color: ink }}>
+    <div className="min-h-screen font-sans" data-oyrb-theme={theme?.id} style={{ backgroundColor: bg, color: ink }}>
 
       {/* ── Dark hero cover ── */}
       <section className="relative h-80 w-full overflow-hidden md:h-96" style={{ backgroundColor: ink }}>
