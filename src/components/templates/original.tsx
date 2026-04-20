@@ -269,7 +269,98 @@ function Hero({ t, biz, bookHref, kickerOverride, ctaOverride }: {
   // kawaii / default
   return (
     <div style={{ background: `linear-gradient(180deg, ${t.accent2 ?? t.accent}44 0%, ${t.bg} 40%)`, padding: "24px 20px 32px", position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", top: 60, right: -30, width: 140, height: 140, background: t.accent, opacity: 0.35, borderRadius: "50% 55% 45% 55% / 55% 45% 55% 45%" }} />
+      {/* Hero decoration — one-for-one shape swap per theme. Each listed
+          theme substitutes its own decoration for the default kawaii blob;
+          any theme not explicitly handled keeps the blob exactly as-is. */}
+      {(() => {
+        const deco = {
+          position: "absolute" as const,
+          top: 40,
+          right: -30,
+          width: 180,
+          height: 150,
+          pointerEvents: "none" as const,
+        };
+        if (t.id === "sorbet") {
+          // Red Velvet Sorbet — 3 overlapping soft organic curves in the
+          // theme's Dusty Rose + Soft Watermelon + Cream, 38-50% opacity.
+          return (
+            <svg aria-hidden="true" viewBox="0 0 200 160" preserveAspectRatio="xMidYMid meet" style={deco}>
+              <path d="M5 120 Q 55 20 130 55 Q 175 75 195 130" fill="none"
+                stroke={t.accent2 ?? "#D4948D"} strokeWidth="14" strokeLinecap="round" opacity="0.45" />
+              <path d="M18 75 Q 75 0 150 35 Q 190 55 180 110" fill="none"
+                stroke={t.accent ?? "#F4A6A0"} strokeWidth="12" strokeLinecap="round" opacity="0.38" />
+              <path d="M0 140 Q 70 55 160 95" fill="none"
+                stroke={t.surface ?? "#FFF9F2"} strokeWidth="10" strokeLinecap="round" opacity="0.5" />
+            </svg>
+          );
+        }
+        if (t.id === "crimson") {
+          // Crimson Luxe — chrome-hairline accent with small dots in
+          // Soft Silver / Chrome (#C8CCD1 from the original spec, not in
+          // the theme token set so hardcoded here only for this decoration).
+          const chrome = "#C8CCD1";
+          return (
+            <svg aria-hidden="true" viewBox="0 0 200 160" preserveAspectRatio="xMidYMid meet" style={deco}>
+              <g fill="none" stroke={chrome} strokeLinecap="round" opacity="0.85">
+                <path d="M18 70 Q 90 10 190 60" strokeWidth="1.5" />
+                <path d="M22 78 Q 92 22 186 66" strokeWidth="0.8" opacity="0.55" />
+              </g>
+              <g fill={chrome}>
+                <circle cx="38"  cy="82"  r="2.6" opacity="0.8" />
+                <circle cx="108" cy="34"  r="2"   opacity="0.7" />
+                <circle cx="176" cy="68"  r="2.6" opacity="0.8" />
+              </g>
+            </svg>
+          );
+        }
+        if (t.id === "latte") {
+          // Floral Latte — faint coffee-ring outline + small dried
+          // botanical sprig, both in the theme's Toasted Caramel at ~30%.
+          const caramel = t.accent2 ?? "#B88A5A";
+          return (
+            <svg aria-hidden="true" viewBox="0 0 200 160" preserveAspectRatio="xMidYMid meet" style={deco}>
+              {/* coffee ring */}
+              <circle cx="112" cy="84" r="52" fill="none" stroke={caramel} strokeWidth="2" opacity="0.3" />
+              <circle cx="112" cy="84" r="50" fill="none" stroke={caramel} strokeWidth="0.6" opacity="0.22" />
+              {/* botanical sprig — stem + 5 leaves arching off it */}
+              <g fill="none" stroke={caramel} strokeWidth="1.4" strokeLinecap="round" opacity="0.32">
+                <path d="M44 140 Q 62 90 90 52" />
+                {/* leaves — ellipses angled along the stem */}
+                <ellipse cx="56"  cy="120" rx="8"  ry="3"  transform="rotate(-58 56 120)" fill={caramel} fillOpacity="0.28" stroke="none" />
+                <ellipse cx="64"  cy="108" rx="9"  ry="3"  transform="rotate(50 64 108)"  fill={caramel} fillOpacity="0.28" stroke="none" />
+                <ellipse cx="72"  cy="92"  rx="10" ry="3"  transform="rotate(-54 72 92)"  fill={caramel} fillOpacity="0.28" stroke="none" />
+                <ellipse cx="80"  cy="74"  rx="10" ry="3"  transform="rotate(46 80 74)"   fill={caramel} fillOpacity="0.28" stroke="none" />
+                <ellipse cx="88"  cy="58"  rx="8"  ry="2.5" transform="rotate(-42 88 58)" fill={caramel} fillOpacity="0.28" stroke="none" />
+              </g>
+            </svg>
+          );
+        }
+        if (t.id === "quartz") {
+          // Cool Quartz — fractured-glass hairlines in the theme's
+          // Icy Blue-Gray + Cool Silver, 20-30% opacity, 1px strokes.
+          return (
+            <svg aria-hidden="true" viewBox="0 0 200 160" preserveAspectRatio="xMidYMid meet" style={deco}>
+              <g fill="none" strokeLinecap="round">
+                <line x1="10"  y1="18"  x2="88"  y2="72"  stroke={t.accent  ?? "#C4D1D9"} strokeWidth="1" opacity="0.30" />
+                <line x1="92"  y1="74"  x2="160" y2="42"  stroke={t.accent2 ?? "#A8B2BA"} strokeWidth="1" opacity="0.25" />
+                <line x1="24"  y1="110" x2="108" y2="60"  stroke={t.accent2 ?? "#A8B2BA"} strokeWidth="1" opacity="0.22" />
+                <line x1="112" y1="62"  x2="190" y2="22"  stroke={t.accent  ?? "#C4D1D9"} strokeWidth="1" opacity="0.28" />
+                <line x1="40"  y1="150" x2="124" y2="94"  stroke={t.accent  ?? "#C4D1D9"} strokeWidth="1" opacity="0.26" />
+                <line x1="128" y1="96"  x2="182" y2="128" stroke={t.accent2 ?? "#A8B2BA"} strokeWidth="1" opacity="0.20" />
+                <line x1="150" y1="8"   x2="176" y2="60"  stroke={t.accent  ?? "#C4D1D9"} strokeWidth="1" opacity="0.24" />
+                <line x1="6"   y1="62"  x2="50"  y2="96"  stroke={t.accent2 ?? "#A8B2BA"} strokeWidth="1" opacity="0.22" />
+                <line x1="64"  y1="30"  x2="126" y2="14"  stroke={t.accent2 ?? "#A8B2BA"} strokeWidth="1" opacity="0.20" />
+                <line x1="70"  y1="140" x2="148" y2="132" stroke={t.accent  ?? "#C4D1D9"} strokeWidth="1" opacity="0.26" />
+              </g>
+            </svg>
+          );
+        }
+        // Default kawaii blob — unchanged for every other theme.
+        return (
+          <div style={{ position: "absolute", top: 60, right: -30, width: 140, height: 140, background: t.accent, opacity: 0.35, borderRadius: "50% 55% 45% 55% / 55% 45% 55% 45%" }} />
+        );
+      })()}
       <div style={{ position: "absolute", top: 18, right: 26, fontSize: 16, color: t.accent }}>❀</div>
       <div style={{ position: "relative", zIndex: 2, textAlign: "center" }}>
         <div style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: 2, textTransform: "uppercase" as const, color: t.muted, display: "flex", justifyContent: "center", alignItems: "center", gap: 8, marginBottom: 8 }}>
