@@ -4,7 +4,6 @@ import Image from "next/image";
 import { Link2, MapPin, Phone } from "lucide-react";
 import type { TemplateTheme } from "@/lib/template-themes";
 import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
-import { StockBadge } from "@/components/templates/stock-badge";
 import { PlatformCredit } from "@/components/templates/platform-credit";
 import type { SampleBusiness, SampleService, SampleHour } from "@/lib/sample-data";
 
@@ -202,7 +201,6 @@ export function LuxeTemplate({ business, services, hours, theme, content, isEdit
                   }`}
                   style={radius > 0 ? { borderRadius: radius / 2 } : {}}
                 >
-                  {!isEditorPreview && isStockImageUrl(id) && <StockBadge position="bottom-right" />}
                   <Image
                     src={id}
                     alt={`${bizName} work ${i + 1}`}

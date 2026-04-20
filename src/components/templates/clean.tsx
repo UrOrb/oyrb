@@ -4,7 +4,6 @@ import Image from "next/image";
 import { MapPin, Clock, Link2 } from "lucide-react";
 import type { TemplateTheme } from "@/lib/template-themes";
 import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
-import { StockBadge } from "@/components/templates/stock-badge";
 import { PlatformCredit } from "@/components/templates/platform-credit";
 import type { SampleBusiness, SampleService, SampleHour } from "@/lib/sample-data";
 
@@ -210,7 +209,6 @@ export function CleanTemplate({ business, services, hours, theme, content, isEdi
             <div className="flex gap-3 overflow-x-auto pb-2">
               {galleryUrls.map((id, i) => (
                 <div key={i} className="relative h-40 w-40 shrink-0 overflow-hidden" style={{ borderRadius: radius / 2 }}>
-                  {!isEditorPreview && isStockImageUrl(id) && <StockBadge position="bottom-right" />}
                   <Image
                     src={id}
                     alt={`Work ${i + 1}`}

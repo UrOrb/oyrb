@@ -4,7 +4,6 @@ import Image from "next/image";
 import { MapPin, Phone, Link2, Clock } from "lucide-react";
 import type { TemplateTheme } from "@/lib/template-themes";
 import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
-import { StockBadge } from "@/components/templates/stock-badge";
 import { PlatformCredit } from "@/components/templates/platform-credit";
 import type { SampleBusiness, SampleService, SampleHour } from "@/lib/sample-data";
 
@@ -205,7 +204,6 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
             <div className="columns-2 gap-3 md:columns-3">
               {galleryUrls.map((id, i) => (
                 <div key={i} className="relative mb-3 overflow-hidden" style={{ borderRadius: radius / 2 }}>
-                  {!isEditorPreview && isStockImageUrl(id) && <StockBadge position="bottom-right" />}
                   <Image
                     src={id}
                     alt={`Portfolio ${i + 1}`}

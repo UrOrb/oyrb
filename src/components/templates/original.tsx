@@ -5,7 +5,6 @@
 import Image from "next/image";
 import type { TemplateTheme } from "@/lib/template-themes";
 import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
-import { StockBadge } from "@/components/templates/stock-badge";
 import { PlatformCredit } from "@/components/templates/platform-credit";
 import type { SampleService, SampleHour, SampleBusiness } from "@/lib/sample-data";
 
@@ -495,15 +494,11 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
               <Kicker id={t.id} mono="monospace" accent={t.accent}>{c("section_gallery_kicker", "recent work")}</Kicker>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {biz.galleryIds.slice(0, 6).map((id, i) => {
-                const src = unsplash(id, 400);
-                return (
-                  <div key={i} style={{ borderRadius: t.radius, overflow: "hidden", aspectRatio: (i === 0 || i === 3) ? "3/4" : "1/1", position: "relative" }}>
-                    {!isEditorPreview && isStockImageUrl(src) && <StockBadge position="bottom-right" />}
-                    <Image src={src} alt={`Work ${i + 1}`} width={400} height={i === 0 || i === 3 ? 533 : 400} className="w-full object-cover h-full transition-transform duration-500 hover:scale-105" />
-                  </div>
-                );
-              })}
+              {biz.galleryIds.slice(0, 6).map((id, i) => (
+                <div key={i} style={{ borderRadius: t.radius, overflow: "hidden", aspectRatio: (i === 0 || i === 3) ? "3/4" : "1/1" }}>
+                  <Image src={unsplash(id, 400)} alt={`Work ${i + 1}`} width={400} height={i === 0 || i === 3 ? 533 : 400} className="w-full object-cover h-full transition-transform duration-500 hover:scale-105" />
+                </div>
+              ))}
             </div>
           </section>
         )}

@@ -387,10 +387,13 @@ export default function TermsPage() {
             </p>
             <p>
               When stock photos are used on your site, {COMPANY_NAME}
-              automatically displays a &ldquo;Stock Image&rdquo; label on the
-              photo and a disclaimer in the site footer. Removing, obscuring,
-              or modifying these platform-enforced disclosures is a violation
-              of these Terms and may result in account suspension.
+              automatically displays a disclaimer in the site footer noting
+              that stock photos may be present for illustrative purposes.
+              Removing, obscuring, or modifying this platform-enforced
+              disclosure is a violation of these Terms and may result in
+              account suspension. You agree not to use stock photos in any
+              manner that misrepresents your services, results, or actual
+              work product to clients.
             </p>
           </section>
 

@@ -4,7 +4,6 @@ import Image from "next/image";
 import { MapPin, Phone, Link2, Star, Clock } from "lucide-react";
 import type { TemplateTheme } from "@/lib/template-themes";
 import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
-import { StockBadge } from "@/components/templates/stock-badge";
 import { PlatformCredit } from "@/components/templates/platform-credit";
 import type { SampleBusiness, SampleService, SampleHour } from "@/lib/sample-data";
 
@@ -204,7 +203,6 @@ export function BoldTemplate({ business, services, hours, theme, content, isEdit
                         minHeight: i === 0 ? "200px" : "auto",
                       }}
                     >
-                      {!isEditorPreview && isStockImageUrl(id) && <StockBadge position="bottom-right" />}
                       <Image
                         src={id}
                         alt={`Photo ${i + 1}`}
