@@ -2,16 +2,45 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
 
-const MAX_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/heic"]);
-// Storage path extension is derived from the original filename. Lock it to a
-// strict allowlist so a crafted "foo.php" or "foo.svg" can't leak through.
+// 10MB — iPhone "Most Compatible" JPEGs routinely sit in the 6-9MB range,
+// so the previous 5MB cap was silently rejecting most phone photos.
+const MAX_SIZE = 10 * 1024 * 1024;
+
+// Canonical MIME → file extension. Non-canonical MIMEs (heif, empty,
+// octet-stream) fall through to a filename-extension sniff below.
 const MIME_TO_EXT: Record<string, string> = {
   "image/jpeg": "jpg",
+  "image/jpg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
   "image/heic": "heic",
+  "image/heif": "heic",
 };
+
+const EXT_TO_MIME: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  heic: "image/heic",
+  heif: "image/heic",
+};
+
+function sniffMimeAndExt(file: File): { mime: string; ext: string } | null {
+  // Trust a known MIME first.
+  if (file.type && MIME_TO_EXT[file.type.toLowerCase()]) {
+    const mime = file.type.toLowerCase();
+    return { mime, ext: MIME_TO_EXT[mime] };
+  }
+  // Fallback: some iOS flows + older Android browsers send empty or
+  // application/octet-stream. Derive from filename extension instead.
+  const name = file.name || "";
+  const ext = name.split(".").pop()?.toLowerCase() ?? "";
+  if (EXT_TO_MIME[ext]) {
+    return { mime: EXT_TO_MIME[ext], ext: MIME_TO_EXT[EXT_TO_MIME[ext]] };
+  }
+  return null;
+}
 
 export async function POST(request: NextRequest) {
   const ip = ipFromRequest(request);
@@ -31,10 +60,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Missing file or slug" }, { status: 400 });
   }
   if (file.size > MAX_SIZE) {
-    return NextResponse.json({ error: "File too large (max 5MB)" }, { status: 413 });
+    const mb = (file.size / (1024 * 1024)).toFixed(1);
+    return NextResponse.json(
+      { error: `Photo is ${mb}MB — max 10MB. Try shooting in a lower resolution or a different photo.` },
+      { status: 413 }
+    );
   }
-  if (!ALLOWED_MIME.has(file.type)) {
-    return NextResponse.json({ error: "Unsupported file type. Use JPG, PNG, WebP, or HEIC." }, { status: 415 });
+
+  const sniffed = sniffMimeAndExt(file);
+  if (!sniffed) {
+    return NextResponse.json(
+      {
+        error: `Unsupported file type (got "${file.type || "unknown"}"). Use JPG, PNG, WebP, or HEIC.`,
+      },
+      { status: 415 }
+    );
   }
 
   const supabase = createAdminClient();
@@ -47,18 +87,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Business not found" }, { status: 404 });
   }
 
-  // Derive the extension from the verified MIME, never from the user filename.
-  const ext = MIME_TO_EXT[file.type] ?? "jpg";
-  const path = `bookings/${biz.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-
+  const path = `bookings/${biz.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${sniffed.ext}`;
   const arrayBuffer = await file.arrayBuffer();
+
   const { error } = await supabase.storage.from("photos").upload(path, arrayBuffer, {
-    contentType: file.type,
+    contentType: sniffed.mime,
     upsert: false,
   });
   if (error) {
-    console.error("Upload error:", error);
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+    console.error("Upload error:", { path, mime: sniffed.mime, size: file.size, err: error });
+    return NextResponse.json(
+      { error: `Upload failed: ${error.message}` },
+      { status: 500 }
+    );
   }
 
   const {

@@ -132,6 +132,7 @@ export function BookingWidget({
   const [tipPct, setTipPct] = useState<number>(0);
   const [referencePhotos, setReferencePhotos] = useState<string[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoUploadError, setPhotoUploadError] = useState<string | null>(null);
   const [seriesWeeks, setSeriesWeeks] = useState<number>(0); // 0 = no series
   const [seriesOccurrences, setSeriesOccurrences] = useState<number>(4);
   const [phoneVerified, setPhoneVerified] = useState<string | null>(null); // phone that was verified
@@ -195,20 +196,23 @@ export function BookingWidget({
   const handlePhotoUpload = async (file: File) => {
     if (!slug) return;
     setUploadingPhoto(true);
-    setError(null);
+    setPhotoUploadError(null);
     try {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("slug", slug);
       const res = await fetch("/api/public/bookings/upload-photo", { method: "POST", body: fd });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "Upload failed");
-      } else {
+        setPhotoUploadError(data.error ?? `Upload failed (HTTP ${res.status}). Try a smaller photo.`);
+      } else if (data.url) {
         setReferencePhotos((prev) => [...prev, data.url]);
+      } else {
+        setPhotoUploadError("Upload succeeded but no URL was returned. Please retry.");
       }
-    } catch {
-      setError("Upload failed. Please try a different image.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      setPhotoUploadError(`Couldn't reach the server (${msg}). Check your connection and retry.`);
     } finally {
       setUploadingPhoto(false);
     }
@@ -240,6 +244,7 @@ export function BookingWidget({
     setSmsConsent(false);
     setTipPct(0);
     setReferencePhotos([]);
+    setPhotoUploadError(null);
     setSeriesWeeks(0);
     setSeriesOccurrences(4);
     setPhoneVerified(null);
@@ -710,7 +715,7 @@ export function BookingWidget({
                     </label>
                     <p className="mb-2 text-xs text-[#737373]">
                       Upload photos of the look you want, or a current concern (nails, hair, skin).
-                      Helps your pro prep. Up to 5MB each, JPG/PNG/WebP/HEIC.
+                      Helps your pro prep. Up to 10MB each — JPG, PNG, WebP, or HEIC (iPhone).
                     </p>
                     {referencePhotos.length > 0 && (
                       <div className="mb-2 flex flex-wrap gap-2">
@@ -739,7 +744,7 @@ export function BookingWidget({
                     <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-[#E7E5E4] bg-white px-3 py-2 text-xs font-medium hover:bg-[#F5F5F4]">
                       <input
                         type="file"
-                        accept="image/jpeg,image/png,image/webp,image/heic"
+                        accept="image/*,.heic,.heif"
                         className="hidden"
                         disabled={uploadingPhoto || referencePhotos.length >= 5}
                         onChange={(e) => {
@@ -756,6 +761,11 @@ export function BookingWidget({
                         ? "+ Add a photo"
                         : `+ Add another (${referencePhotos.length}/5)`}
                     </label>
+                    {photoUploadError && (
+                      <p className="mt-2 rounded-md border border-red-200 bg-red-50 px-2.5 py-2 text-[11px] text-red-700">
+                        {photoUploadError}
+                      </p>
+                    )}
                   </div>
                   <button
                     disabled={!name || !email || uploadingPhoto || needsVerification}
