@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Mail, Phone } from "lucide-react";
+import { Mail, Phone, MessageSquare } from "lucide-react";
 import { getCurrentBusiness } from "@/lib/current-site";
 import { formatCents } from "@/lib/types";
 import { defaultIntervalFor } from "@/lib/rebook-intervals";
@@ -152,9 +152,23 @@ export default async function ClientsPage({ searchParams }: Props) {
                           </a>
                         )}
                         {c.phone && (
-                          <a href={`tel:${c.phone}`} className="flex items-center gap-1 text-xs hover:text-[#B8896B]">
-                            <Phone size={11} /> {c.phone}
-                          </a>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            <a
+                              href={`tel:${c.phone}`}
+                              className="flex items-center gap-1 text-xs hover:text-[#B8896B]"
+                              aria-label={`Call ${c.phone}`}
+                            >
+                              <Phone size={11} /> {c.phone}
+                            </a>
+                            <a
+                              href={`sms:${c.phone}`}
+                              className="flex items-center gap-1 text-[11px] text-[#737373] hover:text-[#B8896B]"
+                              aria-label={`Text ${c.phone}`}
+                              title="Send text message"
+                            >
+                              <MessageSquare size={11} /> Text
+                            </a>
+                          </div>
                         )}
                       </div>
                     </td>

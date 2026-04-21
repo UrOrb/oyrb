@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { formatCents } from "@/lib/types";
-import { Calendar, Clock, Mail, Phone } from "lucide-react";
+import { Calendar, Clock, Mail, Phone, MessageSquare } from "lucide-react";
 import { CancelBookingButton } from "./cancel-button";
 import { getCurrentBusiness } from "@/lib/current-site";
 
@@ -100,9 +100,23 @@ function BookingRow({ b }: { b: any }) {
           </a>
         )}
         {b.clients?.phone && (
-          <a href={`tel:${b.clients.phone}`} className="flex items-center gap-1 hover:text-[#B8896B]">
-            <Phone size={11} /> {b.clients.phone}
-          </a>
+          <div className="flex items-center gap-2">
+            <a
+              href={`tel:${b.clients.phone}`}
+              className="flex items-center gap-1 hover:text-[#B8896B]"
+              aria-label={`Call ${b.clients.phone}`}
+            >
+              <Phone size={11} /> {b.clients.phone}
+            </a>
+            <a
+              href={`sms:${b.clients.phone}`}
+              className="flex items-center gap-1 text-[11px] text-[#737373] hover:text-[#B8896B]"
+              aria-label={`Text ${b.clients.phone}`}
+              title="Send text message"
+            >
+              <MessageSquare size={11} /> Text
+            </a>
+          </div>
         )}
       </div>
       <div className="flex items-center gap-2">
