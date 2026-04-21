@@ -105,6 +105,68 @@ export async function sendBookingConfirmation(params: {
   }
 }
 
+export async function sendBookingCancellation(params: {
+  to: string;
+  customerName: string;
+  businessName: string;
+  serviceName: string;
+  startAt: Date;
+  cancelledBy: "pro" | "client";
+  reason?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  siteUrl: string;
+}) {
+  if (!resend) return;
+  const { to, customerName, businessName, serviceName, startAt, cancelledBy, reason, contactEmail, contactPhone, siteUrl } = params;
+  const whenLabel = startAt.toLocaleString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const byLine =
+    cancelledBy === "pro"
+      ? `${businessName} cancelled your upcoming appointment.`
+      : `Your appointment has been cancelled.`;
+  const contactBlock = cancelledBy === "pro" && (contactEmail || contactPhone)
+    ? `
+        <div style="background:#FAFAF9;border:1px solid #E7E5E4;border-radius:12px;padding:16px;margin:16px 0;">
+          <p style="margin:0 0 6px;color:#737373;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">Contact ${businessName}</p>
+          ${contactPhone ? `<p style="margin:0 0 2px;font-size:14px;"><a href="tel:${contactPhone}" style="color:#0A0A0A;text-decoration:none;">📞 ${contactPhone}</a></p>` : ""}
+          ${contactEmail ? `<p style="margin:0;font-size:14px;"><a href="mailto:${contactEmail}" style="color:#0A0A0A;text-decoration:none;">✉️ ${contactEmail}</a></p>` : ""}
+        </div>`
+    : "";
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: `Cancelled: ${serviceName} with ${businessName}`,
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
+          <p style="color:#B8896B;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Booking cancelled</p>
+          <h1 style="font-size:22px;font-weight:600;margin:0 0 12px;">Hi ${customerName},</h1>
+          <p style="color:#525252;font-size:15px;line-height:1.5;margin:0 0 16px;">${byLine}</p>
+          <div style="background:#FAFAF9;border:1px solid #E7E5E4;border-radius:12px;padding:20px;margin:20px 0;">
+            <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Service</p>
+            <p style="margin:0 0 14px;font-size:15px;font-weight:600;">${serviceName}</p>
+            <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">When</p>
+            <p style="margin:0;font-size:15px;font-weight:600;text-decoration:line-through;color:#A3A3A3;">${whenLabel}</p>
+          </div>
+          ${reason ? `<p style="color:#525252;font-size:13px;margin:0 0 16px;"><strong>Note from ${businessName}:</strong> ${reason}</p>` : ""}
+          ${contactBlock}
+          <a href="${siteUrl}" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:600;">Book a new time</a>
+          <p style="color:#A3A3A3;font-size:11px;margin:24px 0 0;border-top:1px solid #E7E5E4;padding-top:16px;">If a deposit was charged, ${businessName} will handle any refund separately.</p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error("Failed to send cancellation email", err);
+  }
+}
+
 export async function sendRebookReminder(params: {
   to: string;
   customerName: string;
