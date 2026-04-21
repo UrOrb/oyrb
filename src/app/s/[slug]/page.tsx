@@ -161,6 +161,7 @@ export default async function PublicSitePage({ params }: Props) {
   // Map DB business → SampleBusiness shape the templates expect
   const sampleBusiness = {
     name: biz.business_name,
+    slug: biz.slug,
     tagline: biz.tagline ?? "",
     bio: biz.bio ?? "",
     location: [biz.city, biz.state].filter(Boolean).join(", ") || "",
@@ -274,6 +275,12 @@ export default async function PublicSitePage({ params }: Props) {
         slotsOpenThisWeek={slotsOpenThisWeek}
         slug={slug}
         phoneVerificationEnabled={!!process.env.TWILIO_VERIFY_SERVICE_SID}
+        rules={{
+          intervalMinutes: biz.booking_interval_minutes ?? 30,
+          allowLastMinute: biz.allow_last_minute_booking ?? true,
+          lastMinuteCutoffHours: biz.last_minute_cutoff_hours ?? 2,
+          dailyBreakBlocks: biz.daily_break_blocks ?? [],
+        }}
       />
 
       {/* AI chat widget floats bottom-left (doesn't overlap booking) */}

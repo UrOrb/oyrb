@@ -5,6 +5,7 @@ import { recordTrialStart, recordTrialAttempt } from "@/lib/trial";
 import { addBan } from "@/lib/trial-bans";
 import { sendTrialReminder } from "@/lib/trial-emails";
 import { handlePayInFullCompleted } from "@/lib/pay-in-full";
+import { handleGiftCardCompleted } from "@/lib/gift-cards";
 import type { Tier, BillingCycle } from "@/lib/plans";
 import type Stripe from "stripe";
 
@@ -44,6 +45,12 @@ export async function POST(request: Request) {
       // the subscription path below (which expects supabase_user_id).
       if (session.metadata?.booking_type === "pay_in_full") {
         await handlePayInFullCompleted(supabase, session);
+        break;
+      }
+      // Gift-card purchases flow through the same webhook; route to the
+      // gift_cards handler.
+      if (session.metadata?.booking_type === "gift_card") {
+        await handleGiftCardCompleted(supabase, session);
         break;
       }
 

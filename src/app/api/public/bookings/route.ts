@@ -66,10 +66,15 @@ export async function POST(request: NextRequest) {
   // those checks without re-evaluating the trust model.
   const supabase = createAdminClient();
 
-  // Load business + service
+  // Load business + service (including booking rule columns so the route
+  // can enforce interval / cutoff / break server-side).
   const { data: business } = await supabase
     .from("businesses")
-    .select("id, business_name, slug, contact_email, owner_id, is_published, subscription_tier")
+    .select(`
+      id, business_name, slug, contact_email, owner_id, is_published, subscription_tier,
+      booking_interval_minutes, allow_last_minute_booking, last_minute_cutoff_hours,
+      break_between_appointments_minutes, daily_break_blocks
+    `)
     .eq("id", body.business_id)
     .maybeSingle();
   if (!business || !business.is_published) {
@@ -93,17 +98,52 @@ export async function POST(request: NextRequest) {
   }
   const endAt = new Date(startAt.getTime() + service.duration_minutes * 60_000);
 
-  // Check for overlap
+  // Enforce pro's booking rules server-side as defense-in-depth — a stale
+  // widget, a crafted POST, or a client on a different timezone could all
+  // otherwise bypass the UI-side filters.
+  const rulesBreak = Math.max(
+    0,
+    Math.floor(
+      ((business as { break_between_appointments_minutes?: number }).break_between_appointments_minutes ?? 15),
+    ),
+  );
+  const allowLM = (business as { allow_last_minute_booking?: boolean }).allow_last_minute_booking ?? true;
+  const cutoffHours =
+    (business as { last_minute_cutoff_hours?: number }).last_minute_cutoff_hours ?? 2;
+  const cutoffMs = cutoffHours * 60 * 60_000;
+  const sinceNowMs = startAt.getTime() - Date.now();
+  if (sinceNowMs < cutoffMs) {
+    // When allowLM=true, we still block inside the cutoff window. When
+    // allowLM=false, the same check applies — the effective behavior is
+    // identical here; the toggle matters for UI hiding behavior only.
+    if (!allowLM || sinceNowMs < cutoffMs) {
+      return NextResponse.json(
+        {
+          error: `This time is too close to now. ${business.business_name} requires bookings at least ${cutoffHours}h in advance.`,
+        },
+        { status: 409 },
+      );
+    }
+  }
+
+  // Check for overlap — including the pro's break buffer on both sides
+  // so a slot that would violate the gap rule is rejected.
+  const breakMs = rulesBreak * 60_000;
+  const overlapStart = new Date(startAt.getTime() - breakMs);
+  const overlapEnd = new Date(endAt.getTime() + breakMs);
   const { data: overlap } = await supabase
     .from("bookings")
     .select("id")
     .eq("business_id", body.business_id)
     .neq("status", "cancelled")
-    .lt("start_at", endAt.toISOString())
-    .gt("end_at", startAt.toISOString())
+    .lt("start_at", overlapEnd.toISOString())
+    .gt("end_at", overlapStart.toISOString())
     .limit(1);
   if (overlap && overlap.length > 0) {
-    return NextResponse.json({ error: "That time was just booked. Please pick another." }, { status: 409 });
+    return NextResponse.json(
+      { error: "That time conflicts with an existing booking or required break. Please pick another." },
+      { status: 409 },
+    );
   }
 
   // Upsert client

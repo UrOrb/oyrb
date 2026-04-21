@@ -1,5 +1,6 @@
 export const SAMPLE_BUSINESS = {
   name: "Honey George Studio",
+  slug: "honey-george-studio",
   tagline: "Where your beauty meets intention.",
   bio: "Licensed cosmetologist with 10+ years of experience in natural hair, precision color, and transformative cuts. Every client leaves feeling seen, cared for, and stunning. Based in Atlanta, GA.",
   location: "Atlanta, GA",

@@ -14,7 +14,44 @@ export type SlotInterval = {
   end: Date;
 };
 
-const SLOT_GRANULARITY_MIN = 30;
+// Per-pro scheduling rules stored on businesses (see migration 023).
+// All fields have sensible defaults so pros who never touch the settings
+// keep the pre-rules behavior.
+export type BookingRules = {
+  intervalMinutes: number;          // 15 / 30 / 45 / 60 / 120
+  allowLastMinute: boolean;         // false = strict cutoff, true = soft
+  lastMinuteCutoffHours: number;    // 1 / 2 / 4 / 8 / 12 / 24 / 48
+  breakBetweenMinutes: number;      // 0 / 5 / 10 / 15 / 20 / 30 / 45 / 60
+  dailyBreakBlocks: DailyBreakBlock[];
+};
+
+export type DailyBreakBlock = {
+  start: string;  // "HH:MM"
+  end: string;    // "HH:MM"
+  days: Array<"sun"|"mon"|"tue"|"wed"|"thu"|"fri"|"sat">;
+};
+
+export const DEFAULT_BOOKING_RULES: BookingRules = {
+  intervalMinutes: 30,
+  allowLastMinute: true,
+  lastMinuteCutoffHours: 2,
+  breakBetweenMinutes: 15,
+  dailyBreakBlocks: [],
+};
+
+const DOW_NAMES: ReadonlyArray<DailyBreakBlock["days"][number]> = [
+  "sun","mon","tue","wed","thu","fri","sat",
+];
+
+function safeRules(rules?: Partial<BookingRules>): BookingRules {
+  return {
+    intervalMinutes: rules?.intervalMinutes ?? DEFAULT_BOOKING_RULES.intervalMinutes,
+    allowLastMinute: rules?.allowLastMinute ?? DEFAULT_BOOKING_RULES.allowLastMinute,
+    lastMinuteCutoffHours: rules?.lastMinuteCutoffHours ?? DEFAULT_BOOKING_RULES.lastMinuteCutoffHours,
+    breakBetweenMinutes: rules?.breakBetweenMinutes ?? DEFAULT_BOOKING_RULES.breakBetweenMinutes,
+    dailyBreakBlocks: rules?.dailyBreakBlocks ?? DEFAULT_BOOKING_RULES.dailyBreakBlocks,
+  };
+}
 
 /**
  * Generates the next N (default 21) calendar days where the pro is open.
@@ -35,13 +72,21 @@ export function availableDays(hours: BusinessHoursRow[], maxCount = 21): Date[] 
 }
 
 /**
- * Returns every 30-min slot START on the given day that fits durationMin
- * within the pro's open window AND doesn't collide with any busy range.
- * All times are returned as Date objects in the server's local tz.
+ * Returns every slot-START on the given day that fits durationMin within
+ * the pro's open window AND doesn't collide with any busy range.
  *
- *   busy = [{start, end}, ...]  — existing confirmed bookings to avoid.
- *   excludeBookingId is irrelevant here (caller should filter busy before
- *   passing in).
+ * When `rules` is supplied the slot generator additionally:
+ *   · aligns slot starts to `intervalMinutes` (15/30/45/60/120)
+ *   · pads every busy block by `breakBetweenMinutes` on each side so
+ *     back-to-back bookings get an automatic buffer
+ *   · subtracts `dailyBreakBlocks` that fall on this day from the
+ *     open window
+ *   · drops slots that start within `lastMinuteCutoffHours` of now
+ *     when `allowLastMinute` is true; drops ALL sub-cutoff slots when
+ *     `allowLastMinute` is false
+ *
+ * `minStart` is applied on top of all that — useful for callers (e.g.
+ * reschedule) that want a stricter floor than the pro's settings alone.
  */
 export function slotsForDay(
   day: Date,
@@ -49,7 +94,9 @@ export function slotsForDay(
   durationMin: number,
   busy: SlotInterval[],
   minStart: Date,
+  rulesInput?: Partial<BookingRules>,
 ): Date[] {
+  const rules = safeRules(rulesInput);
   const byDow = indexByDow(hours);
   const h = byDow.get(day.getDay());
   if (!h?.is_open || !h.open_time || !h.close_time) return [];
@@ -62,16 +109,51 @@ export function slotsForDay(
   const windowEnd = new Date(day);
   windowEnd.setHours(closeH, closeM, 0, 0);
 
+  // Daily break blocks: expand to date intervals for this day and merge
+  // with busy so they're treated identically (no slot, no buffer after).
+  const dowName = DOW_NAMES[day.getDay()];
+  const dailyBlocks: SlotInterval[] = rules.dailyBreakBlocks
+    .filter((b) => b.days.includes(dowName))
+    .map((b) => {
+      const [sH, sM] = parseHM(b.start);
+      const [eH, eM] = parseHM(b.end);
+      const s = new Date(day); s.setHours(sH, sM, 0, 0);
+      const e = new Date(day); e.setHours(eH, eM, 0, 0);
+      return { start: s, end: e };
+    });
+
+  // Buffer existing busy blocks by the pro's break setting. Daily blocks
+  // are NOT buffered (they're the pro's intentional hard gaps).
+  const bufferedBusy: SlotInterval[] = busy.map((b) => ({
+    start: new Date(b.start.getTime() - rules.breakBetweenMinutes * 60_000),
+    end: new Date(b.end.getTime() + rules.breakBetweenMinutes * 60_000),
+  }));
+  const obstacles: SlotInterval[] = [...bufferedBusy, ...dailyBlocks];
+
+  // Last-minute cutoff: effective floor = max(minStart,
+  // now + cutoffHours) when allowLastMinute=true, and a hard rejection
+  // of anything within the cutoff when allowLastMinute=false.
+  const now = new Date();
+  const cutoffMs = rules.lastMinuteCutoffHours * 60 * 60_000;
+  const effectiveFloor = new Date(
+    Math.max(minStart.getTime(), now.getTime() + cutoffMs),
+  );
+
   const out: Date[] = [];
   for (
     const cursor = new Date(windowStart);
     cursor.getTime() + durationMin * 60_000 <= windowEnd.getTime();
-    cursor.setMinutes(cursor.getMinutes() + SLOT_GRANULARITY_MIN)
+    cursor.setMinutes(cursor.getMinutes() + rules.intervalMinutes)
   ) {
     const slotStart = new Date(cursor);
-    if (slotStart < minStart) continue;
+    if (slotStart < effectiveFloor) continue;
+    // When pro has disabled last-minute entirely, also reject any slot
+    // landing in today's remaining window regardless of cutoff setting.
+    if (!rules.allowLastMinute && slotStart.getTime() - now.getTime() < cutoffMs) {
+      continue;
+    }
     const slotEnd = new Date(slotStart.getTime() + durationMin * 60_000);
-    if (overlapsAny(slotStart, slotEnd, busy)) continue;
+    if (overlapsAny(slotStart, slotEnd, obstacles)) continue;
     out.push(slotStart);
   }
   return out;

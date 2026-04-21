@@ -19,6 +19,20 @@ type Hour = {
   close_time: string;
 };
 
+// Per-pro booking rules forwarded from the page's server render. Kept
+// narrow and optional so any caller that forgot to pass them falls
+// back to the legacy 30-min / 2h cutoff / no-breaks behavior.
+export type WidgetRules = {
+  intervalMinutes: number;
+  allowLastMinute: boolean;
+  lastMinuteCutoffHours: number;
+  dailyBreakBlocks: Array<{
+    start: string;
+    end: string;
+    days: Array<"sun"|"mon"|"tue"|"wed"|"thu"|"fri"|"sat">;
+  }>;
+};
+
 type Props = {
   businessId: string;
   businessName: string;
@@ -32,6 +46,7 @@ type Props = {
   slotsOpenThisWeek?: number;
   slug?: string;
   phoneVerificationEnabled?: boolean;
+  rules?: WidgetRules;
 };
 
 const MON_FIRST_DAY_IDX = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -64,13 +79,30 @@ function upcomingDates(hours: Hour[]): Date[] {
   return out;
 }
 
-// Return array of 30-min slots between open and close on a given day
-function timeSlotsFor(day: Date, hours: Hour[], durationMin: number): string[] {
+// Slot generator for the booking widget. Applies the subset of the pro's
+// booking rules that don't require knowledge of existing bookings:
+//   · interval alignment (15/30/45/60/120)
+//   · last-minute cutoff (and full last-minute-off mode)
+//   · daily break blocks (lunch, etc.)
+// The break-between-appointments rule is enforced server-side at booking
+// creation, where the existing-booking list is authoritative.
+const DOW_CODES = ["sun","mon","tue","wed","thu","fri","sat"] as const;
+
+function timeSlotsFor(
+  day: Date,
+  hours: Hour[],
+  durationMin: number,
+  rules?: WidgetRules,
+): string[] {
   const dow = day.getDay();
   const mondayIdx = dow === 0 ? 6 : dow - 1;
   const dayName = MON_FIRST_DAY_IDX[mondayIdx];
   const h = hours.find((x) => x.day === dayName);
   if (!h?.open) return [];
+
+  const intervalMin = rules?.intervalMinutes ?? 30;
+  const allowLM = rules?.allowLastMinute ?? true;
+  const cutoffMs = (rules?.lastMinuteCutoffHours ?? 2) * 60 * 60_000;
 
   const [openH, openM] = h.open_time.split(":").map(Number);
   const [closeH, closeM] = h.close_time.split(":").map(Number);
@@ -82,14 +114,34 @@ function timeSlotsFor(day: Date, hours: Hour[], durationMin: number): string[] {
   end.setHours(closeH, closeM, 0, 0);
 
   const now = new Date();
+  const floor = new Date(now.getTime() + cutoffMs);
+
+  const dowCode = DOW_CODES[dow];
+  const blocks = (rules?.dailyBreakBlocks ?? []).filter((b) => b.days.includes(dowCode));
 
   while (start.getTime() + durationMin * 60_000 <= end.getTime()) {
-    if (start > now) {
+    const slotStart = new Date(start);
+    const slotEnd = new Date(slotStart.getTime() + durationMin * 60_000);
+
+    const passesCutoff = allowLM
+      ? slotStart >= floor
+      : slotStart.getTime() - now.getTime() >= cutoffMs;
+    const passesFuture = slotStart > now;
+
+    const hitsBlock = blocks.some((b) => {
+      const [sH, sM] = b.start.split(":").map(Number);
+      const [eH, eM] = b.end.split(":").map(Number);
+      const bs = new Date(day); bs.setHours(sH, sM, 0, 0);
+      const be = new Date(day); be.setHours(eH, eM, 0, 0);
+      return slotStart < be && slotEnd > bs;
+    });
+
+    if (passesFuture && passesCutoff && !hitsBlock) {
       slots.push(
-        `${start.getHours().toString().padStart(2, "0")}:${start.getMinutes().toString().padStart(2, "0")}`
+        `${slotStart.getHours().toString().padStart(2, "0")}:${slotStart.getMinutes().toString().padStart(2, "0")}`
       );
     }
-    start.setMinutes(start.getMinutes() + 30);
+    start.setMinutes(start.getMinutes() + intervalMin);
   }
   return slots;
 }
@@ -112,6 +164,7 @@ export function BookingWidget({
   slotsOpenThisWeek,
   slug,
   phoneVerificationEnabled,
+  rules,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"service" | "time" | "info" | "confirm" | "done">("service");
@@ -222,7 +275,7 @@ export function BookingWidget({
 
   const dates = useMemo(() => upcomingDates(hours), [hours]);
   const slots = useMemo(
-    () => (service && date ? timeSlotsFor(date, hours, service.duration_minutes) : []),
+    () => (service && date ? timeSlotsFor(date, hours, service.duration_minutes, rules) : []),
     [service, date, hours]
   );
 

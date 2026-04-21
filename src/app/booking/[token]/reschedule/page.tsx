@@ -87,12 +87,40 @@ export default async function ReschedulePage({ params }: Props) {
   }
 
   // More than 24h away — build the calendar.
-  // 1) Load business hours.
+  // 1) Load business hours + the pro's booking rules.
   const { data: hoursRows } = await supabase
     .from("business_hours")
     .select("day_of_week, is_open, open_time, close_time")
     .eq("business_id", booking.business_id);
   const hours = (hoursRows ?? []) as BusinessHoursRow[];
+
+  const { data: rulesRow } = await supabase
+    .from("businesses")
+    .select(`
+      booking_interval_minutes, allow_last_minute_booking,
+      last_minute_cutoff_hours, break_between_appointments_minutes,
+      daily_break_blocks
+    `)
+    .eq("id", booking.business_id)
+    .maybeSingle();
+  const rulesData = (rulesRow ?? {}) as {
+    booking_interval_minutes?: number;
+    allow_last_minute_booking?: boolean;
+    last_minute_cutoff_hours?: number;
+    break_between_appointments_minutes?: number;
+    daily_break_blocks?: Array<{
+      start: string;
+      end: string;
+      days: Array<"sun"|"mon"|"tue"|"wed"|"thu"|"fri"|"sat">;
+    }>;
+  };
+  const bookingRules = {
+    intervalMinutes: rulesData.booking_interval_minutes ?? 30,
+    allowLastMinute: rulesData.allow_last_minute_booking ?? true,
+    lastMinuteCutoffHours: rulesData.last_minute_cutoff_hours ?? 2,
+    breakBetweenMinutes: rulesData.break_between_appointments_minutes ?? 15,
+    dailyBreakBlocks: rulesData.daily_break_blocks ?? [],
+  };
 
   // 2) Load the next 30 days of confirmed bookings on this pro's calendar
   //    — excluding this booking itself so the client can pick its current
@@ -128,6 +156,7 @@ export default async function ReschedulePage({ params }: Props) {
       booking.services!.duration_minutes,
       busy,
       minStart,
+      bookingRules,
     ).map((s) => s.toISOString()),
   }));
 

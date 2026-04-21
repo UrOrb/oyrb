@@ -59,6 +59,23 @@ export default async function SettingsPage({ searchParams }: Props) {
         />
       </div>
 
+      {/* Booking rules — link card */}
+      <div className="mt-8 flex items-center justify-between gap-4 rounded-lg border border-[#E7E5E4] bg-white p-6">
+        <div>
+          <h2 className="text-base font-semibold">Booking rules</h2>
+          <p className="mt-0.5 text-xs text-[#737373]">
+            Control slot intervals, last-minute cutoff, break time, and
+            recurring daily blocks. Applies to new bookings only.
+          </p>
+        </div>
+        <Link
+          href="/dashboard/settings/booking-rules"
+          className="shrink-0 rounded-md bg-[#0A0A0A] px-3 py-1.5 text-xs font-medium text-white hover:opacity-85"
+        >
+          Edit rules →
+        </Link>
+      </div>
+
       {/* Directory listing — link card */}
       <div className="mt-8 flex items-center justify-between gap-4 rounded-lg border border-[#E7E5E4] bg-white p-6">
         <div>

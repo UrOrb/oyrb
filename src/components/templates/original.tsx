@@ -97,10 +97,22 @@ function Ornament({ t }: { t: TemplateTheme }) {
 }
 
 // ── Hero section — each theme gets its exact layout ────────────────────────────
-function Hero({ t, biz, bookHref, kickerOverride, ctaOverride }: {
+function Hero({
+  t,
+  biz,
+  bookHref,
+  servicesHref,
+  giftCardsHref,
+  freeConsultHref,
+  kickerOverride,
+  ctaOverride,
+}: {
   t: TemplateTheme;
   biz: TemplateTheme["business"];
   bookHref: string;
+  servicesHref: string;
+  giftCardsHref: string;
+  freeConsultHref: string;
   kickerOverride?: string;
   ctaOverride?: string;
 }) {
@@ -246,12 +258,12 @@ function Hero({ t, biz, bookHref, kickerOverride, ctaOverride }: {
       <Image src={heroUrl} alt={biz.name} width={800} height={640} className="w-full object-cover" style={{ borderRadius: t.radius, aspectRatio: "5/4" }} />
       <div style={{ marginTop: 18, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         {[
-          { label: "Book a treatment", sub: "Available now", primary: true },
-          { label: "Service menu", sub: "View all" },
-          { label: "Free consult", sub: "15 min intro" },
-          { label: "Gift cards", sub: "Starting $50" },
+          { label: "Book a treatment", sub: "Available now",    href: bookHref,        primary: true },
+          { label: "Service menu",     sub: "View all",          href: servicesHref    },
+          { label: "Free consult",     sub: "15 min intro",      href: freeConsultHref },
+          { label: "Gift cards",       sub: "Starting $50",      href: giftCardsHref   },
         ].map((tile, i) => (
-          <a key={i} href={bookHref} style={{
+          <a key={i} href={tile.href} style={{
             display: "flex", flexDirection: "column" as const, justifyContent: "space-between",
             minHeight: 82, padding: "14px 16px", borderRadius: t.radius, textDecoration: "none",
             background: tile.primary ? t.ink : t.surface,
@@ -627,6 +639,25 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
   const demoEmail = biz.email || `hello@${biz.name.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`;
   const bookHref = hasBiz ? "#book" : `mailto:${demoEmail}`;
 
+  // ── Non-booking nav targets ───────────────────────────────────────────
+  // Each tile/pill in the nav used to reuse bookHref, which meant every
+  // link collapsed into "open booking". Route each to its real target.
+  const servicesHref = "#services"; // same-page anchor on <section id="services">
+  const giftCardsHref = hasBiz && business?.slug
+    ? `/s/${business.slug}/gift-cards`
+    : bookHref;
+  const freeConsultHref = biz.email
+    ? `mailto:${biz.email}?subject=${encodeURIComponent(`Free Consultation Request — ${biz.name}`)}&body=${encodeURIComponent(`Hi ${biz.name}, I'd love to book a free consultation. Here's a bit about what I'm looking for:\n\n`)}`
+    : bookHref;
+  const directionsHref = biz.location
+    ? `https://maps.google.com/?q=${encodeURIComponent(biz.location)}`
+    : null;
+  const messageHref = biz.phone
+    ? `sms:${biz.phone.replace(/[^\d+]/g, "")}`
+    : biz.email
+      ? `mailto:${biz.email}`
+      : null;
+
   // Instagram: prefer user-provided URL; fall back to a handle derived from business name
   const igHandle = (business?.instagram_url?.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/$/, "") || biz.name.toLowerCase().replace(/[^a-z0-9]/g, ""));
   const igUrl = business?.instagram_url || `https://instagram.com/${igHandle}`;
@@ -682,6 +713,9 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
           t={t}
           biz={biz}
           bookHref={bookHref}
+          servicesHref={servicesHref}
+          giftCardsHref={giftCardsHref}
+          freeConsultHref={freeConsultHref}
           kickerOverride={content?.hero_kicker}
           ctaOverride={content?.hero_cta_label}
         />
@@ -715,7 +749,7 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
         </section>
 
         {/* ── Services ── */}
-        <section data-oyrb-services="original" style={{ padding: "8px 22px 32px", background: t.bg }}>
+        <section id="services" data-oyrb-services="original" style={{ padding: "8px 22px 32px", background: t.bg }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 16 }}>
             <h2 style={{ fontFamily: t.displayFont, fontWeight: t.displayWeight, fontSize: 28, color: t.ink, margin: 0, fontStyle: t.id === "aura" ? "italic" : "normal", letterSpacing: t.displayTracking }}>{c("section_services_title", "Services")}</h2>
             <div style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: 1.5, color: t.muted, textTransform: "uppercase" as const }}>{services.length} offered</div>
@@ -866,10 +900,28 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}><Ornament t={t} /></div>
           <Kicker id={t.id} mono="monospace" accent={t.accent} style={{ justifyContent: "center", marginBottom: 10 }}>{c("section_location_title", "Find the studio")}</Kicker>
           <p style={{ fontFamily: t.bodyFont, fontSize: 14, color: t.ink, maxWidth: 260, margin: "0 auto" }}>{biz.location}</p>
-          <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
-            <a href={bookHref} style={{ flex: 1, display: "block", background: "transparent", color: t.ink, border: `1px solid ${t.border}`, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "14px", borderRadius: t.radiusBtn, textDecoration: "none" }}>{c("footer_action_1", "Directions")}</a>
-            <a href={bookHref} style={{ flex: 1, display: "block", background: "transparent", color: t.ink, border: `1px solid ${t.border}`, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "14px", borderRadius: t.radiusBtn, textDecoration: "none" }}>{c("footer_action_2", "Message")}</a>
-          </div>
+          {(directionsHref || messageHref) && (
+            <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
+              {directionsHref && (
+                <a
+                  href={directionsHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ flex: 1, display: "block", background: "transparent", color: t.ink, border: `1px solid ${t.border}`, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "14px", borderRadius: t.radiusBtn, textDecoration: "none" }}
+                >
+                  {c("footer_action_1", "Directions")}
+                </a>
+              )}
+              {messageHref && (
+                <a
+                  href={messageHref}
+                  style={{ flex: 1, display: "block", background: "transparent", color: t.ink, border: `1px solid ${t.border}`, fontFamily: t.bodyFont, fontWeight: 500, fontSize: 14, textAlign: "center", padding: "14px", borderRadius: t.radiusBtn, textDecoration: "none" }}
+                >
+                  {c("footer_action_2", "Message")}
+                </a>
+              )}
+            </div>
+          )}
         </section>
 
         {/* ── Footer ──
