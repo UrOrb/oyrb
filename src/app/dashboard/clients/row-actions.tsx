@@ -7,27 +7,43 @@ export function ClientRowActions({ clientId }: { clientId: string }) {
   const [status, setStatus] = useState<"idle" | "sent" | "error" | "blocked">("idle");
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
+  const [sentTo, setSentTo] = useState<string | null>(null);
 
   function send() {
     setErr(null);
     start(async () => {
-      const res = await fetch("/api/dashboard/send-rebook-reminder", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ client_id: clientId }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        if (res.status === 409) setStatus("blocked");
-        else setStatus("error");
-        setErr(data.error ?? "Couldn't send");
-        return;
+      try {
+        const res = await fetch("/api/dashboard/send-rebook-reminder", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ client_id: clientId }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          if (res.status === 409) setStatus("blocked");
+          else setStatus("error");
+          setErr(data.error ?? `Couldn't send (HTTP ${res.status})`);
+          return;
+        }
+        setSentTo(data.to ?? null);
+        setStatus("sent");
+      } catch (e) {
+        setStatus("error");
+        setErr(e instanceof Error ? e.message : "Network error");
       }
-      setStatus("sent");
     });
   }
 
-  if (status === "sent") return <span className="text-xs text-green-700">Sent ✓</span>;
+  if (status === "sent") {
+    return (
+      <span
+        className="text-xs text-green-700"
+        title={sentTo ? `Reminder delivered to ${sentTo}` : "Reminder delivered"}
+      >
+        Sent ✓{sentTo ? ` → ${sentTo}` : ""}
+      </span>
+    );
+  }
   if (status === "blocked") return <span className="text-xs text-[#A3A3A3]">Unsubscribed</span>;
 
   return (
@@ -40,7 +56,11 @@ export function ClientRowActions({ clientId }: { clientId: string }) {
       >
         <Send size={10} /> {pending ? "Sending…" : "Remind"}
       </button>
-      {err && <span className="text-[10px] text-red-700">{err}</span>}
+      {err && (
+        <span className="max-w-[180px] truncate text-[10px] text-red-700" title={err}>
+          {err}
+        </span>
+      )}
     </div>
   );
 }

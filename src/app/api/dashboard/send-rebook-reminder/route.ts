@@ -110,5 +110,9 @@ export async function POST(request: NextRequest) {
     preferencesToken: tk.token,
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    to: client.email,
+    clientName: client.name,
+  });
 }
