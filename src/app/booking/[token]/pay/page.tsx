@@ -123,7 +123,11 @@ export default async function PayBookingPage({ params }: Props) {
             </div>
           </div>
 
-          <PayButton token={token} balanceCents={balanceCents} />
+          <PayButton
+            token={token}
+            balanceCents={balanceCents}
+            serviceTotalCents={price_cents}
+          />
 
           <p className="mt-4 text-[11px] text-[#A3A3A3]">
             Secure payment powered by Stripe. Your card isn&apos;t stored on

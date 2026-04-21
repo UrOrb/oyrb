@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: { token?: string };
+  let body: { token?: string; tip_cents?: number };
   try {
     body = await request.json();
   } catch {
@@ -37,6 +37,12 @@ export async function POST(request: NextRequest) {
   if (!body.token) {
     return NextResponse.json({ error: "Missing token" }, { status: 400 });
   }
+  // Tip normalization — clamp to [0, $500]. Anything higher is almost
+  // certainly a crafted request rather than a real generous tip.
+  const tipCentsRaw = Math.floor(Number(body.tip_cents ?? 0));
+  const tipCents = Number.isFinite(tipCentsRaw)
+    ? Math.max(0, Math.min(tipCentsRaw, 500 * 100))
+    : 0;
 
   const resolved = await resolveToken(body.token);
   if (!resolved || resolved.expired) {
@@ -85,6 +91,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No balance to collect" }, { status: 409 });
   }
 
+  // Amount invariant: never charge more than (service price + the
+  // pre-clamped tip cap). If the client sends a tip higher than the
+  // service price we still clamp to $500 above, which is the generous
+  // hard cap — but we also refuse if the tip would exceed the service
+  // total, to keep the charge profile normal-looking.
+  if (tipCents > booking.services.price_cents) {
+    return NextResponse.json(
+      { error: "Tip can't exceed the service price." },
+      { status: 400 },
+    );
+  }
+  const totalCents = balanceCents + tipCents;
+  // Stripe hard minimum (USD, non-decimal).
+  if (totalCents < 50) {
+    return NextResponse.json(
+      { error: "Minimum charge is $0.50." },
+      { status: 400 },
+    );
+  }
+
   const origin = new URL(request.url).origin;
   const successUrl = `${origin}/booking/${resolved.token}/pay/success?session_id={CHECKOUT_SESSION_ID}`;
   const cancelUrl = `${origin}/booking/${resolved.token}/pay`;
@@ -118,6 +144,21 @@ export async function POST(request: NextRequest) {
             },
           },
         },
+        ...(tipCents > 0
+          ? [
+              {
+                quantity: 1,
+                price_data: {
+                  currency: "usd",
+                  unit_amount: tipCents,
+                  product_data: {
+                    name: "Tip",
+                    description: `Gratuity for ${booking.businesses.business_name}`,
+                  },
+                },
+              },
+            ]
+          : []),
       ],
       // Webhook discriminator — must match the type-check in webhook/route.ts.
       metadata: {
@@ -125,6 +166,8 @@ export async function POST(request: NextRequest) {
         booking_id: booking.id,
         token: resolved.token,
         balance_cents: String(balanceCents),
+        tip_cents: String(tipCents),
+        total_cents: String(totalCents),
         deposit_was_paid: String(!!booking.deposit_paid),
       },
     });

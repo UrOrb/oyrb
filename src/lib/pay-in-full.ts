@@ -45,13 +45,35 @@ export async function handlePayInFullCompleted(
   }
 
   const paidAmount = session.amount_total ?? 0;
+  const paymentIntentId =
+    typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : session.payment_intent?.id ?? null;
+
+  // stripe_payment_intent_id is only written if it isn't already set — the
+  // deposit flow may have populated it with the deposit intent; we don't
+  // want to clobber that audit trail. The pay-in-full intent is still
+  // recoverable via pay_now_session_id → Stripe dashboard.
+  const update: Record<string, unknown> = {
+    paid_in_full_at: new Date().toISOString(),
+    paid_amount_cents: paidAmount,
+    pay_now_session_id: session.id,
+  };
+  if (paymentIntentId && !existing.pay_now_session_id) {
+    // Only set stripe_payment_intent_id when it's empty — see comment above.
+    const { data: currentRow } = await supabase
+      .from("bookings")
+      .select("stripe_payment_intent_id")
+      .eq("id", bookingId)
+      .maybeSingle();
+    if (!currentRow?.stripe_payment_intent_id) {
+      update.stripe_payment_intent_id = paymentIntentId;
+    }
+  }
+
   const { error: updErr } = await supabase
     .from("bookings")
-    .update({
-      paid_in_full_at: new Date().toISOString(),
-      paid_amount_cents: paidAmount,
-      pay_now_session_id: session.id,
-    })
+    .update(update)
     .eq("id", bookingId);
   if (updErr) {
     console.error("pay_in_full update failed:", updErr);
