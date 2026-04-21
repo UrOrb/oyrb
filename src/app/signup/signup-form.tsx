@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export function SignupForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -40,7 +41,7 @@ export function SignupForm() {
     setLoading(true);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -52,6 +53,16 @@ export function SignupForm() {
     if (error) {
       setError(error.message);
       setLoading(false);
+      return;
+    }
+
+    // Auto-confirm projects: Supabase returns a live session and the user
+    // is already signed in. Skip the "check your email" step entirely and
+    // route them straight into the trial-start flow. If email confirmation
+    // is turned on later, data.session will be null and we fall through
+    // to the check-email screen below.
+    if (data.session) {
+      router.replace("/dashboard");
       return;
     }
 
