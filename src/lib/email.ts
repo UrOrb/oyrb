@@ -83,6 +83,9 @@ export async function sendBookingConfirmation(params: {
           <div style="margin:0 0 16px;">
             <a href="${viewBookingUrl}" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:600;margin-right:8px;margin-bottom:8px;">View my booking</a>
             <a href="${viewBookingUrl}/reschedule" style="display:inline-block;border:1px solid #E7E5E4;color:#0A0A0A;text-decoration:none;padding:11px 20px;border-radius:999px;font-size:14px;font-weight:600;margin-right:8px;margin-bottom:8px;">Reschedule</a>
+            ${process.env.PAY_NOW_ENABLED === "true" ? `
+              <a href="${viewBookingUrl}/pay" style="display:inline-block;border:1px solid #E7E5E4;color:#0A0A0A;text-decoration:none;padding:11px 20px;border-radius:999px;font-size:14px;font-weight:600;margin-right:8px;margin-bottom:8px;">Pay for your service now</a>
+            ` : ""}
             <a href="${siteUrl}" style="display:inline-block;border:1px solid #E7E5E4;color:#0A0A0A;text-decoration:none;padding:11px 20px;border-radius:999px;font-size:14px;font-weight:600;">Pro&apos;s site</a>
           </div>
           <p style="color:#A3A3A3;font-size:11px;line-height:1.5;margin:0 0 16px;">This secure link expires in 7 days. Don&apos;t share it. Rescheduling is available up to 24 hours before your appointment.</p>
@@ -102,6 +105,71 @@ export async function sendBookingConfirmation(params: {
     });
   } catch (err) {
     console.error("Failed to send booking confirmation", err);
+  }
+}
+
+export async function sendPaymentReceived(params: {
+  to: string;
+  customerName: string;
+  businessName: string;
+  serviceName: string;
+  startAt: Date;
+  paidAmountCents: number;
+  priceCents: number;
+  depositWasPaid: boolean;
+  token: string;
+}) {
+  if (!resend) return;
+  const {
+    to,
+    customerName,
+    businessName,
+    serviceName,
+    startAt,
+    paidAmountCents,
+    priceCents,
+    depositWasPaid,
+    token,
+  } = params;
+  const whenLabel = startAt.toLocaleString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const fmt = (c: number) => `$${(c / 100).toFixed(c % 100 === 0 ? 0 : 2)}`;
+  const summary = depositWasPaid
+    ? `Balance of ${fmt(paidAmountCents)} received. Service total was ${fmt(priceCents)} (deposit already on file).`
+    : `Paid ${fmt(paidAmountCents)} in full. No balance due at your appointment.`;
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: `Payment received — ${serviceName} with ${businessName}`,
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
+          <p style="color:#047857;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Payment received ✓</p>
+          <h1 style="font-size:24px;font-weight:600;margin:0 0 12px;">Thanks, ${customerName}!</h1>
+          <p style="color:#525252;font-size:15px;line-height:1.5;margin:0 0 16px;">${summary}</p>
+          <div style="background:#FAFAF9;border:1px solid #E7E5E4;border-radius:12px;padding:20px;margin:20px 0;">
+            <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Service</p>
+            <p style="margin:0 0 14px;font-size:15px;font-weight:600;">${serviceName}</p>
+            <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">When</p>
+            <p style="margin:0 0 14px;font-size:15px;font-weight:600;">${whenLabel}</p>
+            <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Amount paid</p>
+            <p style="margin:0;font-size:18px;font-weight:600;color:#047857;">${fmt(paidAmountCents)}</p>
+          </div>
+          <a href="${APP_URL}/booking/${token}" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:600;">View my booking</a>
+          <p style="color:#A3A3A3;font-size:11px;margin:24px 0 0;border-top:1px solid #E7E5E4;padding-top:16px;">
+            Charged by Stripe on behalf of ${businessName}. Keep this email as your receipt. For refunds or questions contact ${businessName} directly.
+          </p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error("Failed to send payment-received email", err);
   }
 }
 

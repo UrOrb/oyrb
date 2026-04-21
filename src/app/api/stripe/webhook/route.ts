@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { recordTrialStart, recordTrialAttempt } from "@/lib/trial";
 import { addBan } from "@/lib/trial-bans";
 import { sendTrialReminder } from "@/lib/trial-emails";
+import { handlePayInFullCompleted } from "@/lib/pay-in-full";
 import type { Tier, BillingCycle } from "@/lib/plans";
 import type Stripe from "stripe";
 
@@ -37,6 +38,15 @@ export async function POST(request: Request) {
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
+
+      // Discriminator: pay-in-full sessions carry booking_type=pay_in_full
+      // in their metadata. Route them to the booking-side handler before
+      // the subscription path below (which expects supabase_user_id).
+      if (session.metadata?.booking_type === "pay_in_full") {
+        await handlePayInFullCompleted(supabase, session);
+        break;
+      }
+
       const userId = session.metadata?.supabase_user_id;
       if (!userId) break;
 

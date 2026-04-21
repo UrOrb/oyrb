@@ -120,6 +120,14 @@ function BookingRow({ b }: { b: any }) {
         )}
       </div>
       <div className="flex items-center gap-2">
+        {b.paid_in_full_at && (
+          <span
+            className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-700"
+            title={`Paid ${b.paid_amount_cents ? formatCents(b.paid_amount_cents) : "in full"} on ${new Date(b.paid_in_full_at).toLocaleDateString()}`}
+          >
+            💳 Paid in full
+          </span>
+        )}
         <span
           className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${
             b.status === "confirmed" ? "bg-green-50 text-green-700" :
