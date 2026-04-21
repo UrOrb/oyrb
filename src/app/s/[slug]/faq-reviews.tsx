@@ -102,7 +102,7 @@ export function ReviewsSection({
   border: string;
   displayFont: string;
 }) {
-  if (!reviews || reviews.length === 0) return null;
+  const hasReviews = !!reviews && reviews.length > 0;
   return (
     <section
       className="px-6 py-16 md:py-20"
@@ -116,7 +116,7 @@ export function ReviewsSection({
           >
             What clients say
           </h2>
-          {averageRating !== null && (
+          {hasReviews && averageRating !== null ? (
             <div className="mt-4 flex items-center justify-center gap-2">
               <div className="flex gap-0.5">
                 {[1, 2, 3, 4, 5].map((n) => (
@@ -133,38 +133,62 @@ export function ReviewsSection({
                 {averageRating.toFixed(1)} · {totalReviews} review{totalReviews === 1 ? "" : "s"}
               </p>
             </div>
+          ) : (
+            // Empty state: explicit "new pro" badge. Deliberately no stars —
+            // the spec forbids fake 5-star defaults.
+            <div
+              className="mt-5 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold"
+              style={{ border: `1px solid ${border}`, backgroundColor: surface, color: muted }}
+            >
+              <span aria-hidden>✨</span> New on OYRB
+            </div>
           )}
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {reviews.map((r) => (
-            <div
-              key={r.id}
-              className="flex flex-col gap-3 rounded-lg p-5"
-              style={{ backgroundColor: surface, border: `1px solid ${border}` }}
-            >
-              <div className="flex gap-0.5">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <Star
-                    key={n}
-                    size={13}
-                    fill={n <= r.rating ? accent : "transparent"}
-                    style={{ color: accent }}
-                  />
-                ))}
+        {hasReviews ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {reviews.map((r) => (
+              <div
+                key={r.id}
+                className="flex flex-col gap-3 rounded-lg p-5"
+                style={{ backgroundColor: surface, border: `1px solid ${border}` }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-0.5">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <Star
+                        key={n}
+                        size={13}
+                        fill={n <= r.rating ? accent : "transparent"}
+                        style={{ color: accent }}
+                      />
+                    ))}
+                  </div>
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
+                    style={{ border: `1px solid ${border}`, color: muted }}
+                    title="Verified booking — this reviewer had a confirmed appointment."
+                  >
+                    ✓ Verified booking
+                  </span>
+                </div>
+                {r.comment && (
+                  <p className="text-sm leading-relaxed" style={{ color: ink }}>
+                    &ldquo;{r.comment}&rdquo;
+                  </p>
+                )}
+                <div className="mt-auto flex items-center justify-between text-xs" style={{ color: muted }}>
+                  <span className="font-medium">{r.client_name}</span>
+                  <span>{new Date(r.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>
+                </div>
               </div>
-              {r.comment && (
-                <p className="text-sm leading-relaxed" style={{ color: ink }}>
-                  &ldquo;{r.comment}&rdquo;
-                </p>
-              )}
-              <div className="mt-auto flex items-center justify-between text-xs" style={{ color: muted }}>
-                <span className="font-medium">{r.client_name}</span>
-                <span>{new Date(r.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mx-auto max-w-md text-center text-sm" style={{ color: muted }}>
+            No reviews yet — be the first after your next appointment.
+          </p>
+        )}
       </div>
     </section>
   );

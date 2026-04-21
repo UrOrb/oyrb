@@ -245,7 +245,7 @@ export default async function DashboardPage({
         ))}
       </div>
 
-      <div className="mt-8 grid gap-3 md:grid-cols-2">
+      <div className="mt-8 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         <a href="/dashboard/services" className="rounded-lg border border-[#E7E5E4] bg-white p-5 hover:border-[#B8896B]">
           <p className="text-sm font-semibold">Manage services</p>
           <p className="mt-1 text-xs text-[#737373]">What you offer, pricing, and duration.</p>
@@ -253,6 +253,10 @@ export default async function DashboardPage({
         <a href="/dashboard/bookings" className="rounded-lg border border-[#E7E5E4] bg-white p-5 hover:border-[#B8896B]">
           <p className="text-sm font-semibold">View bookings</p>
           <p className="mt-1 text-xs text-[#737373]">All upcoming and past appointments.</p>
+        </a>
+        <a href="/dashboard/reviews" className="rounded-lg border border-[#E7E5E4] bg-white p-5 hover:border-[#B8896B]">
+          <p className="text-sm font-semibold">Reviews</p>
+          <p className="mt-1 text-xs text-[#737373]">Star rating updates as new reviews come in — you can&rsquo;t edit it.</p>
         </a>
       </div>
     </div>

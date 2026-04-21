@@ -99,19 +99,33 @@ export default async function PublicSitePage({ params }: Props) {
       .lte("start_at", weekAhead.toISOString()),
   ]);
 
-  // Reviews (approved only, limit 12 most recent)
+  // Reviews: live + flagged (flagged stays visible while admin is looking
+  // at it; pending_24h_hold and removed do NOT render). Display uses
+  // first_name + last_initial so clients stay pseudonymous; aggregate
+  // rating comes from real reviews only — no fake 5-star default.
   let reviews: Review[] = [];
   let averageRating: number | null = null;
   let totalReviews = 0;
   try {
     const { data: reviewData } = await supabase
       .from("reviews")
-      .select("id, client_name, rating, comment, created_at")
+      .select("id, rating, comment, created_at, reviewer_first_name, reviewer_last_initial, client_name")
       .eq("business_id", biz.id)
-      .eq("approved", true)
+      .in("status", ["live", "flagged"])
       .order("created_at", { ascending: false })
       .limit(12);
-    reviews = (reviewData ?? []) as Review[];
+    reviews = (reviewData ?? []).map((r: Record<string, unknown>) => {
+      const first = (r.reviewer_first_name as string | null) ?? "";
+      const last = (r.reviewer_last_initial as string | null) ?? "";
+      const fallback = (r.client_name as string | null) ?? "Anonymous";
+      return {
+        id: r.id as string,
+        client_name: first ? (last ? `${first} ${last}.` : first) : fallback,
+        rating: r.rating as number,
+        comment: (r.comment as string | null) ?? null,
+        created_at: r.created_at as string,
+      };
+    }) as Review[];
     if (reviews.length > 0) {
       averageRating = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
       totalReviews = reviews.length;

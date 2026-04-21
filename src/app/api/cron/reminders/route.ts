@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { resend } from "@/lib/email";
 import { sendSms, tierAllowsSms } from "@/lib/sms";
+import { issueBookingToken } from "@/lib/booking-tokens";
 
 const FROM_EMAIL =
   process.env.RESEND_FROM_EMAIL ?? "OYRB <bookings@oyrb.space>";
@@ -176,6 +177,18 @@ export async function GET(request: NextRequest) {
     businesses: { business_name: string; slug: string } | null;
   }>) {
     if (!b.clients?.email || !b.businesses || !b.services || !resend) continue;
+
+    // Issue a 30-day magic-link token so the review URL is non-enumerable
+    // and scoped to this booking only.
+    const tk = await issueBookingToken({
+      bookingId: b.id,
+      clientEmail: b.clients.email,
+      ttlDays: 30,
+    });
+    if (!tk.ok) continue;
+
+    const reviewUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://www.oyrb.space"}/booking/${tk.token}/review`;
+
     try {
       await resend.emails.send({
         from: FROM_EMAIL,
@@ -186,8 +199,8 @@ export async function GET(request: NextRequest) {
             <p style="color:#B8896B;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Share your experience</p>
             <h1 style="font-size:24px;font-weight:600;margin:0 0 12px;">Hi ${b.clients.name}!</h1>
             <p style="color:#525252;font-size:15px;line-height:1.5;margin:0 0 16px;">Thanks for visiting <strong>${b.businesses.business_name}</strong>. We'd love to hear how it went — your review helps other clients find great pros.</p>
-            <a href="${process.env.NEXT_PUBLIC_APP_URL ?? "https://www.oyrb.space"}/s/${b.businesses.slug}/review/${b.id}" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:14px 28px;border-radius:999px;font-size:14px;font-weight:600;margin:16px 0;">Leave a review</a>
-            <p style="color:#A3A3A3;font-size:12px;margin:24px 0 0;">Takes about 30 seconds. You&apos;ll be shown by first name only.</p>
+            <a href="${reviewUrl}" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:14px 28px;border-radius:999px;font-size:14px;font-weight:600;margin:16px 0;">Leave a review</a>
+            <p style="color:#A3A3A3;font-size:12px;margin:24px 0 0;">Takes about 30 seconds. You&apos;ll be shown by first name + last initial. Reviews publish 24 hours after you submit.</p>
           </div>
         `,
       });
@@ -201,11 +214,35 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // ── Review 24-hour hold release ───────────────────────────────────────
+  // Flip pending_24h_hold → live once the hold window has elapsed. The
+  // dual-write to `approved` keeps any legacy reader that still filters
+  // by approved=true working after this sweep. Cron runs daily, so the
+  // actual release lag is up to ~24h; that's within the spec's promise
+  // of "publish after 24 hours" since we only start counting from
+  // created_at.
+  const holdCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: released, error: releaseErr } = await supabase
+    .from("reviews")
+    .update({
+      status: "live",
+      approved: true,
+      published_at: new Date().toISOString(),
+    })
+    .eq("status", "pending_24h_hold")
+    .lte("created_at", holdCutoff)
+    .select("id");
+  if (releaseErr) {
+    console.error("Review hold release failed:", releaseErr);
+  }
+  const reviewsPublished = released?.length ?? 0;
+
   return NextResponse.json({
     processed: results.length,
     emailed: results.filter((r) => r.emailed).length,
     texted: results.filter((r) => r.texted).length,
     reviewEmailsSent,
+    reviewsPublished,
     results,
   });
 }
