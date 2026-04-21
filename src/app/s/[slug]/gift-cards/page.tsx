@@ -37,19 +37,25 @@ export default async function GiftCardsPage({ params }: Props) {
             Gift cards
           </p>
           <h1 className="mt-2 font-display text-3xl font-medium">
-            Give a treatment at {biz.business_name}
+            Give a treatment
           </h1>
           <p className="mt-2 text-sm text-[#737373]">
             Send a gift card via email. The recipient gets a code to redeem
-            during booking.
+            during booking on this page.
           </p>
         </div>
 
-        <GiftCardForm slug={slug} businessName={biz.business_name} />
+        {/* The form heading uses a generic platform reference instead of the
+            pro's business_name — pros who set their personal name as the
+            business name (privacy-sensitive) shouldn't have it surface on a
+            public checkout page. The redemption is still scoped to this slug
+            via the gift_cards.business_id column; the copy just hides the
+            identity here. */}
+        <GiftCardForm slug={slug} businessName="this pro" />
 
         <p className="mt-6 text-center text-[11px] text-[#A3A3A3]">
-          Payment is secure via Stripe. Gift cards don&apos;t expire but are
-          redeemable at <strong>{biz.business_name}</strong> only.
+          Payment is secure via Stripe. Gift cards don&apos;t expire and are
+          redeemable on <strong>oyrb.space</strong> at the booking page above.
         </p>
       </div>
     </div>

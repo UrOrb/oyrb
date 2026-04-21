@@ -189,7 +189,7 @@ export function GiftCardForm({ slug, businessName }: Props) {
       )}
 
       <p className="mt-3 text-[10px] text-[#A3A3A3]">
-        Valid only at {businessName}. Non-refundable. No expiration.
+        Valid for booking on oyrb.space at this site. Non-refundable. No expiration.
       </p>
     </div>
   );

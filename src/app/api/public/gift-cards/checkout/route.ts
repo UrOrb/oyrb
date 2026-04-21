@@ -90,8 +90,13 @@ export async function POST(request: NextRequest) {
             currency: "usd",
             unit_amount: amountCentsRaw,
             product_data: {
-              name: `Gift card — ${biz.business_name}`,
-              description: `Redeemable at ${biz.business_name}`,
+              // Generic line-item label so the pro's business_name (which can
+              // be a personal name like "Halania Dixon") doesn't surface on
+              // Stripe's hosted checkout page or the bank-statement
+              // descriptor. Pro identity is preserved in metadata.business_id
+              // for the webhook to route the funds + email correctly.
+              name: "OYRB Gift Card",
+              description: "Redeemable on oyrb.space",
             },
           },
         },
