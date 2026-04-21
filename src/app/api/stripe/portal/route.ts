@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
-import { isDemoMode } from "@/lib/demo";
 
 // Creates a Stripe Customer Portal session. Users manage subscription,
 // update payment method, download invoices, and cancel — all self-service
@@ -36,13 +35,6 @@ async function createPortalSession(request: NextRequest): Promise<
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "unauthorized", status: 401 };
-
-  // Demo mode: bounce straight back to settings — no real Stripe customer
-  // to open a portal for.
-  if (isDemoMode()) {
-    const origin = new URL(request.url).origin;
-    return { url: `${origin}/dashboard/settings?portal_error=${encodeURIComponent("Stripe Customer Portal is disabled in demo mode.")}` };
-  }
 
   const { data: business } = await supabase
     .from("businesses")

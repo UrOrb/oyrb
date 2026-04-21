@@ -3,7 +3,6 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { stripe, addonPriceIdFor } from "@/lib/stripe";
 import { TIERS } from "@/lib/plans";
 import { getAccountSummary } from "@/lib/account";
-import { isDemoMode } from "@/lib/demo";
 
 /**
  * Provisions another site for the signed-in user.
@@ -21,13 +20,6 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-
-  // Demo mode: skip Stripe entirely, just provision another site row for
-  // the demo user. The nightly reset wipes it.
-  if (isDemoMode()) {
-    const newId = await provisionSite(user.id);
-    return NextResponse.json({ siteId: newId, charged: false, demo: true });
-  }
 
   let body: { mode?: "included" | "addon" };
   try {

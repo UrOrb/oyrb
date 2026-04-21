@@ -3,7 +3,6 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { stripe, priceIdFor } from "@/lib/stripe";
 import { TIERS, type Tier, type BillingCycle } from "@/lib/plans";
 import { getAccountSummary } from "@/lib/account";
-import { isDemoMode } from "@/lib/demo";
 
 /**
  * In-app plan / billing-cycle change. Server-side cap enforcement: if the
@@ -40,16 +39,6 @@ export async function POST(request: Request) {
   const summary = await getAccountSummary();
   if (!summary?.subscription) {
     return NextResponse.json({ error: "No active subscription" }, { status: 400 });
-  }
-
-  // Demo mode: update the local row, skip Stripe. Reset cron restores it.
-  if (isDemoMode()) {
-    const admin = createAdminClient();
-    await admin
-      .from("account_subscriptions")
-      .update({ tier, billing_cycle: cycle, updated_at: new Date().toISOString() })
-      .eq("user_id", user.id);
-    return NextResponse.json({ success: true, demo: true });
   }
 
   const newCap = TIERS[tier].siteCap;

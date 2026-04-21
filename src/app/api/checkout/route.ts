@@ -4,7 +4,6 @@ import { stripe, priceIdFor, type PriceTier } from "@/lib/stripe";
 import type { BillingCycle } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 import { checkTrialEligibility } from "@/lib/trial";
-import { isDemoMode } from "@/lib/demo";
 
 const VERIFY_SECRET = process.env.CLIENT_AUTH_SECRET ?? "";
 const encoder = new TextEncoder();
@@ -38,18 +37,6 @@ export async function POST(request: Request) {
     }
     if (cycle !== "monthly" && cycle !== "annual") {
       return NextResponse.json({ error: "Invalid billing cycle" }, { status: 400 });
-    }
-
-    // Demo mode: never touch Stripe. Pretend the checkout succeeded and
-    // send the client a URL that just goes back to the dashboard with a
-    // success flag. The client renders a "Demo mode — no real charge made"
-    // toast from the DEMO_MODE banner.
-    if (isDemoMode()) {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://demo.oyrb.space";
-      return NextResponse.json({
-        url: `${appUrl}/dashboard?checkout=success&demo=1`,
-        demo: true,
-      });
     }
 
     const priceId = priceIdFor(tier, cycle);

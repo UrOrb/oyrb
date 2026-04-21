@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { sendBookingConfirmation, sendOwnerNotification } from "@/lib/email";
+import { sendOwnerNotification } from "@/lib/email";
 import { formatCents } from "@/lib/types";
 import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
+import { notifyBookingConfirmed } from "@/lib/booking-notify";
 
 type BookingPayload = {
   business_id: string;
@@ -15,6 +16,9 @@ type BookingPayload = {
   sms_consent?: boolean;
   series_interval_weeks?: number | null;
   series_occurrences?: number | null;
+  age_confirmed?: boolean;
+  age_is_minor?: boolean;
+  guardian_name?: string;
 };
 
 export async function POST(request: NextRequest) {
@@ -42,6 +46,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
+  // Age gate is required. Minors must supply a guardian name.
+  if (!body.age_confirmed) {
+    return NextResponse.json({ error: "Age confirmation is required to book." }, { status: 400 });
+  }
+  if (body.age_is_minor && !(body.guardian_name && body.guardian_name.trim().length >= 2)) {
+    return NextResponse.json({ error: "Parent or guardian name is required for minors." }, { status: 400 });
+  }
+
   // Canonicalize the email so "Foo@x.com" and "foo@x.com" don't create
   // duplicate client rows. The rest of the pipeline already lower-cases
   // email when reading; do it on write too.
@@ -57,7 +69,7 @@ export async function POST(request: NextRequest) {
   // Load business + service
   const { data: business } = await supabase
     .from("businesses")
-    .select("id, business_name, slug, contact_email, owner_id, is_published")
+    .select("id, business_name, slug, contact_email, owner_id, is_published, subscription_tier")
     .eq("id", body.business_id)
     .maybeSingle();
   if (!business || !business.is_published) {
@@ -149,6 +161,9 @@ export async function POST(request: NextRequest) {
       start_at: startAt.toISOString(),
       end_at: endAt.toISOString(),
       status: "confirmed",
+      age_confirmed_at: new Date().toISOString(),
+      age_is_minor: !!body.age_is_minor,
+      guardian_name: body.age_is_minor ? body.guardian_name?.trim() ?? null : null,
       ...(isSeries ? { series_id: seriesId, series_interval_weeks: weeks } : {}),
     })
     .select("id")
@@ -211,16 +226,22 @@ export async function POST(request: NextRequest) {
   const emailTasks: Promise<unknown>[] = [];
 
   emailTasks.push(
-    sendBookingConfirmation({
-      to: body.email,
-      customerName: body.name,
+    notifyBookingConfirmed({
+      bookingId: booking.id,
+      businessId: business.id,
       businessName: business.business_name,
+      businessSlug: business.slug,
+      customerName: body.name,
+      customerEmail: body.email,
+      customerPhone: body.phone ?? null,
+      smsConsent: !!body.sms_consent,
       serviceName: service.name,
       startAt,
-      price: priceLabel,
+      priceLabel,
       siteUrl,
+      businessTier: business.subscription_tier,
     }).catch((err) => {
-      console.error("Customer email failed:", err);
+      console.error("Customer notify failed:", err);
     })
   );
 

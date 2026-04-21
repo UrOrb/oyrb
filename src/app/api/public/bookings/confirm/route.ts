@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
-import { sendBookingConfirmation, sendOwnerNotification } from "@/lib/email";
+import { sendOwnerNotification } from "@/lib/email";
+import { notifyBookingConfirmed } from "@/lib/booking-notify";
 import { formatCents } from "@/lib/types";
 
 // Called by the booking-confirmed page after Stripe redirects back.
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
   // Re-fetch business + service
   const { data: business } = await supabase
     .from("businesses")
-    .select("id, business_name, slug, contact_email, owner_id")
+    .select("id, business_name, slug, contact_email, owner_id, subscription_tier")
     .eq("id", businessId)
     .maybeSingle();
   if (!business) {
@@ -135,6 +136,11 @@ export async function POST(request: NextRequest) {
     clientId = newClient?.id ?? null;
   }
 
+  // Age gate metadata from Stripe session (set by deposit-checkout route)
+  const ageConfirmed = metadata.age_confirmed === "true";
+  const ageIsMinor = metadata.age_is_minor === "true";
+  const guardianName = metadata.guardian_name ?? null;
+
   // Create booking with deposit_paid=true
   const { data: booking, error: bookingErr } = await supabase
     .from("bookings")
@@ -147,6 +153,7 @@ export async function POST(request: NextRequest) {
       status: "confirmed",
       deposit_paid: true,
       stripe_payment_intent_id: paymentIntentId,
+      ...(ageConfirmed ? { age_confirmed_at: new Date().toISOString(), age_is_minor: ageIsMinor, guardian_name: guardianName } : {}),
       ...((() => {
         const w = parseInt(session.metadata?.series_interval_weeks ?? "0", 10);
         const n = parseInt(session.metadata?.series_occurrences ?? "1", 10);
@@ -231,15 +238,21 @@ export async function POST(request: NextRequest) {
 
   // Fire emails
   const tasks: Promise<unknown>[] = [
-    sendBookingConfirmation({
-      to: email,
-      customerName: name,
+    notifyBookingConfirmed({
+      bookingId: booking.id,
+      businessId: business.id,
       businessName: business.business_name,
+      businessSlug: business.slug,
+      customerName: name,
+      customerEmail: email,
+      customerPhone: phone,
+      smsConsent,
       serviceName: service.name,
       startAt,
-      price: priceLabel,
+      priceLabel,
       siteUrl,
-    }).catch((err) => console.error("Confirm email failed:", err)),
+      businessTier: business.subscription_tier,
+    }).catch((err) => console.error("Confirm notify failed:", err)),
   ];
 
   let ownerEmail = business.contact_email;

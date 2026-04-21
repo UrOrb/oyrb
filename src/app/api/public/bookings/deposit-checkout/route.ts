@@ -15,6 +15,9 @@ type Payload = {
   tip_cents?: number;
   series_interval_weeks?: number | null;
   series_occurrences?: number | null;
+  age_confirmed?: boolean;
+  age_is_minor?: boolean;
+  guardian_name?: string;
 };
 
 // Creates a Stripe Checkout Session to collect the deposit.
@@ -40,6 +43,13 @@ export async function POST(request: NextRequest) {
 
   if (!body.business_id || !body.service_id || !body.start_at || !body.name || !body.email) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
+
+  if (!body.age_confirmed) {
+    return NextResponse.json({ error: "Age confirmation is required to book." }, { status: 400 });
+  }
+  if (body.age_is_minor && !(body.guardian_name && body.guardian_name.trim().length >= 2)) {
+    return NextResponse.json({ error: "Parent or guardian name is required for minors." }, { status: 400 });
   }
 
   body.email = body.email.toLowerCase();
@@ -153,6 +163,9 @@ export async function POST(request: NextRequest) {
         tip_cents: String(tipCents),
         series_interval_weeks: String(body.series_interval_weeks ?? 0),
         series_occurrences: String(body.series_occurrences ?? 1),
+        age_confirmed: "true",
+        age_is_minor: String(!!body.age_is_minor),
+        guardian_name: body.age_is_minor ? (body.guardian_name?.trim().slice(0, 120) ?? "") : "",
       },
     });
 

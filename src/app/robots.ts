@@ -18,7 +18,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/dashboard", "/api/", "/dashboard/admin"],
+        disallow: ["/dashboard", "/api/", "/dashboard/admin", "/booking/", "/preferences/", "/b/"],
       },
       // Aggressive commercial scrapers — directory content is not for resale.
       {

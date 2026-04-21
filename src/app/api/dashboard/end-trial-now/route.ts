@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 import { getAccountSummary } from "@/lib/account";
-import { isDemoMode } from "@/lib/demo";
 
 /**
  * Converts an active trial to immediate billing. Stripe charges the user
@@ -21,15 +20,6 @@ export async function POST() {
   }
   if (summary.subscription.status !== "trialing") {
     return NextResponse.json({ error: "Subscription is not in a trial" }, { status: 400 });
-  }
-
-  if (isDemoMode()) {
-    const admin = createAdminClient();
-    await admin
-      .from("account_subscriptions")
-      .update({ status: "active", updated_at: new Date().toISOString() })
-      .eq("user_id", user.id);
-    return NextResponse.json({ success: true, demo: true });
   }
 
   try {

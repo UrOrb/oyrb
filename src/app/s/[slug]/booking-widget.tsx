@@ -125,6 +125,9 @@ export function BookingWidget({
   const [ackPolicies, setAckPolicies] = useState(false);
   const [ackTerms, setAckTerms] = useState(false);
   const [ackAuthorize, setAckAuthorize] = useState(false);
+  const [ackAge, setAckAge] = useState(false);
+  const [isMinor, setIsMinor] = useState(false);
+  const [guardianName, setGuardianName] = useState("");
   const [smsConsent, setSmsConsent] = useState(false);
   const [tipPct, setTipPct] = useState<number>(0);
   const [referencePhotos, setReferencePhotos] = useState<string[]>([]);
@@ -231,6 +234,9 @@ export function BookingWidget({
     setAckPolicies(false);
     setAckTerms(false);
     setAckAuthorize(false);
+    setAckAge(false);
+    setIsMinor(false);
+    setGuardianName("");
     setSmsConsent(false);
     setTipPct(0);
     setReferencePhotos([]);
@@ -277,6 +283,14 @@ export function BookingWidget({
       setError("Please check all three acknowledgments to confirm your booking.");
       return;
     }
+    if (!ackAge) {
+      setError("Please confirm your age to continue.");
+      return;
+    }
+    if (isMinor && guardianName.trim().length < 2) {
+      setError("Please enter the name of your parent or guardian.");
+      return;
+    }
     setError(null);
     const [h, m] = time.split(":").map(Number);
     const startAt = new Date(date);
@@ -307,6 +321,9 @@ export function BookingWidget({
           tip_cents: tipCents,
           series_interval_weeks: seriesWeeks > 0 ? seriesWeeks : null,
           series_occurrences: seriesWeeks > 0 ? seriesOccurrences : null,
+          age_confirmed: ackAge,
+          age_is_minor: isMinor,
+          guardian_name: isMinor ? guardianName.trim() : undefined,
         }),
       });
       const data = await res.json();
@@ -908,6 +925,45 @@ export function BookingWidget({
                     </div>
                   )}
 
+                  {/* Age gate — legally required before booking */}
+                  <div className="space-y-3 rounded-lg border border-[#E7E5E4] bg-white p-4">
+                    <label className="flex items-start gap-3 text-xs">
+                      <input
+                        type="checkbox"
+                        checked={ackAge}
+                        onChange={(e) => setAckAge(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 shrink-0"
+                      />
+                      <span className="text-[#525252]">
+                        <strong>I confirm I am 18 or older.</strong>
+                      </span>
+                    </label>
+                    <label className="flex items-start gap-3 text-xs">
+                      <input
+                        type="checkbox"
+                        checked={isMinor}
+                        onChange={(e) => setIsMinor(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 shrink-0"
+                      />
+                      <span className="text-[#525252]">
+                        I&apos;m under 18 — a parent or guardian has consented to this booking.
+                      </span>
+                    </label>
+                    {isMinor && (
+                      <div className="pl-7">
+                        <label className="mb-1 block text-xs font-medium text-[#525252]">
+                          Parent / guardian name
+                        </label>
+                        <input
+                          value={guardianName}
+                          onChange={(e) => setGuardianName(e.target.value)}
+                          className="w-full rounded-md border border-[#E7E5E4] px-3 py-2 text-sm"
+                          placeholder="Full name of consenting adult"
+                        />
+                      </div>
+                    )}
+                  </div>
+
                   {/* Three acknowledgment checkboxes */}
                   <div className="space-y-3 rounded-lg border border-[#E7E5E4] bg-white p-4">
                     <label className="flex items-start gap-3 text-xs">
@@ -968,7 +1024,14 @@ export function BookingWidget({
 
                   {error && <p className="text-xs text-red-600">{error}</p>}
                   <button
-                    disabled={pending || !ackPolicies || !ackTerms || !ackAuthorize}
+                    disabled={
+                      pending ||
+                      !ackPolicies ||
+                      !ackTerms ||
+                      !ackAuthorize ||
+                      !ackAge ||
+                      (isMinor && guardianName.trim().length < 2)
+                    }
                     onClick={submit}
                     className="w-full rounded-md py-3 text-sm font-semibold disabled:opacity-50"
                     style={{ backgroundColor: btnBg, color: btnText }}
