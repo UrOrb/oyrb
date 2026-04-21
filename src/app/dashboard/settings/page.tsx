@@ -59,6 +59,24 @@ export default async function SettingsPage({ searchParams }: Props) {
         />
       </div>
 
+      {/* Directory listing — link card */}
+      <div className="mt-8 flex items-center justify-between gap-4 rounded-lg border border-[#E7E5E4] bg-white p-6">
+        <div>
+          <h2 className="text-base font-semibold">Directory Listing</h2>
+          <p className="mt-0.5 text-xs text-[#737373]">
+            Opt in to the public OYRB beauty-pro directory at{" "}
+            <code className="text-[#0A0A0A]">oyrb.space/find</code>. Choose exactly
+            what clients see; remove yourself anytime.
+          </p>
+        </div>
+        <Link
+          href="/dashboard/directory"
+          className="shrink-0 rounded-md bg-[#0A0A0A] px-3 py-1.5 text-xs font-medium text-white hover:opacity-85"
+        >
+          Manage listing →
+        </Link>
+      </div>
+
       {/* Goal tracking — lives at anchor #goal so the dashboard's "Edit"
           link jumps straight here. */}
       <div id="goal" className="mt-8 scroll-mt-20 rounded-lg border border-[#E7E5E4] bg-white p-6">

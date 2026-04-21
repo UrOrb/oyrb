@@ -266,6 +266,7 @@ export async function searchPublicListings(opts: {
     .eq("is_listed", true)
     .eq("is_hidden_pending_review", false)
     .eq("agreement_version", DIRECTORY_AGREEMENT_VERSION)
+    .not("agreement_accepted_at", "is", null)
     .order("updated_at", { ascending: false })
     .limit(limit);
 
@@ -306,6 +307,7 @@ export async function getRecentListings(limit = 8): Promise<PublicListing[]> {
     .eq("is_listed", true)
     .eq("is_hidden_pending_review", false)
     .eq("agreement_version", DIRECTORY_AGREEMENT_VERSION)
+    .not("agreement_accepted_at", "is", null)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error || !data) return [];
@@ -338,6 +340,7 @@ export async function getPublicListingBySlug(
     .eq("is_listed", true)
     .eq("is_hidden_pending_review", false)
     .eq("agreement_version", DIRECTORY_AGREEMENT_VERSION)
+    .not("agreement_accepted_at", "is", null)
     .maybeSingle();
   if (!data) return null;
   const bizMap = await loadBizByOwnerIds(supabase, [data.user_id as string]);

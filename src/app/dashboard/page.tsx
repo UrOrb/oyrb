@@ -9,6 +9,8 @@ import { getAccountSummary } from "@/lib/account";
 import { TIERS, fmtMoney } from "@/lib/plans";
 import { getGoalSnapshot } from "@/lib/goal-tracking";
 import { GoalMeter } from "./goal-meter";
+import { getMyListing } from "@/lib/directory";
+import { DirectoryNudge } from "./directory-nudge";
 
 export default async function DashboardPage({
   searchParams,
@@ -146,6 +148,11 @@ export default async function DashboardPage({
   // paint has the real progress bar width, no flash of empty state.
   const goalSnapshot = await getGoalSnapshot(user.id);
 
+  // Is this pro already in the public directory? Used to decide whether to
+  // surface the "Want to be found by new clients?" nudge below.
+  const myListing = await getMyListing(user.id);
+  const alreadyListed = !!(myListing?.is_listed && myListing.agreement_accepted_at);
+
   return (
     <div>
       <ApplyPendingTemplate />
@@ -177,6 +184,13 @@ export default async function DashboardPage({
           </a>
         </div>
       </div>
+
+      {/* Dismissible nudge: shown only after site is published and only if
+          the pro hasn't already opted into the directory. */}
+      <DirectoryNudge
+        sitePublished={business.is_published}
+        alreadyListed={alreadyListed}
+      />
 
       {/* ── Your sites ──
           One card per business the user owns. Each card embeds a live iframe

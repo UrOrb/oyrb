@@ -360,6 +360,14 @@ export function VisibilityForm({ initial, currentlyListed }: Props) {
         </label>
       </div>
 
+      {/* Preview — reflects current toggles/content live, so pros can eyeball
+          their card before committing. Mirrors the public /find card layout
+          closely enough to set expectations; /find itself is authoritative. */}
+      <div className="border-t border-[#E7E5E4] pt-5">
+        <p className="text-xs font-medium text-[#525252]">Here&apos;s how your listing will look</p>
+        <ListingPreview form={form} />
+      </div>
+
       {/* Actions */}
       <div className="flex flex-wrap items-center gap-3 border-t border-[#E7E5E4] pt-4">
         <button
@@ -376,7 +384,7 @@ export function VisibilityForm({ initial, currentlyListed }: Props) {
           disabled={pending}
           className="rounded-md bg-[#0A0A0A] px-4 py-1.5 text-xs font-medium text-white hover:opacity-85 disabled:opacity-50"
         >
-          {pending ? "Working…" : currentlyListed ? "Save & keep live" : "Save & publish"}
+          {pending ? "Working…" : currentlyListed ? "Save & keep live" : "Publish to Directory"}
         </button>
         {msg && (
           <span
@@ -446,6 +454,96 @@ function TextField({
         maxLength={maxLength}
         className="mt-1 w-full rounded-md border border-[#E7E5E4] px-3 py-1.5 text-sm"
       />
+    </div>
+  );
+}
+
+function ListingPreview({ form }: { form: Toggles & Content }) {
+  // Mirrors the public /find card enough to set expectations — real render
+  // happens in src/app/find/page.tsx against toPublicListing() in lib/directory.
+  const cityLine = [form.show_city && form.city.trim(), form.show_city && form.state.trim()]
+    .filter(Boolean)
+    .join(", ");
+
+  return (
+    <div className="mt-3 rounded-xl border border-[#E7E5E4] bg-[#FAFAF9] p-4">
+      <div className="rounded-lg border border-[#E7E5E4] bg-white p-5 shadow-sm">
+        <div className="flex items-start gap-3">
+          {form.show_avatar && (
+            <div
+              aria-hidden
+              className="h-12 w-12 shrink-0 rounded-full bg-gradient-to-br from-[#E7E5E4] to-[#D6D3D1]"
+            />
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-display text-base font-medium">
+              Your business name
+            </p>
+            {form.show_profession && form.profession && (
+              <p className="text-xs text-[#737373]">{form.profession}</p>
+            )}
+            {cityLine && (
+              <p className="text-[11px] text-[#A3A3A3]">{cityLine}</p>
+            )}
+          </div>
+          {form.show_accepting_clients && form.accepting_clients && (
+            <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+              Accepting clients
+            </span>
+          )}
+          {form.show_price_range && form.price_range && (
+            <span className="shrink-0 rounded-full bg-[#FAFAF9] px-2 py-0.5 text-[10px] font-semibold text-[#525252]">
+              {form.price_range}
+            </span>
+          )}
+        </div>
+
+        {form.show_bio && form.bio.trim() && (
+          <p className="mt-3 line-clamp-2 text-xs text-[#525252]">{form.bio}</p>
+        )}
+
+        {form.show_specialty_tags && form.specialties.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1">
+            {form.specialties.slice(0, 4).map((t) => (
+              <span
+                key={t}
+                className="rounded-full border border-[#E7E5E4] px-2 py-0.5 text-[10px] text-[#525252]"
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-[#737373]">
+          {form.show_instagram && form.instagram_handle.trim() && (
+            <span>IG @{form.instagram_handle.replace(/^@/, "")}</span>
+          )}
+          {form.show_tiktok && form.tiktok_handle.trim() && (
+            <span>TT @{form.tiktok_handle.replace(/^@/, "")}</span>
+          )}
+          {form.show_booking_link && <span>· Book now →</span>}
+          {form.show_full_site_link && <span>· View site →</span>}
+        </div>
+
+        {form.show_gallery && (
+          <div className="mt-3 grid grid-cols-4 gap-1">
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                aria-hidden
+                className="aspect-square rounded-md bg-gradient-to-br from-[#F5F5F4] to-[#E7E5E4]"
+              />
+            ))}
+          </div>
+        )}
+      </div>
+      <p className="mt-2 text-[10px] text-[#A3A3A3]">
+        Preview updates as you toggle — {form.allow_search_engine_indexing
+          ? "indexable by Google"
+          : "noindex (OYRB-only)"}
+        .
+      </p>
     </div>
   );
 }
