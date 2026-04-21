@@ -77,10 +77,10 @@ export function AgreementForm({ version }: { version: string }) {
       </p>
       <div className="mt-5 flex items-center gap-3">
         <a
-          href="/dashboard/settings"
+          href="/dashboard/directory"
           className="inline-flex rounded-md border border-[#E7E5E4] bg-white px-4 py-1.5 text-xs font-medium text-[#525252] hover:bg-[#F5F5F4]"
         >
-          Cancel
+          ← Back
         </a>
         <button
           type="button"
@@ -90,6 +90,12 @@ export function AgreementForm({ version }: { version: string }) {
         >
           {pending ? "Saving…" : "I Agree — Continue"}
         </button>
+        <a
+          href="/dashboard/settings"
+          className="ml-auto text-xs text-[#A3A3A3] hover:text-[#525252]"
+        >
+          Exit setup
+        </a>
         {err && <span className="text-xs text-red-600">{err}</span>}
       </div>
     </div>

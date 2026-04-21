@@ -370,6 +370,12 @@ export function VisibilityForm({ initial, currentlyListed }: Props) {
 
       {/* Actions */}
       <div className="flex flex-wrap items-center gap-3 border-t border-[#E7E5E4] pt-4">
+        <a
+          href="/dashboard/settings"
+          className="inline-flex rounded-md border border-[#E7E5E4] bg-white px-4 py-1.5 text-xs font-medium text-[#525252] hover:bg-[#F5F5F4]"
+        >
+          ← Back to Settings
+        </a>
         <button
           type="button"
           onClick={() => submit(false)}

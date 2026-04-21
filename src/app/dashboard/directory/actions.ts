@@ -139,18 +139,33 @@ export async function saveVisibilitySettings(
     if (r.value) cleanSpecialties.push(r.value.slice(0, 40));
   }
 
-  // Fetch the user's first published business to auto-fill booking/site/gallery.
-  const { data: biz } = await supabase
+  // Fetch the user's first published business to auto-fill booking + site links.
+  // NOTE: the real column is `gallery_photos`, not `gallery_image_urls` —
+  // selecting the wrong name errored silently and left biz=null, which
+  // made every "Publish to Directory" click turn into a silent draft save.
+  const { data: biz, error: bizErr } = await supabase
     .from("businesses")
-    .select("business_name, slug, gallery_image_urls")
+    .select("business_name, slug, is_published")
     .eq("owner_id", user.id)
-    .eq("is_published", true)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
+  if (bizErr) return { ok: false, error: bizErr.message };
+
+  // Publishing to the directory requires a published booking site so that
+  // show_booking_link / show_full_site_link have a real URL to point to,
+  // and so the slug can be derived deterministically. Fail loudly rather
+  // than silently downgrading to a draft save.
+  if (input.go_live && (!biz || !biz.is_published)) {
+    return {
+      ok: false,
+      error:
+        "Please publish your booking site first. Go to Dashboard → Site, fill it in, and toggle it live before publishing to the directory.",
+    };
+  }
 
   const origin = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.oyrb.space";
-  const bookingUrl = biz ? `${origin}/s/${biz.slug}` : null;
+  const bookingUrl = biz?.is_published ? `${origin}/s/${biz.slug}` : null;
   const fullSiteUrl = bookingUrl; // same URL for now; separate column for future
 
   // Slug — reuse if already set, otherwise generate from business name +
@@ -199,6 +214,16 @@ export async function saveVisibilitySettings(
     .eq("user_id", user.id);
 
   if (error) return { ok: false, error: error.message };
+
+  // Publishing attempt without a slug is an invariant violation now that
+  // the go_live gate above requires a published site — surface it instead
+  // of quietly demoting to a draft.
+  if (input.go_live && !slug) {
+    return {
+      ok: false,
+      error: "Could not generate a directory URL from your site name. Update your business name and try again.",
+    };
+  }
 
   // Invalidate /find cache so the new/updated listing shows up fast.
   revalidatePath("/find");
