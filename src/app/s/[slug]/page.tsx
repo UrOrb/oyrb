@@ -45,6 +45,12 @@ export default async function PublicSitePage({ params }: Props) {
   const { slug } = await params;
   const supabase = createAdminClient();
 
+  // Pull the signed-in user once up front — used both for the
+  // unpublished-owner-preview fallback below AND for the
+  // "Back to Dashboard" pill we render only to the site owner.
+  const userSupabase = await createClient();
+  const { data: { user } } = await userSupabase.auth.getUser();
+
   let { data: biz } = await supabase
     .from("businesses")
     .select("*")
@@ -54,21 +60,21 @@ export default async function PublicSitePage({ params }: Props) {
 
   // Owner preview: let a signed-in owner view their own site even if it's
   // unpublished, so the dashboard preview panel always works.
-  if (!biz) {
-    const userSupabase = await createClient();
-    const { data: { user } } = await userSupabase.auth.getUser();
-    if (user) {
-      const { data: ownerBiz } = await supabase
-        .from("businesses")
-        .select("*")
-        .eq("slug", slug)
-        .eq("owner_id", user.id)
-        .maybeSingle();
-      biz = ownerBiz;
-    }
+  if (!biz && user) {
+    const { data: ownerBiz } = await supabase
+      .from("businesses")
+      .select("*")
+      .eq("slug", slug)
+      .eq("owner_id", user.id)
+      .maybeSingle();
+    biz = ownerBiz;
   }
 
   if (!biz) notFound();
+
+  // Show the "Back to Dashboard" pill to the site owner only. Non-owners
+  // (anonymous visitors, clients, other OYRB pros) never see it.
+  const isOwner = !!user && user.id === biz.owner_id;
 
   const now = new Date();
   const weekAhead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -204,6 +210,15 @@ export default async function PublicSitePage({ params }: Props) {
 
   return (
     <>
+      {isOwner && (
+        <a
+          href="/dashboard"
+          aria-label="Back to Dashboard"
+          className="fixed left-1/2 top-3 z-[60] -translate-x-1/2 rounded-full bg-[#0A0A0A] px-3.5 py-1.5 text-[11px] font-semibold text-white shadow-[0_4px_16px_rgba(10,10,10,0.25)] backdrop-blur-sm transition-transform hover:-translate-y-px hover:bg-[#262626] focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:left-auto sm:right-4 sm:translate-x-0"
+        >
+          ← Back to Dashboard
+        </a>
+      )}
       <Template {...templateProps} />
 
       {/* Reviews below template */}
