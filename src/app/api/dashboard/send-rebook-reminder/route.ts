@@ -64,7 +64,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Most recent confirmed booking drives the "days since" copy + token.
+  // Most recent completed booking (end_at in the past) drives the
+  // "days since" copy + token. We deliberately exclude future bookings
+  // — the reminder email's copy is "It's been X days since your last
+  // service", which is nonsense if the service hasn't happened yet.
+  const nowIso = new Date().toISOString();
   const { data: lastBooking } = await admin
     .from("bookings")
     .select(`
@@ -73,6 +77,7 @@ export async function POST(request: NextRequest) {
     `)
     .eq("client_id", client.id)
     .neq("status", "cancelled")
+    .lte("end_at", nowIso)
     .order("end_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -84,7 +89,27 @@ export async function POST(request: NextRequest) {
   } | null;
 
   if (!last || !last.services) {
-    return NextResponse.json({ error: "No previous bookings to reference" }, { status: 400 });
+    // Check whether they only have future bookings — distinct error so the
+    // pro gets a useful nudge instead of "no bookings".
+    const { count: futureCount } = await admin
+      .from("bookings")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", client.id)
+      .neq("status", "cancelled")
+      .gt("end_at", nowIso);
+    if ((futureCount ?? 0) > 0) {
+      return NextResponse.json(
+        {
+          error:
+            "This client's next appointment hasn't happened yet. Wait until after it wraps to send a rebook reminder.",
+        },
+        { status: 400 },
+      );
+    }
+    return NextResponse.json(
+      { error: "No previous bookings to reference" },
+      { status: 400 },
+    );
   }
 
   const tk = await issueBookingToken({
