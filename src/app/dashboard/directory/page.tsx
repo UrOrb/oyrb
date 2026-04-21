@@ -24,10 +24,12 @@ export default async function DirectoryDashboardPage({ searchParams }: Props) {
   const agreementAccepted =
     listing?.agreement_version === DIRECTORY_AGREEMENT_VERSION;
 
-  // Stage 1 — Intro: shown first-time visitors who haven't signed an
-  // agreement (or whose version is stale). They click "Get Started" to
-  // continue to the agreement (?start=1).
-  const showIntro = !agreementAccepted && start !== "1";
+  // Intro is the landing view at the bare URL. A user who's already live
+  // skips it (they want their live controls + editor directly). Anyone
+  // else — first-time visitor, accepted-agreement-but-not-published, or
+  // someone pressed "← Back" from a later step — lands here until they
+  // click Get Started (?start=1).
+  const showIntro = start !== "1" && !listing?.is_listed;
 
   return (
     <div className="max-w-2xl">
@@ -79,7 +81,7 @@ export default async function DirectoryDashboardPage({ searchParams }: Props) {
               href="/dashboard/directory?start=1"
               className="inline-flex rounded-md bg-[#0A0A0A] px-4 py-1.5 text-xs font-medium text-white hover:opacity-85"
             >
-              Get Started →
+              {agreementAccepted ? "Continue to my listing →" : "Get Started →"}
             </Link>
           </div>
         </div>
