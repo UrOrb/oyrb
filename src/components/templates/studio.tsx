@@ -77,14 +77,9 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
       >
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <h1 className="text-lg font-semibold" style={{ fontFamily: displayFont }}>{bizName}</h1>
-          <a
-            href="#book"
-            onClick={(e) => { e.preventDefault(); (window as unknown as { __oyrbOpenBooking?: () => void }).__oyrbOpenBooking?.(); }}
-            style={{ backgroundColor: btnBg, color: btnText, borderRadius: radius }}
-            className="px-5 py-2 text-sm font-medium transition-opacity hover:opacity-80"
-          >
-            {c("top_book_label", "Book Now")}
-          </a>
+          {/* Top-right "Book Now" removed — the hero CTA + per-service buttons
+              already handle booking, and the floating widget catches any
+              #book hash links elsewhere on the page. */}
         </div>
       </header>
 

@@ -191,15 +191,9 @@ export function CleanTemplate({ business, services, hours, theme, content, isEdi
               )}
             </div>
 
-            {/* CTA */}
-            <a
-              href="#book"
-            onClick={(e) => { e.preventDefault(); (window as unknown as { __oyrbOpenBooking?: () => void }).__oyrbOpenBooking?.(); }}
-              style={{ backgroundColor: btnBg, color: btnText, borderRadius: radius }}
-              className="block w-full py-3.5 text-center text-sm font-medium transition-opacity hover:opacity-80"
-            >
-              {c("sidebar_cta_label", "Request a Booking")}
-            </a>
+            {/* "Request a Booking" CTA under Location removed as redundant —
+                the top-right header Book Now + per-service Book buttons
+                cover booking intent. */}
           </aside>
         </div>
 

@@ -670,13 +670,8 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
           letterSpacing: (t.id === "street" || t.id === "slate") ? 1 : 0,
           textTransform: (t.id === "street" || t.id === "slate") ? "uppercase" as const : "none" as const,
         }}>{biz.name}</div>
-        <a href={bookHref} style={{
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          height: 36, padding: "0 16px",
-          background: t.btnBg, color: t.btnText,
-          borderRadius: t.radiusBtn, fontSize: 12, fontWeight: 600,
-          textDecoration: "none", fontFamily: t.bodyFont,
-        }}>{c("top_book_label", "Book")}</a>
+        {/* Top-right "Book" removed — redundant with the hero CTA + per-service buttons.
+            The floating bottom-right booking widget still handles all #book hash links. */}
       </div>
 
       {/* Constrained content width on large screens */}

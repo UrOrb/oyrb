@@ -79,17 +79,11 @@ export function BoldTemplate({ business, services, hours, theme, content, isEdit
           sizes="100vw"
         />
 
-        {/* Nav bar inside hero */}
+        {/* Nav bar inside hero — top-right "Book Now" removed as redundant
+            with the per-service CTAs + sidebar CTA below. Kept the brand
+            label so the top edge of the hero still has a focal mark. */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-6 pt-5">
           <span className="text-xs font-semibold uppercase tracking-widest text-white/70">{c("top_brand_label", "OYRB")}</span>
-          <a
-            href="#book"
-            onClick={(e) => { e.preventDefault(); (window as unknown as { __oyrbOpenBooking?: () => void }).__oyrbOpenBooking?.(); }}
-            style={{ backgroundColor: "white", color: ink, borderRadius: radius / 2 }}
-            className="px-4 py-1.5 text-xs font-bold transition-opacity hover:opacity-90"
-          >
-            {c("top_book_label", "Book Now")}
-          </a>
         </div>
 
         {/* Business info over cover */}
