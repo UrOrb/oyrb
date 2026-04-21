@@ -138,7 +138,6 @@ export default async function BookingTokenPage({ params }: Props) {
           {!cancelled && (
             <BookingActions
               token={token}
-              proSiteUrl={siteUrl}
               businessName={booking.businesses.business_name}
             />
           )}

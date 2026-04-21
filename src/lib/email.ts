@@ -80,11 +80,12 @@ export async function sendBookingConfirmation(params: {
           </div>
           ${viewBookingUrl ? `
           <p style="color:#737373;font-size:14px;line-height:1.5;margin:0 0 20px;">View your booking, add it to your calendar, or reschedule anytime:</p>
-          <div style="margin:0 0 24px;">
-            <a href="${viewBookingUrl}" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:600;margin-right:8px;">View my booking</a>
+          <div style="margin:0 0 16px;">
+            <a href="${viewBookingUrl}" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:600;margin-right:8px;margin-bottom:8px;">View my booking</a>
+            <a href="${viewBookingUrl}/reschedule" style="display:inline-block;border:1px solid #E7E5E4;color:#0A0A0A;text-decoration:none;padding:11px 20px;border-radius:999px;font-size:14px;font-weight:600;margin-right:8px;margin-bottom:8px;">Reschedule</a>
             <a href="${siteUrl}" style="display:inline-block;border:1px solid #E7E5E4;color:#0A0A0A;text-decoration:none;padding:11px 20px;border-radius:999px;font-size:14px;font-weight:600;">Pro&apos;s site</a>
           </div>
-          <p style="color:#A3A3A3;font-size:11px;line-height:1.5;margin:0 0 16px;">This secure link expires in 7 days. Don&apos;t share it.</p>
+          <p style="color:#A3A3A3;font-size:11px;line-height:1.5;margin:0 0 16px;">This secure link expires in 7 days. Don&apos;t share it. Rescheduling is available up to 24 hours before your appointment.</p>
           ` : `
           <p style="color:#737373;font-size:14px;line-height:1.5;margin:0 0 20px;">Need to make a change? Reply to this email.</p>
           <div style="margin:0 0 24px;">

@@ -5,11 +5,10 @@ import { useRouter } from "next/navigation";
 
 type Props = {
   token: string;
-  proSiteUrl: string;
   businessName: string;
 };
 
-export function BookingActions({ token, proSiteUrl, businessName }: Props) {
+export function BookingActions({ token, businessName }: Props) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [reason, setReason] = useState("");
@@ -38,10 +37,10 @@ export function BookingActions({ token, proSiteUrl, businessName }: Props) {
     <div className="mt-4 border-t border-[#E7E5E4] pt-4">
       <div className="flex flex-wrap gap-2">
         <a
-          href={proSiteUrl}
+          href={`/booking/${token}/reschedule`}
           className="inline-flex items-center rounded-full border border-[#E7E5E4] px-4 py-2 text-sm font-semibold hover:bg-[#FAFAF9]"
         >
-          Reschedule on {businessName}&apos;s site
+          Reschedule
         </a>
         {!confirming && (
           <button
