@@ -182,6 +182,9 @@ export function BookingWidget({
   const [isMinor, setIsMinor] = useState(false);
   const [guardianName, setGuardianName] = useState("");
   const [smsConsent, setSmsConsent] = useState(false);
+  // Marketing consent is separate from SMS reminders — explicit opt-in
+  // per CAN-SPAM. Starts UNCHECKED.
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [tipPct, setTipPct] = useState<number>(0);
   const [referencePhotos, setReferencePhotos] = useState<string[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -295,6 +298,7 @@ export function BookingWidget({
     setIsMinor(false);
     setGuardianName("");
     setSmsConsent(false);
+    setMarketingOptIn(false);
     setTipPct(0);
     setReferencePhotos([]);
     setPhotoUploadError(null);
@@ -376,6 +380,7 @@ export function BookingWidget({
           phone,
           notes: combinedNotes,
           sms_consent: smsConsent && !!phone,
+          marketing_opt_in: marketingOptIn,
           tip_cents: tipCents,
           series_interval_weeks: seriesWeeks > 0 ? seriesWeeks : null,
           series_occurrences: seriesWeeks > 0 ? seriesOccurrences : null,
@@ -1083,6 +1088,20 @@ export function BookingWidget({
                         </span>
                       </label>
                     )}
+                    {/* Marketing opt-in — separate from SMS + transactional.
+                        Unchecked by default; checkbox text names the pro so
+                        the client knows who's sending. */}
+                    <label className="flex items-start gap-3 border-t border-[#E7E5E4] pt-3 text-xs">
+                      <input
+                        type="checkbox"
+                        checked={marketingOptIn}
+                        onChange={(e) => setMarketingOptIn(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 shrink-0"
+                      />
+                      <span className="text-[#525252]">
+                        <strong>Optional:</strong> Send me occasional offers and updates from {businessName}. You can unsubscribe in one click from any email.
+                      </span>
+                    </label>
                   </div>
 
                   {error && <p className="text-xs text-red-600">{error}</p>}

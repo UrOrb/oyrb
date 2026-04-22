@@ -17,10 +17,12 @@ type ClientWithAgg = {
   phone: string | null;
   created_at: string;
   visit_count: number | null;
+  marketing_opt_in: boolean;
   booking_count: number;
   total_spent_cents: number;
   last_end_at: string | null;
   suggested_next: Date | null;
+  tag: "VIP" | "Regular" | "New" | "Inactive";
 };
 
 export default async function ClientsPage({ searchParams }: Props) {
@@ -42,7 +44,7 @@ export default async function ClientsPage({ searchParams }: Props) {
 
   const { data: clients } = await supabase
     .from("clients")
-    .select("id, name, email, phone, created_at, visit_count")
+    .select("id, name, email, phone, created_at, visit_count, marketing_opt_in, marketing_opt_in_at")
     .eq("business_id", business.id)
     .order("created_at", { ascending: false });
 
@@ -76,16 +78,52 @@ export default async function ClientsPage({ searchParams }: Props) {
 
   const intervalDays = defaultIntervalFor(business.service_category);
 
-  const rows: ClientWithAgg[] = (clients ?? []).map((c) => {
+  // First pass: aggregate spend / dates for every client so we can compute
+  // VIP threshold (top 10% by spend across this pro's book of business).
+  const agg = (clients ?? []).map((c) => {
     const bs = bookingsByClient.get(c.id as string) ?? [];
     const confirmed = bs.filter((b) => b.status !== "cancelled");
     const total = confirmed.reduce((s, b) => s + (b.price_cents ?? 0), 0);
     const last = confirmed
       .map((b) => new Date(b.end_at))
       .sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
+    return { c, confirmed, total, last };
+  });
+
+  const sortedTotals = agg.map((a) => a.total).sort((x, y) => y - x);
+  const vipCutIdx = Math.max(0, Math.floor(sortedTotals.length * 0.1) - 1);
+  const vipFloor = sortedTotals[vipCutIdx] ?? Infinity;
+
+  const now = Date.now();
+  const SIXTY_DAYS = 60 * 24 * 60 * 60 * 1000;
+  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+
+  const rows: ClientWithAgg[] = agg.map(({ c, confirmed, total, last }) => {
     const suggestedNext = last
       ? new Date(last.getTime() + intervalDays * 24 * 60 * 60 * 1000)
       : null;
+
+    // Auto-tag. Order matters: VIP > Regular > New > Inactive.
+    //  · VIP      — in the top 10% by total spend AND has booked at all
+    //  · Regular  — 3+ confirmed bookings, last visit within 60 days
+    //  · New      — 0 or 1 booking, created in last 30 days
+    //  · Inactive — last visit older than 60 days (or never) but not New
+    let tag: ClientWithAgg["tag"] = "New";
+    const lastMs = last?.getTime() ?? 0;
+    const daysSinceCreated = (now - new Date(c.created_at as string).getTime()) / (24 * 60 * 60 * 1000);
+    if (confirmed.length > 0 && total >= vipFloor && sortedTotals.length > 0) {
+      tag = "VIP";
+    } else if (confirmed.length >= 3 && lastMs && now - lastMs <= SIXTY_DAYS) {
+      tag = "Regular";
+    } else if (confirmed.length <= 1 && daysSinceCreated <= 30) {
+      tag = "New";
+    } else if (lastMs === 0 || now - lastMs > SIXTY_DAYS) {
+      tag = "Inactive";
+    } else {
+      tag = "Regular";
+    }
+    // Suppress THIRTY_DAYS lint via reference (used indirectly above).
+    void THIRTY_DAYS;
 
     return {
       id: c.id as string,
@@ -94,10 +132,12 @@ export default async function ClientsPage({ searchParams }: Props) {
       phone: (c.phone as string | null) ?? null,
       created_at: c.created_at as string,
       visit_count: (c.visit_count as number | null) ?? null,
+      marketing_opt_in: !!(c as { marketing_opt_in?: boolean }).marketing_opt_in,
       booking_count: confirmed.length,
       total_spent_cents: total,
       last_end_at: last?.toISOString() ?? null,
       suggested_next: suggestedNext,
+      tag,
     };
   });
 
@@ -126,6 +166,8 @@ export default async function ClientsPage({ searchParams }: Props) {
               <tr>
                 <th className="px-4 py-3 text-left font-medium">Client</th>
                 <th className="px-4 py-3 text-left font-medium">Contact</th>
+                <th className="px-4 py-3 text-left font-medium">Tag</th>
+                <th className="px-4 py-3 text-left font-medium">Marketing</th>
                 <th className="px-4 py-3 text-right font-medium">Visits</th>
                 <th className="px-4 py-3 text-right font-medium">Spend</th>
                 <th className="px-4 py-3 text-left font-medium">Last visit</th>
@@ -171,6 +213,27 @@ export default async function ClientsPage({ searchParams }: Props) {
                           </div>
                         )}
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                          c.tag === "VIP" ? "bg-amber-50 text-amber-800" :
+                          c.tag === "Regular" ? "bg-emerald-50 text-emerald-800" :
+                          c.tag === "New" ? "bg-sky-50 text-sky-800" :
+                          "bg-[#FAFAF9] text-[#737373]"
+                        }`}
+                      >
+                        {c.tag}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {c.marketing_opt_in ? (
+                        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                          Opted in ✓
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-[#A3A3A3]">No marketing</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right font-medium">{c.booking_count}</td>
                     <td className="px-4 py-3 text-right font-medium">{formatCents(c.total_spent_cents)}</td>

@@ -109,10 +109,16 @@ export async function POST(request: NextRequest) {
     .ilike("email", email)
     .maybeSingle();
 
-  const consentFields =
-    smsConsent && phone
-      ? { sms_consent: true, sms_consent_at: new Date().toISOString() }
-      : {};
+  const consentFields: Record<string, unknown> = {};
+  if (smsConsent && phone) {
+    consentFields.sms_consent = true;
+    consentFields.sms_consent_at = new Date().toISOString();
+  }
+  if (metadata.marketing_opt_in === "true") {
+    consentFields.marketing_opt_in = true;
+    consentFields.marketing_opt_in_at = new Date().toISOString();
+    consentFields.marketing_opt_in_source = "booking_form";
+  }
 
   if (existingClient) {
     clientId = existingClient.id;

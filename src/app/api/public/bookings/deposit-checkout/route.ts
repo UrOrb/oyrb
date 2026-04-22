@@ -12,6 +12,7 @@ type Payload = {
   phone?: string;
   notes?: string;
   sms_consent?: boolean;
+  marketing_opt_in?: boolean;
   tip_cents?: number;
   series_interval_weeks?: number | null;
   series_occurrences?: number | null;
@@ -160,6 +161,7 @@ export async function POST(request: NextRequest) {
         phone: body.phone ?? "",
         notes: body.notes?.slice(0, 400) ?? "",
         sms_consent: String(body.sms_consent ?? false),
+        marketing_opt_in: String(!!body.marketing_opt_in),
         tip_cents: String(tipCents),
         series_interval_weeks: String(body.series_interval_weeks ?? 0),
         series_occurrences: String(body.series_occurrences ?? 1),

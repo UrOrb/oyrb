@@ -14,6 +14,7 @@ type BookingPayload = {
   phone?: string;
   notes?: string;
   sms_consent?: boolean;
+  marketing_opt_in?: boolean;
   series_interval_weeks?: number | null;
   series_occurrences?: number | null;
   age_confirmed?: boolean;
@@ -154,9 +155,21 @@ export async function POST(request: NextRequest) {
     .eq("business_id", body.business_id)
     .ilike("email", body.email)
     .maybeSingle();
-  const consentFields = body.sms_consent && body.phone
-    ? { sms_consent: true, sms_consent_at: new Date().toISOString() }
-    : {};
+  const consentFields: Record<string, unknown> = {};
+  if (body.sms_consent && body.phone) {
+    consentFields.sms_consent = true;
+    consentFields.sms_consent_at = new Date().toISOString();
+  }
+  // Marketing opt-in is captured at the moment the client checked the box.
+  // We only SET it to true here (never flip an existing true→false on
+  // repeat bookings), so a client can't accidentally revoke consent by
+  // booking again with the box unchecked. Unsubscribes go through the
+  // unsub endpoint, which clears it explicitly.
+  if (body.marketing_opt_in) {
+    consentFields.marketing_opt_in = true;
+    consentFields.marketing_opt_in_at = new Date().toISOString();
+    consentFields.marketing_opt_in_source = "booking_form";
+  }
 
   if (existingClient) {
     clientId = existingClient.id;
