@@ -79,20 +79,27 @@
     overflow-wrap: anywhere;
   }
 
-  /* RIOT ROOM + Studio layout legibility override. Riot defines ink=#111
-     AND surface=#111 (both black), which makes inherited text on Studio's
-     surface-colored info card + service cards invisible, and muted=#555
-     nearly invisible. Force white on every text descendant of those cards.
-     Scope is belt-and-suspenders: BOTH data-oyrb-theme AND
-     data-oyrb-layout must match; no other combination is affected.
-     Elements marked [data-oyrb-keep-color] (accent price, Book buttons,
-     location/phone icons) keep their designed color. */
+  /* RIOT ROOM legibility override on Studio + Bold layouts. Riot defines
+     ink=#111 AND surface=#111 (both black). Studio uses surface for its
+     hero info card + service cards; Bold uses surface for its quick-info
+     bar, service rows, hours card, reviews card, and footer. Inherited
+     ink-on-surface text becomes invisible and muted=#555 text becomes
+     near-invisible on that black background.
+
+     Force white on every text descendant of those surface-colored
+     containers — scoped to BOTH data-oyrb-theme AND data-oyrb-layout so
+     no other theme/layout combination is affected. Elements marked
+     [data-oyrb-keep-color] (accent Book buttons, CTA card, star icons,
+     service-price accent, location/phone icons) keep their designed
+     color via :not() exclusion. */
   [data-oyrb-theme="riot"][data-oyrb-layout="studio"] [data-oyrb-studio-surface="dark"],
-  [data-oyrb-theme="riot"][data-oyrb-layout="studio"] [data-oyrb-service-item="true"] {
+  [data-oyrb-theme="riot"][data-oyrb-layout="studio"] [data-oyrb-service-item="true"],
+  [data-oyrb-theme="riot"][data-oyrb-layout="bold"] [data-oyrb-bold-surface="dark"] {
     color: #ffffff !important;
   }
   [data-oyrb-theme="riot"][data-oyrb-layout="studio"] [data-oyrb-studio-surface="dark"] *:not([data-oyrb-keep-color]):not([data-oyrb-keep-color] *),
-  [data-oyrb-theme="riot"][data-oyrb-layout="studio"] [data-oyrb-service-item="true"] *:not([data-oyrb-keep-color]):not([data-oyrb-keep-color] *) {
+  [data-oyrb-theme="riot"][data-oyrb-layout="studio"] [data-oyrb-service-item="true"] *:not([data-oyrb-keep-color]):not([data-oyrb-keep-color] *),
+  [data-oyrb-theme="riot"][data-oyrb-layout="bold"] [data-oyrb-bold-surface="dark"] *:not([data-oyrb-keep-color]):not([data-oyrb-keep-color] *) {
     color: #ffffff !important;
   }
   body {

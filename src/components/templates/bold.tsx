@@ -66,7 +66,7 @@ export function BoldTemplate({ business, services, hours, theme, content, isEdit
   const hrs = hours ?? SAMPLE_HOURS;
 
   return (
-    <div className="min-h-screen font-sans" data-oyrb-theme={theme?.id} style={{ backgroundColor: bg, color: ink }}>
+    <div className="min-h-screen font-sans" data-oyrb-theme={theme?.id} data-oyrb-layout="bold" style={{ backgroundColor: bg, color: ink }}>
 
       {/* ── Dark hero cover ── */}
       <section className="relative h-80 w-full overflow-hidden md:h-96" style={{ backgroundColor: ink }}>
@@ -120,7 +120,7 @@ export function BoldTemplate({ business, services, hours, theme, content, isEdit
       </section>
 
       {/* ── Quick info bar ── */}
-      <div className="px-6 py-3" style={{ borderBottom: `1px solid ${border}`, backgroundColor: surface }}>
+      <div data-oyrb-bold-surface="dark" className="px-6 py-3" style={{ borderBottom: `1px solid ${border}`, backgroundColor: surface }}>
         <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-4 text-xs" style={{ color: muted }}>
           <span className="flex items-center gap-1"><Phone size={11} />{bizPhone}</span>
           {bizInstagram && (
@@ -146,6 +146,7 @@ export function BoldTemplate({ business, services, hours, theme, content, isEdit
               {svcs.map((svc) => (
                 <div
                   key={svc.id}
+                  data-oyrb-bold-surface="dark"
                   className="flex items-center gap-4 p-4 transition-shadow hover:shadow-md"
                   style={{ borderRadius: radius, border: `1px solid ${border}`, backgroundColor: surface }}
                 >
@@ -166,6 +167,7 @@ export function BoldTemplate({ business, services, hours, theme, content, isEdit
                         <p className="text-lg font-bold">{formatPrice(svc.price_cents)}</p>
                         <a
                           href="#book"
+                          data-oyrb-keep-color
             onClick={(e) => { e.preventDefault(); (window as unknown as { __oyrbOpenBooking?: () => void }).__oyrbOpenBooking?.(); }}
                           style={{ backgroundColor: accent, color: "#FFFFFF", borderRadius: radius / 2 }}
                           className="mt-1 block px-4 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80"
@@ -217,11 +219,12 @@ export function BoldTemplate({ business, services, hours, theme, content, isEdit
           <aside className="flex flex-col gap-4">
 
             {/* Book CTA */}
-            <div className="p-5" style={{ borderRadius: radius, backgroundColor: btnBg, color: btnText }}>
+            <div data-oyrb-keep-color className="p-5" style={{ borderRadius: radius, backgroundColor: btnBg, color: btnText }}>
               <p className="text-sm font-semibold">{bizName}</p>
               <p className="mt-1 text-xs opacity-60">{bizTagline}</p>
               <a
                 href="#book"
+                data-oyrb-keep-color
             onClick={(e) => { e.preventDefault(); (window as unknown as { __oyrbOpenBooking?: () => void }).__oyrbOpenBooking?.(); }}
                 style={{ borderRadius: radius / 2, backgroundColor: surface, color: ink }}
                 className="mt-4 block w-full py-3 text-center text-sm font-bold transition-opacity hover:opacity-90"
@@ -231,7 +234,7 @@ export function BoldTemplate({ business, services, hours, theme, content, isEdit
             </div>
 
             {/* Hours */}
-            <div className="p-5" style={{ borderRadius: radius, border: `1px solid ${border}`, backgroundColor: surface }}>
+            <div data-oyrb-bold-surface="dark" className="p-5" style={{ borderRadius: radius, border: `1px solid ${border}`, backgroundColor: surface }}>
               <h3 className="mb-3 text-sm font-bold">{c("section_hours_title", "Hours")}</h3>
               <div className="flex flex-col gap-2">
                 {hrs.map((h) => (
@@ -246,11 +249,11 @@ export function BoldTemplate({ business, services, hours, theme, content, isEdit
             </div>
 
             {/* Reviews */}
-            <div className="p-5" style={{ borderRadius: radius, border: `1px solid ${border}`, backgroundColor: surface }}>
+            <div data-oyrb-bold-surface="dark" className="p-5" style={{ borderRadius: radius, border: `1px solid ${border}`, backgroundColor: surface }}>
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-sm font-bold">{c("section_reviews_title", "Reviews")}</h3>
                 <div className="flex items-center gap-1">
-                  <Star size={12} fill="gold" className="text-yellow-400" />
+                  <Star size={12} fill="gold" className="text-yellow-400" data-oyrb-keep-color />
                   <span className="text-xs font-semibold">5.0</span>
                 </div>
               </div>
@@ -269,7 +272,7 @@ export function BoldTemplate({ business, services, hours, theme, content, isEdit
       </div>
 
       {/* ── Footer ── */}
-      <footer className="mt-8 px-6 py-8 text-center text-xs" style={{ borderTop: `1px solid ${border}`, backgroundColor: surface, color: muted }}>
+      <footer data-oyrb-bold-surface="dark" className="mt-8 px-6 py-8 text-center text-xs" style={{ borderTop: `1px solid ${border}`, backgroundColor: surface, color: muted }}>
         <p>{c("footer_text", `${bizName} · ${bizLocation}`)}</p>
         {!isEditorPreview && (isStockImageUrl(heroSrc) || isStockImageUrl(profileSrc) || galleryUrls.some(isStockImageUrl)) && (
           <p className="mt-3 italic opacity-70 text-[10px]">
