@@ -53,11 +53,11 @@ export async function GET() {
     files: {
       "clients.csv": toCsv(
         (clients ?? []) as Record<string, unknown>[],
-        ["id", "first_name", "last_name", "email", "phone", "notes", "created_at"]
+        ["id", "name", "email", "phone", "notes", "created_at"]
       ),
       "bookings.csv": toCsv(
         (bookings ?? []) as Record<string, unknown>[],
-        ["id", "service_id", "client_id", "start_at", "end_at", "status", "deposit_paid_cents", "notes", "created_at"]
+        ["id", "service_id", "client_id", "start_at", "end_at", "status", "deposit_paid", "created_at"]
       ),
       "services.csv": toCsv(
         (services ?? []) as Record<string, unknown>[],
