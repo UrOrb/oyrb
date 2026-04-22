@@ -82,7 +82,7 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
   const hrs = hours ?? SAMPLE_HOURS;
 
   return (
-    <div className="min-h-screen font-sans" data-oyrb-theme={theme?.id} style={{ backgroundColor: bg, color: ink }}>
+    <div className="min-h-screen font-sans" data-oyrb-theme={theme?.id} data-oyrb-layout="studio" style={{ backgroundColor: bg, color: ink }}>
 
       {/* ── Header ── */}
       <header
@@ -117,6 +117,7 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
         {/* Profile + info card */}
         <div className="mx-auto -mt-16 max-w-5xl px-6">
           <div
+            data-oyrb-studio-surface="dark"
             className="flex w-full max-w-full flex-col items-stretch gap-4 overflow-hidden p-6 shadow-md md:flex-row md:flex-wrap md:items-center"
             style={{ backgroundColor: surface, borderRadius: radius, color: surfaceInk }}
           >
@@ -126,11 +127,11 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
             <div className="min-w-0 flex-1 basis-full md:basis-0">
               <h2 className="text-xl font-semibold" style={{ fontFamily: displayFont }}>{bizName}</h2>
               <p className="mt-1 text-sm" style={{ color: surfaceMuted }}>{bizTagline}</p>
-              <div className="mt-2 flex flex-wrap gap-4 text-xs" style={{ color: accent }}>
-                <span className="flex min-w-0 items-center gap-1"><MapPin size={12} className="shrink-0" /> <span className="truncate">{bizLocation}</span></span>
-                <span className="flex items-center gap-1"><Phone size={12} className="shrink-0" /> {bizPhone}</span>
+              <div data-oyrb-keep-color className="mt-2 flex flex-wrap gap-4 text-xs" style={{ color: accent }}>
+                <span data-oyrb-keep-color className="flex min-w-0 items-center gap-1"><MapPin size={12} className="shrink-0" /> <span data-oyrb-keep-color className="truncate">{bizLocation}</span></span>
+                <span data-oyrb-keep-color className="flex items-center gap-1"><Phone size={12} className="shrink-0" /> {bizPhone}</span>
                 {bizInstagram && (
-                  <a href={bizInstagram} className="flex items-center gap-1 transition-colors hover:opacity-70">
+                  <a data-oyrb-keep-color href={bizInstagram} className="flex items-center gap-1 transition-colors hover:opacity-70">
                     <Link2 size={12} className="shrink-0" /> Instagram
                   </a>
                 )}
@@ -138,6 +139,7 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
             </div>
             <a
               href="#book"
+              data-oyrb-keep-color
             onClick={(e) => { e.preventDefault(); (window as unknown as { __oyrbOpenBooking?: () => void }).__oyrbOpenBooking?.(); }}
               style={{ backgroundColor: btnBg, color: btnText, borderRadius: radius }}
               className="block w-full shrink-0 whitespace-nowrap px-6 py-2.5 text-center text-sm font-medium transition-opacity hover:opacity-80 md:w-auto md:text-left"
@@ -181,7 +183,7 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
               <div className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold leading-tight">{svc.name}</h3>
-                  <span className="shrink-0 text-lg font-semibold" style={{ color: accent, fontFamily: displayFont }}>
+                  <span data-oyrb-keep-color className="shrink-0 text-lg font-semibold" style={{ color: accent, fontFamily: displayFont }}>
                     {formatPrice(svc.price_cents)}
                   </span>
                 </div>
@@ -194,6 +196,7 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
                 )}
                 <a
                   href="#book"
+                  data-oyrb-keep-color
             onClick={(e) => { e.preventDefault(); (window as unknown as { __oyrbOpenBooking?: () => void }).__oyrbOpenBooking?.(); }}
                   style={{ backgroundColor: btnBg, color: btnText, borderRadius: radius }}
                   className="mt-4 block w-full py-2 text-center text-sm font-medium transition-opacity hover:opacity-80"
