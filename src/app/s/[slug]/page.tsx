@@ -232,6 +232,11 @@ export default async function PublicSitePage({ params }: Props) {
     theme,
     content: (biz.template_content ?? {}) as Record<string, string>,
     statsStrip,
+    // Pass real verified reviews into templates that render them inline
+    // (Studio / Luxe / Clean via <ReviewsCarousel>). Original and Bold
+    // ignore this prop — they render their own sample-review blocks
+    // and get real reviews via the universal <ReviewsSection> below.
+    reviews,
   } as any;
 
   // Legacy rows saved with `template_layout === "zip"` map to the renamed Original.
@@ -267,13 +272,20 @@ export default async function PublicSitePage({ params }: Props) {
       )}
       <Template {...templateProps} />
 
-      {/* Reviews below template */}
-      <ReviewsSection
-        reviews={reviews}
-        averageRating={averageRating}
-        totalReviews={totalReviews}
-        {...sectionColors}
-      />
+      {/* Reviews below template.
+          Studio / Luxe / Clean render real reviews inline via their own
+          <ReviewsCarousel>, so suppressing the universal grid here
+          avoids showing the same reviews twice on those layouts.
+          Original + Bold keep the universal section — their templates
+          only carry sample reviews, so this is where the real ones land. */}
+      {!["studio", "luxe", "clean"].includes(layoutKey) && (
+        <ReviewsSection
+          reviews={reviews}
+          averageRating={averageRating}
+          totalReviews={totalReviews}
+          {...sectionColors}
+        />
+      )}
 
       {/* FAQ */}
       <FaqSection faqs={faqs} {...sectionColors} />

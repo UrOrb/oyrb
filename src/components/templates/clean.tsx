@@ -5,6 +5,7 @@ import { MapPin, Clock, Link2 } from "lucide-react";
 import type { TemplateTheme } from "@/lib/template-themes";
 import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
 import { PlatformCredit } from "@/components/templates/platform-credit";
+import { ReviewsCarousel, type CarouselReview } from "@/components/templates/reviews-carousel";
 import type { SampleBusiness, SampleService, SampleHour } from "@/lib/sample-data";
 
 interface CleanTemplateProps {
@@ -15,6 +16,7 @@ interface CleanTemplateProps {
   content?: Record<string, string> | null;
   /** See Studio template for policy note. */
   isEditorPreview?: boolean;
+  reviews?: CarouselReview[];
 }
 
 function formatPrice(cents: number) { return `$${(cents / 100).toFixed(0)}`; }
@@ -28,7 +30,7 @@ function formatTime(t: string) {
   return `${h % 12 || 12}:${m.toString().padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
 
-export function CleanTemplate({ business, services, hours, theme, content, isEditorPreview }: CleanTemplateProps) {
+export function CleanTemplate({ business, services, hours, theme, content, isEditorPreview, reviews }: CleanTemplateProps) {
   const c = (key: string, fallback: string): string => {
     const v = content?.[key];
     return typeof v === "string" && v.trim() ? v : fallback;
@@ -217,6 +219,28 @@ export function CleanTemplate({ business, services, hours, theme, content, isEdi
           </section>
         )}
       </div>
+
+      {/* ── Reviews carousel — slotted between the two-column main grid
+          and the footer so the minimalist Clean aesthetic still gets a
+          dedicated social-proof moment without cluttering the sidebar. */}
+      {reviews && reviews.length > 0 && (
+        <section className="mx-auto max-w-4xl px-6 pb-10">
+          <div className="border-t pt-10" style={{ borderColor: border }}>
+            <h2 className="mb-5 text-xl font-semibold" style={{ fontFamily: displayFont }}>
+              What clients say
+            </h2>
+            <ReviewsCarousel
+              reviews={reviews}
+              accent={accent}
+              ink={ink}
+              muted={muted}
+              surface={surface}
+              border={border}
+              displayFont={displayFont}
+            />
+          </div>
+        </section>
+      )}
 
       {/* ── Footer ── */}
       <footer className="mt-8 px-6 py-8 text-center text-xs" style={{ borderTop: `1px solid ${border}`, color: muted }}>

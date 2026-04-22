@@ -5,6 +5,7 @@ import { MapPin, Phone, Link2, Clock } from "lucide-react";
 import type { TemplateTheme } from "@/lib/template-themes";
 import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
 import { PlatformCredit } from "@/components/templates/platform-credit";
+import { ReviewsCarousel, type CarouselReview } from "@/components/templates/reviews-carousel";
 import type { SampleBusiness, SampleService, SampleHour } from "@/lib/sample-data";
 
 interface StudioTemplateProps {
@@ -18,6 +19,9 @@ interface StudioTemplateProps {
    *  can see a clean design view. On PUBLISHED sites this is always false.
    *  Required by Terms §22 — do not expose as a user-editable option. */
   isEditorPreview?: boolean;
+  /** Real verified reviews. Rendered inline via <ReviewsCarousel> when
+   *  present. Editor previews + template gallery pass an empty array. */
+  reviews?: CarouselReview[];
 }
 
 function formatPrice(cents: number) { return `$${(cents / 100).toFixed(0)}`; }
@@ -31,7 +35,7 @@ function formatTime(t: string) {
   return `${h % 12 || 12}:${m.toString().padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
 
-export function StudioTemplate({ business, services, hours, theme, content, isEditorPreview }: StudioTemplateProps) {
+export function StudioTemplate({ business, services, hours, theme, content, isEditorPreview, reviews }: StudioTemplateProps) {
   const c = (key: string, fallback: string): string => {
     const v = content?.[key];
     return typeof v === "string" && v.trim() ? v : fallback;
@@ -191,6 +195,29 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
           ))}
         </div>
       </section>
+
+      {/* ── Reviews carousel — sits between services and gallery so
+          prospective clients see social proof right after picking a
+          service but before browsing portfolio photos. Only renders
+          when the pro has at least one real verified review. */}
+      {reviews && reviews.length > 0 && (
+        <section className="px-6 py-12" style={{ borderTop: `1px solid ${border}` }}>
+          <div className="mx-auto max-w-5xl">
+            <h2 className="mb-6 text-2xl font-semibold" style={{ fontFamily: displayFont }}>
+              What clients say
+            </h2>
+            <ReviewsCarousel
+              reviews={reviews}
+              accent={accent}
+              ink={ink}
+              muted={muted}
+              surface={bg}
+              border={border}
+              displayFont={displayFont}
+            />
+          </div>
+        </section>
+      )}
 
       {/* ── Gallery ── */}
       {galleryUrls.length > 0 && (

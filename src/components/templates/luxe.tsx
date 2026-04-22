@@ -5,6 +5,7 @@ import { Link2, MapPin, Phone } from "lucide-react";
 import type { TemplateTheme } from "@/lib/template-themes";
 import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
 import { PlatformCredit } from "@/components/templates/platform-credit";
+import { ReviewsCarousel, type CarouselReview } from "@/components/templates/reviews-carousel";
 import type { SampleBusiness, SampleService, SampleHour } from "@/lib/sample-data";
 
 interface LuxeTemplateProps {
@@ -15,6 +16,7 @@ interface LuxeTemplateProps {
   content?: Record<string, string> | null;
   /** See Studio template for policy note. */
   isEditorPreview?: boolean;
+  reviews?: CarouselReview[];
 }
 
 function formatPrice(cents: number) { return `$${(cents / 100).toFixed(0)}`; }
@@ -28,7 +30,7 @@ function formatTime(t: string) {
   return `${h % 12 || 12}:${m.toString().padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
 
-export function LuxeTemplate({ business, services, hours, theme, content, isEditorPreview }: LuxeTemplateProps) {
+export function LuxeTemplate({ business, services, hours, theme, content, isEditorPreview, reviews }: LuxeTemplateProps) {
   const c = (key: string, fallback: string): string => {
     const v = content?.[key];
     return typeof v === "string" && v.trim() ? v : fallback;
@@ -182,6 +184,35 @@ export function LuxeTemplate({ business, services, hours, theme, content, isEdit
           </div>
         </div>
       </section>
+
+      {/* ── Reviews carousel — between services and gallery. Editorial
+          Luxe aesthetic benefits from subtle social proof before the
+          image-heavy gallery pulls attention. */}
+      {reviews && reviews.length > 0 && (
+        <section className="py-16" style={{ borderTop: `1px solid ${border}` }}>
+          <div className="mx-auto max-w-5xl px-6">
+            <div className="mb-10 flex items-center justify-center gap-3">
+              <span className="h-px w-12" style={{ backgroundColor: accent2 }} />
+              <h2
+                className="text-center text-3xl font-medium tracking-[-0.02em] md:text-4xl"
+                style={{ fontFamily: displayFont }}
+              >
+                What clients say
+              </h2>
+              <span className="h-px w-12" style={{ backgroundColor: accent2 }} />
+            </div>
+            <ReviewsCarousel
+              reviews={reviews}
+              accent={accent}
+              ink={ink}
+              muted={muted}
+              surface={surface}
+              border={border}
+              displayFont={displayFont}
+            />
+          </div>
+        </section>
+      )}
 
       {/* ── Gallery ── */}
       {galleryUrls.length > 0 && (
