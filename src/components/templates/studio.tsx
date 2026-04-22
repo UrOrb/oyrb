@@ -107,13 +107,13 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
         {/* Profile + info card */}
         <div className="mx-auto -mt-16 max-w-5xl px-6">
           <div
-            className="flex flex-col items-start gap-4 p-6 shadow-md md:flex-row md:items-center"
+            className="flex w-full max-w-full flex-col items-stretch gap-4 overflow-hidden p-6 shadow-md md:flex-row md:flex-wrap md:items-center"
             style={{ backgroundColor: surface, borderRadius: radius }}
           >
             <div className="relative h-20 w-20 shrink-0 overflow-hidden md:h-24 md:w-24" style={{ borderRadius: radius }}>
               <Image src={profileSrc || ""} alt={bizName} fill className="object-cover" sizes="96px" />
             </div>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 basis-full md:basis-0">
               <h2 className="text-xl font-semibold" style={{ fontFamily: displayFont }}>{bizName}</h2>
               <p className="mt-1 text-sm" style={{ color: muted }}>{bizTagline}</p>
               <div className="mt-2 flex flex-wrap gap-4 text-xs" style={{ color: accent }}>
@@ -130,7 +130,7 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
               href="#book"
             onClick={(e) => { e.preventDefault(); (window as unknown as { __oyrbOpenBooking?: () => void }).__oyrbOpenBooking?.(); }}
               style={{ backgroundColor: btnBg, color: btnText, borderRadius: radius }}
-              className="shrink-0 whitespace-nowrap px-6 py-2.5 text-sm font-medium transition-opacity hover:opacity-80"
+              className="block w-full shrink-0 whitespace-nowrap px-6 py-2.5 text-center text-sm font-medium transition-opacity hover:opacity-80 md:w-auto md:text-left"
             >
               {c("hero_book_label", "Book Now")}
             </a>
