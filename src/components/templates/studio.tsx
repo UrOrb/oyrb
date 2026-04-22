@@ -113,15 +113,15 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
             <div className="relative h-20 w-20 shrink-0 overflow-hidden md:h-24 md:w-24" style={{ borderRadius: radius }}>
               <Image src={profileSrc || ""} alt={bizName} fill className="object-cover" sizes="96px" />
             </div>
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <h2 className="text-xl font-semibold" style={{ fontFamily: displayFont }}>{bizName}</h2>
               <p className="mt-1 text-sm" style={{ color: muted }}>{bizTagline}</p>
               <div className="mt-2 flex flex-wrap gap-4 text-xs" style={{ color: accent }}>
-                <span className="flex items-center gap-1"><MapPin size={12} /> {bizLocation}</span>
-                <span className="flex items-center gap-1"><Phone size={12} /> {bizPhone}</span>
+                <span className="flex min-w-0 items-center gap-1"><MapPin size={12} className="shrink-0" /> <span className="truncate">{bizLocation}</span></span>
+                <span className="flex items-center gap-1"><Phone size={12} className="shrink-0" /> {bizPhone}</span>
                 {bizInstagram && (
                   <a href={bizInstagram} className="flex items-center gap-1 transition-colors hover:opacity-70">
-                    <Link2 size={12} /> Instagram
+                    <Link2 size={12} className="shrink-0" /> Instagram
                   </a>
                 )}
               </div>
@@ -130,7 +130,7 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
               href="#book"
             onClick={(e) => { e.preventDefault(); (window as unknown as { __oyrbOpenBooking?: () => void }).__oyrbOpenBooking?.(); }}
               style={{ backgroundColor: btnBg, color: btnText, borderRadius: radius }}
-              className="shrink-0 px-6 py-2.5 text-sm font-medium transition-opacity hover:opacity-80"
+              className="shrink-0 whitespace-nowrap px-6 py-2.5 text-sm font-medium transition-opacity hover:opacity-80"
             >
               {c("hero_book_label", "Book Now")}
             </a>
