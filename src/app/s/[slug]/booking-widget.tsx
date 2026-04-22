@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useTransition, useEffect } from "react";
 import { Calendar, X, Clock, Check, ArrowLeft } from "lucide-react";
+import { ClientAccountOffer } from "./client-account-offer";
 
 type Service = {
   id: string;
@@ -1141,9 +1142,17 @@ export function BookingWidget({
                   <p className="mt-2 max-w-sm text-sm text-[#737373]">
                     A confirmation email is on its way. {businessName} will see your booking right away.
                   </p>
+
+                  {/* Optional account-creation offer. Dismissible; does
+                      not block the Done button. Prefills the email the
+                      client just used to book. */}
+                  <div className="mt-6 w-full max-w-sm text-left">
+                    <ClientAccountOffer email={email} />
+                  </div>
+
                   <button
                     onClick={() => setOpen(false)}
-                    className="mt-6 rounded-md border border-[#E7E5E4] px-5 py-2 text-sm font-medium"
+                    className="mt-4 rounded-md border border-[#E7E5E4] px-5 py-2 text-sm font-medium"
                   >
                     Done
                   </button>

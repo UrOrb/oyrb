@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, Loader2, AlertCircle } from "lucide-react";
+import { ClientAccountOffer } from "../client-account-offer";
 
 type Status = "checking" | "confirmed" | "error";
 
@@ -15,6 +16,7 @@ export function BookingConfirmedClient({
 }) {
   const [status, setStatus] = useState<Status>("checking");
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
     if (!sessionId) {
@@ -37,6 +39,7 @@ export function BookingConfirmedClient({
           setError(data.error ?? "Could not confirm booking.");
           setStatus("error");
         } else {
+          if (typeof data.email === "string") setEmail(data.email);
           setStatus("confirmed");
         }
       } catch {
@@ -80,6 +83,9 @@ export function BookingConfirmedClient({
           >
             Back to the studio
           </Link>
+          <div className="mt-6 w-full text-left">
+            <ClientAccountOffer email={email} />
+          </div>
         </>
       )}
 

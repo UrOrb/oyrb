@@ -50,7 +50,8 @@ export async function POST(request: NextRequest) {
       .eq("stripe_payment_intent_id", paymentIntentId)
       .maybeSingle();
     if (existing) {
-      return NextResponse.json({ id: existing.id, ok: true, already_confirmed: true });
+      const existingEmail = (session.metadata?.email ?? "").toLowerCase() || null;
+      return NextResponse.json({ id: existing.id, ok: true, already_confirmed: true, email: existingEmail });
     }
   }
 
@@ -285,5 +286,5 @@ export async function POST(request: NextRequest) {
 
   await Promise.all(tasks);
 
-  return NextResponse.json({ id: booking.id, ok: true });
+  return NextResponse.json({ id: booking.id, ok: true, email });
 }
