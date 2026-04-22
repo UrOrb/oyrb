@@ -63,7 +63,10 @@ export function resolveStat(
       return { value: `${inputs.averageRating.toFixed(1)} ★`, label };
     }
     case "verified_reviews": {
-      if (inputs.reviewsCount <= 0) return { value: VERIFIED_PRO_FALLBACK, label };
+      // Friendlier fallback for the reviews tile specifically — a "be the
+      // first!" nudge reads better than the generic "Verified Pro" label
+      // when a pro genuinely has zero reviews.
+      if (inputs.reviewsCount <= 0) return { value: "Be The First!", label };
       return { value: `${inputs.reviewsCount} Review${inputs.reviewsCount === 1 ? "" : "s"}`, label };
     }
     case "completed_bookings": {
