@@ -17,7 +17,7 @@ const FEATURES = [
     number: "02",
     label: "Your Site",
     heading: "A booking site that actually looks like your brand.",
-    body: "Choose from three editor-designed templates built for beauty pros. Go live in under 10 minutes — no designer, no developer needed.",
+    body: "Choose from 150 editor-designed templates built for beauty pros — 5 layouts × 30 themes. Go live in under 10 minutes — no designer, no developer needed.",
     image: "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/feature-02-1776535534.jpg",
     alt: "Barber giving a fresh fade haircut",
   },

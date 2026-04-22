@@ -187,7 +187,7 @@ export default function HomePage() {
               { stat: "10 min", label: "Average setup time" },
               { stat: "40%", label: "More repeat bookings" },
               { stat: "$0", label: "Per-booking fees" },
-              { stat: "80", label: "Designer templates" },
+              { stat: "150", label: "Designer templates" },
             ].map((item) => (
               <div key={item.label} className="text-center">
                 <p className="font-display text-3xl font-medium tracking-tight text-[#0A0A0A] md:text-4xl">
