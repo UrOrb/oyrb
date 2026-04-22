@@ -52,6 +52,16 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
   const radius = theme?.radius ?? 16;
   const displayFont = theme?.displayFont ?? '"Fraunces", Georgia, serif';
 
+  // RIOT ROOM theme sets both ink (#111) and surface (#111) to the same
+  // black, so on Studio layout — which uses surface for the hero info card
+  // and every service card — inherited text becomes invisible dark-on-dark.
+  // Force white body + lightened "muted" for any text that sits on those
+  // surface-colored panels. Scoped ONLY to Studio + RIOT; every other
+  // layout/theme combo is untouched.
+  const isRiot = theme?.id === "riot";
+  const surfaceInk = isRiot ? "#FFFFFF" : ink;
+  const surfaceMuted = isRiot ? "#E5E5E5" : muted;
+
   const biz = theme?.business;
   const bizName = business?.name ?? biz?.name ?? "Honey George Studio";
   const bizTagline = business?.tagline ?? biz?.tagline ?? "Where your beauty meets intention.";
@@ -108,14 +118,14 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
         <div className="mx-auto -mt-16 max-w-5xl px-6">
           <div
             className="flex w-full max-w-full flex-col items-stretch gap-4 overflow-hidden p-6 shadow-md md:flex-row md:flex-wrap md:items-center"
-            style={{ backgroundColor: surface, borderRadius: radius }}
+            style={{ backgroundColor: surface, borderRadius: radius, color: surfaceInk }}
           >
             <div className="relative h-20 w-20 shrink-0 overflow-hidden md:h-24 md:w-24" style={{ borderRadius: radius }}>
               <Image src={profileSrc || ""} alt={bizName} fill className="object-cover" sizes="96px" />
             </div>
             <div className="min-w-0 flex-1 basis-full md:basis-0">
               <h2 className="text-xl font-semibold" style={{ fontFamily: displayFont }}>{bizName}</h2>
-              <p className="mt-1 text-sm" style={{ color: muted }}>{bizTagline}</p>
+              <p className="mt-1 text-sm" style={{ color: surfaceMuted }}>{bizTagline}</p>
               <div className="mt-2 flex flex-wrap gap-4 text-xs" style={{ color: accent }}>
                 <span className="flex min-w-0 items-center gap-1"><MapPin size={12} className="shrink-0" /> <span className="truncate">{bizLocation}</span></span>
                 <span className="flex items-center gap-1"><Phone size={12} className="shrink-0" /> {bizPhone}</span>
@@ -157,7 +167,7 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
               key={svc.id}
               data-oyrb-service-item="true"
               className="overflow-hidden shadow-sm"
-              style={{ backgroundColor: surface, borderRadius: radius }}
+              style={{ backgroundColor: surface, borderRadius: radius, color: surfaceInk }}
             >
               <div className="relative h-40 w-full overflow-hidden">
                 <Image
@@ -175,12 +185,12 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
                     {formatPrice(svc.price_cents)}
                   </span>
                 </div>
-                <p className="mt-1 text-xs" style={{ color: muted }}>
+                <p className="mt-1 text-xs" style={{ color: surfaceMuted }}>
                   <Clock size={10} className="mr-1 inline" />
                   {formatDuration(svc.duration_minutes)}
                 </p>
                 {svc.description && (
-                  <p className="mt-2 text-xs leading-relaxed" style={{ color: muted }}>{svc.description}</p>
+                  <p className="mt-2 text-xs leading-relaxed" style={{ color: surfaceMuted }}>{svc.description}</p>
                 )}
                 <a
                   href="#book"
