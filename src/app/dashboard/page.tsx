@@ -11,6 +11,7 @@ import { getGoalSnapshot } from "@/lib/goal-tracking";
 import { GoalMeter } from "./goal-meter";
 import { getMyListing } from "@/lib/directory";
 import { DirectoryNudge } from "./directory-nudge";
+import { StatsMigrationNotice } from "./stats-migration-notice";
 
 export default async function DashboardPage({
   searchParams,
@@ -153,6 +154,17 @@ export default async function DashboardPage({
   const myListing = await getMyListing(user.id);
   const alreadyListed = !!(myListing?.is_listed && myListing.agreement_accepted_at);
 
+  // Stats-migration banner: shown once to pros who had free-text
+  // stat_*_value entries in template_content before migration 025 AND
+  // haven't acknowledged the change yet. acknowledged column is
+  // stamped when they click Review or Dismiss.
+  const tc = (business.template_content ?? {}) as Record<string, string>;
+  const hasLegacyStatValues = !!(tc["stat_1_value"] || tc["stat_2_value"] || tc["stat_3_value"]);
+  const statsMigrationAck =
+    (business as unknown as { stats_migration_acknowledged_at?: string | null })
+      .stats_migration_acknowledged_at ?? null;
+  const showStatsNotice = hasLegacyStatValues && !statsMigrationAck;
+
   return (
     <div>
       <ApplyPendingTemplate />
@@ -162,6 +174,8 @@ export default async function DashboardPage({
       </p>
 
       <TrialBanner />
+
+      {showStatsNotice && <StatsMigrationNotice businessId={business.id} />}
 
       {/* Site status banner */}
       <div className={`mt-6 flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-center md:justify-between ${business.is_published ? "border-[#E7E5E4] bg-[#FAFAF9]" : "border-amber-200 bg-amber-50"}`}>

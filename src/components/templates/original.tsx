@@ -22,6 +22,11 @@ interface OriginalTemplateProps {
    *  editor view stays clean. PUBLISHED sites always render them. Required
    *  by Terms §22 — do not expose as a user-editable option. */
   isEditorPreview?: boolean;
+  /** Pre-computed stats strip (value + label × 3). Supplied by the live
+   *  /s/[slug] render path; preview surfaces pass null. When null we fall
+   *  back to sample or legacy stat_*_value text so the strip still looks
+   *  complete in templates/previews. */
+  statsStrip?: Array<{ value: string; label: string }> | null;
 }
 
 function fmt$(cents: number) { return `$${(cents / 100).toFixed(0)}`; }
@@ -606,7 +611,7 @@ function ServiceRow({ t, svc, last, bookHref }: { t: TemplateTheme; svc: SampleS
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
-export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS, business, content, isEditorPreview }: OriginalTemplateProps) {
+export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS, business, content, isEditorPreview, statsStrip }: OriginalTemplateProps) {
   // Pick a user-edited override for `key` if it's a non-blank string, else
   // fall back to the theme/layout's built-in copy. Keeps every edit optional.
   const c = (key: string, fallback: string): string => {
@@ -720,16 +725,21 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
           ctaOverride={content?.hero_cta_label}
         />
 
-        {/* ── Stats strip ── */}
+        {/* ── Stats strip ──
+            Live sites pass a pre-computed `statsStrip` from the server
+            (verified platform data, never user-typed numbers). Previews +
+            template gallery pass null, in which case we fall back to the
+            legacy c("stat_*_value") text so the strip still looks
+            visually complete in the marketing browser. */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", borderTop: `1px solid ${t.border}`, borderBottom: `1px solid ${t.border}`, background: t.surface }}>
-          {[
-            { k: c("stat_1_value", "4.9"),   l: c("stat_1_label", "rating") },
-            { k: c("stat_2_value", "320+"),  l: c("stat_2_label", "reviews") },
-            { k: c("stat_3_value", "9 yrs"), l: c("stat_3_label", "practice") },
-          ].map((s, i) => (
+          {(statsStrip ?? [
+            { value: c("stat_1_value", "4.9"),   label: c("stat_1_label", "rating")   },
+            { value: c("stat_2_value", "320+"),  label: c("stat_2_label", "reviews")  },
+            { value: c("stat_3_value", "9 yrs"), label: c("stat_3_label", "practice") },
+          ]).map((s, i) => (
             <div key={i} style={{ padding: "14px 10px", textAlign: "center", borderRight: i < 2 ? `1px solid ${t.border}` : "none" }}>
-              <div style={{ fontFamily: t.displayFont, fontSize: 20, fontWeight: t.displayWeight, color: t.ink, letterSpacing: t.displayTracking }}>{s.k}</div>
-              <div style={{ fontFamily: "monospace", fontSize: 9, letterSpacing: 1.5, color: t.muted, textTransform: "uppercase" as const, marginTop: 2 }}>{s.l}</div>
+              <div style={{ fontFamily: t.displayFont, fontSize: 20, fontWeight: t.displayWeight, color: t.ink, letterSpacing: t.displayTracking }}>{s.value}</div>
+              <div style={{ fontFamily: "monospace", fontSize: 9, letterSpacing: 1.5, color: t.muted, textTransform: "uppercase" as const, marginTop: 2 }}>{s.label}</div>
             </div>
           ))}
         </div>

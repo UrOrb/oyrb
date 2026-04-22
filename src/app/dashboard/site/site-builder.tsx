@@ -8,6 +8,14 @@ import { ImageUpload, GalleryUpload } from "@/components/dashboard/image-upload"
 import { StockPicker } from "@/components/dashboard/stock-picker";
 import { updateSite } from "./actions";
 import { TemplatePreview, type TemplatePreviewDraft } from "./template-preview";
+import {
+  STAT_TYPES,
+  STAT_OPTION_LABELS,
+  DEFAULT_LABELS,
+  sanitizeStatLabel,
+  isLabelSanitized,
+  type StatType,
+} from "@/lib/pro-stats-types";
 
 type Service = {
   id: string;
@@ -42,6 +50,13 @@ type Draft = {
   instagram_url: string;
   template_layout: string;
   template_theme: string;
+  // Stats strip selections (Original layout). Type columns on the row
+  // store which verified metric to display; labels stay in
+  // template_content so they share the same editing pattern as other
+  // template-copy fields.
+  stat_1_type: string;
+  stat_2_type: string;
+  stat_3_type: string;
   hero_image_url: string;
   profile_image_url: string;
   gallery_photos: string[];
@@ -71,6 +86,9 @@ function businessToDraft(business: Business, hoursRows: BusinessHours[]): Draft 
     instagram_url: business.instagram_url ?? "",
     template_layout: business.template_layout === "zip" ? "original" : (business.template_layout || "original"),
     template_theme: business.template_theme ?? "aura",
+    stat_1_type: (business as unknown as { stat_1_type?: string | null }).stat_1_type ?? "specialty",
+    stat_2_type: (business as unknown as { stat_2_type?: string | null }).stat_2_type ?? "services_offered",
+    stat_3_type: (business as unknown as { stat_3_type?: string | null }).stat_3_type ?? "location",
     hero_image_url: business.hero_image_url ?? "",
     profile_image_url: business.profile_image_url ?? "",
     gallery_photos: Array.isArray(business.gallery_photos) ? business.gallery_photos : [],
@@ -108,6 +126,9 @@ function draftToFormData(draft: Draft): FormData {
   fd.set("instagram_url", draft.instagram_url);
   fd.set("template_layout", draft.template_layout);
   fd.set("template_theme", draft.template_theme);
+  fd.set("stat_1_type", draft.stat_1_type);
+  fd.set("stat_2_type", draft.stat_2_type);
+  fd.set("stat_3_type", draft.stat_3_type);
   fd.set("hero_image_url", draft.hero_image_url);
   fd.set("profile_image_url", draft.profile_image_url);
   fd.set("gallery_photos", JSON.stringify(draft.gallery_photos));
@@ -210,19 +231,11 @@ const TEMPLATE_COPY_FIELDS: Array<{
       { key: "hero_book_label", label: "Hero Book label",                            placeholder: "Book an Appointment",                    layouts: ["studio", "luxe"] },
     ],
   },
-  {
-    group: "Stats strip",
-    description: "Three quick-proof numbers under the hero.",
-    layouts: ["original"],
-    fields: [
-      { key: "stat_1_value", label: "Stat 1 value", placeholder: "4.9" },
-      { key: "stat_1_label", label: "Stat 1 label", placeholder: "rating" },
-      { key: "stat_2_value", label: "Stat 2 value", placeholder: "320+" },
-      { key: "stat_2_label", label: "Stat 2 label", placeholder: "reviews" },
-      { key: "stat_3_value", label: "Stat 3 value", placeholder: "9 yrs" },
-      { key: "stat_3_label", label: "Stat 3 label", placeholder: "practice" },
-    ],
-  },
+  // NOTE: Stats strip is NOT in TEMPLATE_COPY_FIELDS anymore. It renders
+  // via a custom block below the template-copy loop (see StatsStripEditor)
+  // because each stat is a dropdown + label pair rather than a text input.
+  // Listed here as a filtered-out sentinel so the type system knows about
+  // the group (harmless since fields is empty).
   {
     group: "Section titles",
     fields: [
@@ -672,6 +685,28 @@ export function SiteBuilder({ business, hours, services, origin }: Props) {
               subtitle={`Rewrite any label for your ${draft.template_layout} layout. Leave blank to use the template default.`}
             >
               <div className="space-y-5">
+                {/* Stats strip editor — Original layout only. Renders 3
+                    dropdowns (type selector) + label inputs instead of
+                    the free-text value inputs that used to live here.
+                    Values auto-populate from verified platform data. */}
+                {draft.template_layout === "original" && (
+                  <StatsStripEditor
+                    types={[draft.stat_1_type, draft.stat_2_type, draft.stat_3_type]}
+                    labels={[
+                      draft.template_content["stat_1_label"] ?? "",
+                      draft.template_content["stat_2_label"] ?? "",
+                      draft.template_content["stat_3_label"] ?? "",
+                    ]}
+                    onTypeChange={(i, v) => {
+                      const key = (["stat_1_type","stat_2_type","stat_3_type"] as const)[i];
+                      update(key, v);
+                    }}
+                    onLabelChange={(i, v) => {
+                      const key = (["stat_1_label","stat_2_label","stat_3_label"] as const)[i];
+                      updateContent(key, v);
+                    }}
+                  />
+                )}
                 {TEMPLATE_COPY_FIELDS
                   // Filter each group + its fields against the current layout.
                   .map((group) => ({
@@ -942,4 +977,86 @@ function hoursRowsFromDraft(hours: Draft["hours"]): BusinessHours[] {
     open_time: h.open_time || null,
     close_time: h.close_time || null,
   }));
+}
+
+// ── Stats strip editor ──────────────────────────────────────────────────────
+// Renders 3 dropdown + label pairs. Dropdown binds to draft.stat_N_type
+// (persisted as a column on businesses, enum-constrained). Label binds to
+// template_content.stat_N_label (sanitized server-side and preview-hinted
+// client-side so digits/symbols can't imply false data).
+function StatsStripEditor({
+  types,
+  labels,
+  onTypeChange,
+  onLabelChange,
+}: {
+  types: [string, string, string];
+  labels: [string, string, string];
+  onTypeChange: (i: 0 | 1 | 2, value: string) => void;
+  onLabelChange: (i: 0 | 1 | 2, value: string) => void;
+}) {
+  return (
+    <div>
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-[#525252]">
+        Stats strip
+      </h3>
+      <p className="mt-0.5 text-[11px] text-[#A3A3A3]">
+        Pick up to three verified stats. Values auto-populate from your real
+        platform data — you can&apos;t type numbers manually.
+      </p>
+      <div className="mt-3 space-y-3">
+        {[0, 1, 2].map((i) => {
+          const idx = i as 0 | 1 | 2;
+          const t = (types[idx] as StatType) || "specialty";
+          const rawLabel = labels[idx] ?? "";
+          const showsHint = rawLabel && !isLabelSanitized(rawLabel);
+          return (
+            <div
+              key={i}
+              className="grid gap-2 rounded-md border border-[#E7E5E4] bg-[#FAFAF9] p-3 md:grid-cols-2"
+            >
+              <div>
+                <label className="block text-[11px] font-medium text-[#525252]">
+                  Choose Stat {i + 1}
+                </label>
+                <select
+                  value={types[idx]}
+                  onChange={(e) => onTypeChange(idx, e.target.value)}
+                  className={inputCls}
+                >
+                  {STAT_TYPES.map((optType) => (
+                    <option key={optType} value={optType}>
+                      {STAT_OPTION_LABELS[optType]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-[#525252]">
+                  Customize label
+                </label>
+                <input
+                  type="text"
+                  value={rawLabel}
+                  onChange={(e) => onLabelChange(idx, e.target.value)}
+                  placeholder={DEFAULT_LABELS[t]}
+                  maxLength={20}
+                  className={inputCls}
+                />
+                {showsHint && (
+                  <p className="mt-1 text-[10px] text-amber-700">
+                    Digits and symbols (% ★ . # + *) will be stripped on save
+                    — saved as: <strong>{sanitizeStatLabel(rawLabel) || "(empty)"}</strong>
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-2 text-[10px] text-[#A3A3A3]">
+        Stats auto-populate from your real platform data. You can&apos;t manually enter values.
+      </p>
+    </div>
+  );
 }

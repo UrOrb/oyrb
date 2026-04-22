@@ -195,12 +195,43 @@ export default async function PublicSitePage({ params }: Props) {
     };
   });
 
+  // Compute the three verified stats for the Original layout's stats
+  // strip. Kept behind a layoutKey check so other layouts (which don't
+  // render stats) don't pay the query cost.
+  const layoutKeyForStats = biz.template_layout === "zip" ? "original" : biz.template_layout;
+  let statsStrip: Array<{ value: string; label: string }> | null = null;
+  if (layoutKeyForStats === "original") {
+    const { loadProStatsInputs, resolveStat, sanitizeStatLabel, DEFAULT_LABELS } =
+      await import("@/lib/pro-stats");
+    const inputs = await loadProStatsInputs({
+      id: biz.id,
+      owner_id: biz.owner_id,
+      service_category: biz.service_category ?? null,
+      city: biz.city ?? null,
+    });
+    const content = (biz.template_content ?? {}) as Record<string, string>;
+    const typeFor = (col: "stat_1_type" | "stat_2_type" | "stat_3_type", fallback: string) =>
+      ((biz as unknown as Record<string, string | null>)[col] ?? fallback) as
+        Parameters<typeof resolveStat>[0];
+    const labelFor = (k: string, t: string) =>
+      sanitizeStatLabel(content[k]) || DEFAULT_LABELS[t as keyof typeof DEFAULT_LABELS] || "";
+    const t1 = typeFor("stat_1_type", "specialty");
+    const t2 = typeFor("stat_2_type", "services_offered");
+    const t3 = typeFor("stat_3_type", "location");
+    statsStrip = [
+      resolveStat(t1, inputs, labelFor("stat_1_label", t1)),
+      resolveStat(t2, inputs, labelFor("stat_2_label", t2)),
+      resolveStat(t3, inputs, labelFor("stat_3_label", t3)),
+    ];
+  }
+
   const templateProps = {
     business: sampleBusiness,
     services: sampleServices,
     hours: sampleHours,
     theme,
     content: (biz.template_content ?? {}) as Record<string, string>,
+    statsStrip,
   } as any;
 
   // Legacy rows saved with `template_layout === "zip"` map to the renamed Original.

@@ -15,6 +15,10 @@ export type Business = {
   hero_image_url: string | null;
   profile_image_url: string | null;
   template_layout: string;
+  stat_1_type?: string | null;
+  stat_2_type?: string | null;
+  stat_3_type?: string | null;
+  stats_migration_acknowledged_at?: string | null;
   template_theme: string;
   service_category: string;
   timezone: string;

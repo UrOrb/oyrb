@@ -3,8 +3,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { getCurrentBusiness } from "@/lib/current-site";
+import { sanitizeStatLabel, STAT_TYPES } from "@/lib/pro-stats-types";
 
 const STARTER_THEMES = ["aura", "minimal", "bold"];
+const VALID_STAT_TYPES = new Set<string>(STAT_TYPES);
+// Labels on the stats strip go through sanitizeStatLabel (strips digits,
+// %, ★, decimals, etc.) before persistence, so crafted input can't imply
+// false data.
+const STAT_LABEL_KEYS = new Set(["stat_1_label", "stat_2_label", "stat_3_label"]);
 
 function slugify(input: string) {
   return input
@@ -90,6 +96,21 @@ export async function updateSite(formData: FormData) {
         return [];
       }
     })(),
+    // Stats strip selector columns (Original layout). Enum-constrained at
+    // the DB level via CHECK — any unknown value here is dropped before
+    // the update fires, falling back to the current column value.
+    stat_1_type: (() => {
+      const v = (formData.get("stat_1_type") as string) || "";
+      return VALID_STAT_TYPES.has(v) ? v : business.stat_1_type ?? "specialty";
+    })(),
+    stat_2_type: (() => {
+      const v = (formData.get("stat_2_type") as string) || "";
+      return VALID_STAT_TYPES.has(v) ? v : business.stat_2_type ?? "services_offered";
+    })(),
+    stat_3_type: (() => {
+      const v = (formData.get("stat_3_type") as string) || "";
+      return VALID_STAT_TYPES.has(v) ? v : business.stat_3_type ?? "location";
+    })(),
     template_content: (() => {
       // Collect every tc_* form field into a single JSONB blob. Each field
       // maps to a template element id (see c(...) calls in template components).
@@ -112,9 +133,22 @@ export async function updateSite(formData: FormData) {
         if (LOCKED_KEYS.has(bareKey)) continue;
         const trimmed = value.trim();
         if (!trimmed) continue;
+        // Stats strip labels — sanitize to strip digits/%/★/decimals
+        // that could imply false data. sanitizeStatLabel caps at 20 chars.
+        if (STAT_LABEL_KEYS.has(bareKey)) {
+          const clean = sanitizeStatLabel(trimmed);
+          if (clean) out[bareKey] = clean;
+          continue;
+        }
         const cap = LONG_TEXT_KEYS.has(bareKey) ? 500 : 200;
         out[bareKey] = trimmed.slice(0, cap);
       }
+      // Server-side backstop: drop any legacy stat_*_value keys that
+      // might still live in template_content so they never render
+      // again, even if a hand-crafted form tries to re-set them.
+      delete out["stat_1_value"];
+      delete out["stat_2_value"];
+      delete out["stat_3_value"];
       return out;
     })(),
     is_published: formData.get("is_published") === "on",
