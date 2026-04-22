@@ -52,7 +52,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const form = await request.formData();
+  // formData() throws on a non-multipart body (malformed request, wrong
+  // content-type, empty POST). Catch so those get a clean 400 instead of
+  // leaking a generic 500 to the client — real uploads from the booking
+  // widget always send a proper multipart form.
+  let form: FormData;
+  try {
+    form = await request.formData();
+  } catch {
+    return NextResponse.json(
+      { error: "Malformed upload. Submit as multipart/form-data with a 'file' field." },
+      { status: 400 },
+    );
+  }
   const file = form.get("file") as File | null;
   const slug = (form.get("slug") as string | null)?.trim() ?? "";
 
