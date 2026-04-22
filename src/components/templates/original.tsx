@@ -130,7 +130,7 @@ function Hero({
     <div style={{ background: t.bg, padding: "28px 20px 40px", position: "relative" }}>
       <div style={{ position: "absolute", top: 28, right: 20, fontFamily: "monospace", fontSize: 9, color: t.accent, letterSpacing: 3, writingMode: "vertical-rl" as const }}>EST. MMXVIII</div>
       <Kicker id={t.id} mono="monospace" accent={t.accent} style={{ marginBottom: 20 }}>{k("Private Studio · By Appointment")}</Kicker>
-      <h1 style={{ fontFamily: t.displayFont, fontWeight: t.displayWeight, fontSize: 56, lineHeight: 1.0, letterSpacing: "-0.02em", margin: 0, color: t.ink, fontStyle: "italic" }}>
+      <h1 style={{ fontFamily: t.displayFont, fontWeight: t.displayWeight, fontSize: "clamp(34px, 9vw, 56px)", lineHeight: 1.0, letterSpacing: "-0.02em", margin: 0, color: t.ink, fontStyle: "italic" }}>
         {biz.name.split(" ")[0]}<br /><span style={{ color: t.accent }}>{biz.name.split(" ").slice(1).join(" ")}</span>
       </h1>
       <Ornament t={t} />
@@ -147,7 +147,7 @@ function Hero({
   if (t.id === "bold" || t.id === "citrus") return (
     <div style={{ background: t.ink, color: t.bg, padding: "24px 20px 28px" }}>
       <div style={{ fontFamily: "monospace", fontSize: 10, color: t.accent, letterSpacing: 2, textTransform: "uppercase", marginBottom: 14 }}>{k("◼ OPEN FOR BOOKING")}</div>
-      <div style={{ fontFamily: t.displayFont, fontWeight: 900, fontSize: 68, lineHeight: 0.88, letterSpacing: "-0.045em", color: t.bg }}>
+      <div style={{ fontFamily: t.displayFont, fontWeight: 900, fontSize: "clamp(40px, 11vw, 68px)", lineHeight: 0.88, letterSpacing: "-0.045em", color: t.bg, overflowWrap: "anywhere" }}>
         {biz.name.toUpperCase().split(" ")[0]}.<br />
         <span style={{ color: t.accent }}>{biz.name.toUpperCase().split(" ").slice(1).join(" ") || "STUDIO"}</span>
       </div>
@@ -173,7 +173,7 @@ function Hero({
       <div style={{ fontFamily: "monospace", fontSize: 10, color: t.accent, letterSpacing: 2, marginBottom: 8 }}>
         {k("// STUDIO · EST_2019 · ACCEPTING CLIENTS")}
       </div>
-      <div style={{ fontFamily: t.displayFont, fontWeight: 800, fontSize: 64, lineHeight: 0.85, letterSpacing: "-0.045em", color: t.ink, textTransform: "uppercase" as const }}>
+      <div style={{ fontFamily: t.displayFont, fontWeight: 800, fontSize: "clamp(38px, 10vw, 64px)", lineHeight: 0.85, letterSpacing: "-0.045em", color: t.ink, textTransform: "uppercase" as const, overflowWrap: "anywhere" }}>
         {biz.name.split(" ")[0]}<span style={{ color: t.accent }}>/</span>{biz.name.split(" ").slice(1).join("")}
       </div>
       <div style={{ marginTop: 12, border: `1px solid ${t.border}`, padding: "10px 12px", display: "flex", justifyContent: "space-between", fontFamily: "monospace", fontSize: 10, letterSpacing: 1, color: t.muted, textTransform: "uppercase" as const }}>
@@ -197,7 +197,7 @@ function Hero({
       <div style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: 2, textTransform: "uppercase" as const, color: t.muted, display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
         <span style={{ color: t.accent }}>★</span> {k("OPEN · come thru!!")}
       </div>
-      <div style={{ fontFamily: t.displayFont, fontWeight: 900, fontSize: 62, lineHeight: 0.9, letterSpacing: "-0.03em", color: t.ink }}>
+      <div style={{ fontFamily: t.displayFont, fontWeight: 900, fontSize: "clamp(38px, 10vw, 62px)", lineHeight: 0.9, letterSpacing: "-0.03em", color: t.ink, overflowWrap: "anywhere" }}>
         {biz.name.toLowerCase().split(" ")[0]}<span style={{ color: t.accent }}>☆</span>
       </div>
       <div style={{ fontFamily: t.bodyFont, fontSize: 15, color: t.muted, fontWeight: 500, marginTop: 8 }}>{biz.tagline}</div>
@@ -535,7 +535,7 @@ function Hero({
         <div style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: 2, textTransform: "uppercase" as const, color: t.muted, marginBottom: 8 }}>
           open & cozy
         </div>
-        <h1 style={{ fontFamily: t.displayFont, fontStyle: "italic", fontWeight: t.displayWeight, fontSize: 54, lineHeight: 0.95, letterSpacing: "-0.02em", color: t.ink, margin: 0 }}>
+        <h1 style={{ fontFamily: t.displayFont, fontStyle: "italic", fontWeight: t.displayWeight, fontSize: "clamp(34px, 9vw, 54px)", lineHeight: 0.95, letterSpacing: "-0.02em", color: t.ink, margin: 0 }}>
           {biz.name.split(" ")[0]}<br /><span style={{ color: t.accent }}>{biz.name.split(" ").slice(1).join(" ")}</span>
         </h1>
         <p style={{ fontFamily: t.bodyFont, fontSize: 13, color: t.muted, marginTop: 14, lineHeight: 1.55 }}>{biz.tagline}</p>

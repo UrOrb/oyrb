@@ -68,6 +68,16 @@
     max-width: 100vw;
     overflow-x: hidden;
   }
+  /* Templates ship inline fixed-pixel hero font-sizes (e.g. 56–68px). On
+     narrow viewports with long business names ("THE STYLE SUITE") those can
+     overflow before wrapping. Force wrap-as-last-resort inside any themed
+     template wrapper — doesn't change desktop rendering since text only
+     breaks when it would otherwise overflow. */
+  [data-oyrb-theme] h1,
+  [data-oyrb-theme] h2,
+  [data-oyrb-theme] h3 {
+    overflow-wrap: anywhere;
+  }
   body {
     @apply bg-background text-foreground;
   }
