@@ -163,31 +163,57 @@ function themesForTier(tier: string | undefined): string[] {
 // ── Field-group config drives the settings panel AND the template (keys match
 //    the c(...) calls inside the template components). Leave a field blank to
 //    fall back to the template's built-in wording.
+//
+// Every field (and every group) can declare which layouts it applies to via
+// `layouts: [...]`. When the user switches the live layout selector the panel
+// hides any group/field that doesn't apply — so Studio no longer sees
+// "Stats strip (Original)" etc. The DB column is never touched; values the
+// user typed while they were on a different layout remain stored and will
+// re-appear the moment they switch back.
+//
+// Layout source-of-truth for each key is the grep of src/components/templates/
+// *.tsx for c("<key>", …) calls. If you add a new template usage, update the
+// layouts array here so the field becomes visible in that layout's editor.
+type Layout = "original" | "studio" | "luxe" | "clean" | "bold";
+const ALL_LAYOUTS: Layout[] = ["original", "studio", "luxe", "clean", "bold"];
+
+type CopyField = {
+  key: string;
+  label: string;
+  placeholder: string;
+  wide?: boolean;
+  textarea?: boolean;
+  layouts?: Layout[]; // omitted = visible on every layout
+};
+
 const TEMPLATE_COPY_FIELDS: Array<{
   group: string;
   description?: string;
-  fields: Array<{ key: string; label: string; placeholder: string; wide?: boolean; textarea?: boolean }>;
+  layouts?: Layout[]; // omitted = visible on every layout
+  fields: CopyField[];
 }> = [
   {
     group: "Top bar",
+    layouts: ["clean", "bold"],
     fields: [
-      { key: "top_book_label",  label: "Top-right Book button",   placeholder: "Book" },
-      { key: "top_brand_label", label: "Top-left brand tag (Bold)", placeholder: "OYRB" },
+      { key: "top_book_label",  label: "Top-right Book button",   placeholder: "Book",  layouts: ["clean"] },
+      { key: "top_brand_label", label: "Top-left brand tag",       placeholder: "OYRB",  layouts: ["bold"] },
     ],
   },
   {
     group: "Hero",
     fields: [
-      { key: "hero_kicker",     label: "Hero kicker (small text above your name)", placeholder: "e.g. OPEN · come thru!!", wide: true },
-      { key: "hero_badge",      label: "Hero badge / chip",                         placeholder: "e.g. Now booking" },
-      { key: "hero_rating",     label: "Hero rating line (Bold)",                   placeholder: "5.0 (48 reviews)" },
-      { key: "hero_cta_label",  label: "Hero Book label (Original)",                placeholder: "☆ book me ☆" },
-      { key: "hero_book_label", label: "Hero Book label (Studio / Luxe)",           placeholder: "Book an Appointment" },
+      { key: "hero_kicker",     label: "Hero kicker (small text above your name)", placeholder: "e.g. OPEN · come thru!!", wide: true, layouts: ["original"] },
+      { key: "hero_badge",      label: "Hero badge / chip",                         placeholder: "e.g. Now booking",                       layouts: ["bold"] },
+      { key: "hero_rating",     label: "Hero rating line",                          placeholder: "5.0 (48 reviews)",                       layouts: ["bold"] },
+      { key: "hero_cta_label",  label: "Hero Book label",                            placeholder: "☆ book me ☆",                            layouts: ["original"] },
+      { key: "hero_book_label", label: "Hero Book label",                            placeholder: "Book an Appointment",                    layouts: ["studio", "luxe"] },
     ],
   },
   {
-    group: "Stats strip (Original)",
+    group: "Stats strip",
     description: "Three quick-proof numbers under the hero.",
+    layouts: ["original"],
     fields: [
       { key: "stat_1_value", label: "Stat 1 value", placeholder: "4.9" },
       { key: "stat_1_label", label: "Stat 1 label", placeholder: "rating" },
@@ -200,41 +226,43 @@ const TEMPLATE_COPY_FIELDS: Array<{
   {
     group: "Section titles",
     fields: [
-      { key: "section_about_title",     label: "About section",        placeholder: "Meet the specialist" },
+      { key: "section_about_title",     label: "About section",        placeholder: "Meet the specialist", layouts: ["original"] },
       { key: "section_services_title",  label: "Services section",     placeholder: "Services" },
       { key: "section_gallery_title",   label: "Gallery / Portfolio",  placeholder: "Portfolio" },
-      { key: "section_gallery_kicker",  label: "Gallery kicker",       placeholder: "recent work" },
-      { key: "section_reviews_title",   label: "Reviews",              placeholder: "What clients say" },
+      { key: "section_gallery_kicker",  label: "Gallery kicker",       placeholder: "recent work", layouts: ["original"] },
+      { key: "section_reviews_title",   label: "Reviews",              placeholder: "What clients say", layouts: ["original", "bold"] },
       { key: "section_hours_title",     label: "Hours",                placeholder: "Studio hours" },
-      { key: "section_location_title",  label: "Location",             placeholder: "Find the studio" },
-      { key: "section_policies_title",  label: "Policies",             placeholder: "Booking & policies" },
-      { key: "section_instagram_title", label: "Instagram",            placeholder: "Instagram" },
+      { key: "section_location_title",  label: "Location",             placeholder: "Find the studio", layouts: ["original", "clean"] },
+      { key: "section_policies_title",  label: "Policies",             placeholder: "Booking & policies", layouts: ["original"] },
+      { key: "section_instagram_title", label: "Instagram",            placeholder: "Instagram", layouts: ["original"] },
     ],
   },
   {
     group: "Buttons",
     fields: [
-      { key: "service_book_label", label: "Per-service button",  placeholder: "Book" },
-      { key: "sidebar_cta_label",  label: "Sidebar / footer CTA", placeholder: "Request a Booking" },
-      { key: "footer_action_1",    label: "Footer button 1 (Original)", placeholder: "Directions" },
-      { key: "footer_action_2",    label: "Footer button 2 (Original)", placeholder: "Message" },
+      { key: "service_book_label", label: "Per-service button",         placeholder: "Book",               layouts: ["studio", "clean", "bold"] },
+      { key: "sidebar_cta_label",  label: "Sidebar / footer CTA",       placeholder: "Request a Booking",  layouts: ["luxe", "bold"] },
+      { key: "footer_action_1",    label: "Footer button 1 (Directions)", placeholder: "Directions",       layouts: ["original"] },
+      { key: "footer_action_2",    label: "Footer button 2 (Message)",    placeholder: "Message",          layouts: ["original"] },
     ],
   },
   {
     group: "Testimonials (shown in the template)",
     description: "Sample reviews baked into the template. Real client reviews render separately below.",
+    layouts: ["original", "bold"],
     fields: [
       { key: "review_1_name", label: "Review 1 — name",  placeholder: "Simone R." },
       { key: "review_1_body", label: "Review 1 — quote", placeholder: "I've never been treated with this much care…", wide: true, textarea: true },
       { key: "review_2_name", label: "Review 2 — name",  placeholder: "Jordan K." },
       { key: "review_2_body", label: "Review 2 — quote", placeholder: "Booking was easy, the studio is serene…", wide: true, textarea: true },
-      { key: "review_3_name", label: "Review 3 — name",  placeholder: "Priya M." },
-      { key: "review_3_body", label: "Review 3 — quote", placeholder: "Rebooked before I left…", wide: true, textarea: true },
+      { key: "review_3_name", label: "Review 3 — name",  placeholder: "Priya M.",                                     layouts: ["original"] },
+      { key: "review_3_body", label: "Review 3 — quote", placeholder: "Rebooked before I left…", wide: true, textarea: true, layouts: ["original"] },
     ],
   },
   {
     group: "Policies (shown in the template)",
     description: "Three short policy cards. Your longer client / cancellation policies live in the Booking & policies section below.",
+    layouts: ["original"],
     fields: [
       { key: "policy_1_title", label: "Policy 1 — title", placeholder: "Deposit" },
       { key: "policy_1_body",  label: "Policy 1 — body",  placeholder: "30% deposit secures your slot…", wide: true, textarea: true },
@@ -251,10 +279,23 @@ const TEMPLATE_COPY_FIELDS: Array<{
     // See components/templates/platform-credit.tsx + Terms §24.
     description: `"Powered by OYRB" credit is shown on all published sites and cannot be removed.`,
     fields: [
-      { key: "footer_text", label: "Footer line", placeholder: "Your name · Your city", wide: true },
+      // footer_text is used by Studio / Luxe / Clean / Bold. Original uses
+      // its own stock footer disclaimer — no user-editable line there.
+      { key: "footer_text", label: "Footer line", placeholder: "Your name · Your city", wide: true, layouts: ["studio", "luxe", "clean", "bold"] },
     ],
   },
 ];
+
+// Suppress unused-var when layouts is `undefined` (= "all") — referenced at
+// render time via the helper below.
+void ALL_LAYOUTS;
+
+// Returns true when the given field/group should appear for the current
+// layout. `layouts: undefined` means "always visible" (universal field).
+function matchesLayout(layout: string, fieldLayouts?: Layout[]): boolean {
+  if (!fieldLayouts || fieldLayouts.length === 0) return true;
+  return fieldLayouts.includes(layout as Layout);
+}
 
 // ── Reusable field primitives ────────────────────────────────────────────────
 const inputCls =
@@ -622,13 +663,29 @@ export function SiteBuilder({ business, hours, services, origin }: Props) {
               </div>
             </Section>
 
-            {/* Template copy */}
+            {/* Template copy — dynamically filtered to fields that apply to
+                the currently-selected layout. Switching layouts refreshes
+                this panel immediately. Saved values for hidden fields stay
+                in the DB and re-appear when the layout is switched back. */}
             <Section
               title="Template copy"
-              subtitle="Rewrite any label. Leave blank to use the template default."
+              subtitle={`Rewrite any label for your ${draft.template_layout} layout. Leave blank to use the template default.`}
             >
               <div className="space-y-5">
-                {TEMPLATE_COPY_FIELDS.map((group) => (
+                {TEMPLATE_COPY_FIELDS
+                  // Filter each group + its fields against the current layout.
+                  .map((group) => ({
+                    ...group,
+                    fields: group.fields.filter((f) => matchesLayout(draft.template_layout, f.layouts)),
+                  }))
+                  // Drop groups that (a) don't apply to this layout or
+                  // (b) have all their fields hidden after filtering.
+                  .filter(
+                    (group) =>
+                      matchesLayout(draft.template_layout, group.layouts) &&
+                      group.fields.length > 0,
+                  )
+                  .map((group) => (
                   <div key={group.group}>
                     <h3 className="text-xs font-semibold uppercase tracking-wide text-[#525252]">{group.group}</h3>
                     {group.description && (
