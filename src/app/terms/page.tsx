@@ -7,7 +7,7 @@ export const metadata = {
 };
 
 const LAST_UPDATED = "April 18, 2026";
-const COMPANY_NAME = "OYRB (Own Your Reality Brand)";
+const COMPANY_NAME = "OYRB (Own Your Brand)";
 const CONTACT_EMAIL = "support@oyrb.space";
 const GOVERNING_STATE = "Georgia";
 

@@ -161,7 +161,7 @@ export default function AboutPage() {
               color: PALETTE.mute,
             }}
           >
-            OYRB — Own Your Reality Brand. A booking platform that respects
+            OYRB — Own Your Brand. A booking platform that respects
             the craft as much as the craft respects the client.
           </p>
 

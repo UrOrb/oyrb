@@ -1,4 +1,4 @@
-# OYRB — Own Your Reality Brand
+# OYRB — Own Your Brand
 
 A booking and website platform for beauty professionals. Built with Next.js 14+, Supabase, Stripe, and Tailwind CSS.
 
