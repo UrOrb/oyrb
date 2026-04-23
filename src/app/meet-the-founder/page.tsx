@@ -4,10 +4,36 @@ import { ArrowRight } from "lucide-react";
 import { Nav } from "@/components/marketing/nav";
 import { Footer } from "@/components/marketing/footer";
 
+const META_TITLE = "Meet the Founder | OYRB";
+const META_DESCRIPTION =
+  "Meet AlaniaRenee, the nail tech turned tech founder building OYRB — a booking platform for beauty professionals. Own Your Brand.";
+
 export const metadata = {
-  title: { absolute: "About OYRB" },
-  description:
-    "OYRB was built by a nail artist for beauty professionals. Own your booking site, own your brand, own your reality.",
+  title: { absolute: META_TITLE },
+  description: META_DESCRIPTION,
+  openGraph: {
+    title: META_TITLE,
+    description: META_DESCRIPTION,
+    type: "profile",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: META_TITLE,
+    description: META_DESCRIPTION,
+  },
+};
+
+const FOUNDER_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: "AlaniaRenee",
+  jobTitle: "Founder & CEO",
+  worksFor: {
+    "@type": "Organization",
+    name: "OYRB LLC",
+    url: "https://oyrb.space",
+  },
+  url: "https://oyrb.space/meet-the-founder",
 };
 
 const PALETTE = {
@@ -110,16 +136,20 @@ export default function AboutPage() {
             Our story · 2026
           </div>
 
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(FOUNDER_JSONLD) }}
+          />
           <h1
             className="max-w-4xl text-5xl leading-[0.95] tracking-[-0.03em] md:text-7xl lg:text-[104px]"
             style={{ fontFamily: '"Fraunces", serif', fontWeight: 400 }}
           >
-            Built by a beauty pro,{" "}
+            Meet the{" "}
             <em
               className="italic"
               style={{ color: PALETTE.accent, fontWeight: 400 }}
             >
-              for beauty pros.
+              Founder.
             </em>
           </h1>
 

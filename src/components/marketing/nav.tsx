@@ -31,8 +31,8 @@ export function Nav() {
           <Link href="/pricing" className="hover:text-[#0A0A0A] transition-colors">
             Pricing
           </Link>
-          <Link href="/about" className="hover:text-[#0A0A0A] transition-colors">
-            About
+          <Link href="/meet-the-founder" className="hover:text-[#0A0A0A] transition-colors">
+            Meet the Founder
           </Link>
         </nav>
 
@@ -67,7 +67,7 @@ export function Nav() {
             <Link href="/features" onClick={() => setOpen(false)}>Features</Link>
             <Link href="/templates" onClick={() => setOpen(false)}>Templates</Link>
             <Link href="/pricing" onClick={() => setOpen(false)}>Pricing</Link>
-            <Link href="/about" onClick={() => setOpen(false)}>About</Link>
+            <Link href="/meet-the-founder" onClick={() => setOpen(false)}>Meet the Founder</Link>
             <Link href="/login" onClick={() => setOpen(false)}>Sign in</Link>
             <Link
               href="/signup"
