@@ -6,8 +6,11 @@ export const metadata = {
   description: "How OYRB collects, uses, and protects your data.",
 };
 
-const LAST_UPDATED = "April 18, 2026";
+const LAST_UPDATED = "April 22, 2026";
+const EFFECTIVE_DATE = "April 22, 2026";
 const CONTACT_EMAIL = "support@oyrb.space";
+const PRIVACY_VERSION = "v1.1";
+const COMPANY_NAME = "OYRB LLC, a Georgia limited liability company";
 
 export default function PrivacyPage() {
   return (
@@ -18,13 +21,15 @@ export default function PrivacyPage() {
         <h1 className="font-display text-4xl font-medium tracking-[-0.02em] md:text-5xl">
           Privacy Policy
         </h1>
-        <p className="mt-2 text-sm text-[#737373]">Last updated: {LAST_UPDATED}</p>
+        <p className="mt-2 text-sm text-[#737373]">
+          Effective: {EFFECTIVE_DATE} · Last updated: {LAST_UPDATED} · Version {PRIVACY_VERSION}
+        </p>
 
         <div className="mt-10 space-y-8 text-[#2a2a2a]">
           <section className="space-y-3">
             <h2 className="font-display text-2xl font-medium">1. Overview</h2>
             <p>
-              OYRB (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) respects your privacy. This Privacy Policy describes how we collect, use, disclose, and protect information in connection with your use of our Platform at oyrb.space. By using the Platform, you consent to this Privacy Policy.
+              {COMPANY_NAME} (&quot;OYRB&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) respects your privacy. This Privacy Policy describes how we collect, use, disclose, and protect information in connection with your use of our Platform at oyrb.space. By using the Platform, you consent to this Privacy Policy.
             </p>
           </section>
 
@@ -81,9 +86,14 @@ export default function PrivacyPage() {
 
           <section className="space-y-3">
             <h2 className="font-display text-2xl font-medium">5. Data Retention</h2>
-            <p>
-              We retain personal data for as long as your account is active and for up to thirty (30) days after cancellation, after which data may be permanently deleted except where retention is required by law (e.g., transaction records for tax compliance are retained for seven years).
-            </p>
+            <ul className="list-disc pl-6 space-y-1">
+              <li><strong>Account &amp; business data:</strong> retained for as long as your Subscription is active.</li>
+              <li><strong>After cancellation or termination:</strong> retained for ninety (90) days as a reactivation window, then permanently deleted from production systems.</li>
+              <li><strong>Payment &amp; transaction records:</strong> retained for seven (7) years as required by IRS and state tax-record rules. We never store full card numbers — Stripe handles those.</li>
+              <li><strong>System backups:</strong> rotated out within thirty (30) days, after which the deleted data cannot be recovered from backups either.</li>
+              <li><strong>Directory listing data:</strong> removed from the public directory within five (5) minutes of delisting; cached search-engine snapshots may take additional time to clear at the search engine&apos;s discretion.</li>
+              <li><strong>Consent records (Terms, Privacy, Directory acceptance):</strong> retained for the life of the account plus seven (7) years for legal-defense and audit purposes.</li>
+            </ul>
           </section>
 
           <section className="space-y-3">
@@ -115,9 +125,9 @@ export default function PrivacyPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="font-display text-2xl font-medium">8. Children Under 13</h2>
+            <h2 className="font-display text-2xl font-medium">8. Age Requirement &amp; Children&apos;s Privacy</h2>
             <p>
-              The Platform is not directed at children under 13, and we do not knowingly collect personal information from children under 13. If we learn we have collected such information, we will delete it. Contact us if you believe a child has provided us personal information.
+              The Platform is not intended for users under the age of 18. By creating a Professional account or Client account, you confirm that you are at least 18 years old. We do not knowingly collect personal information from anyone under 18. If we learn that an account belongs to a user under 18, we will delete the account and the associated personal data, and (where required by law) notify the user&apos;s parent or guardian.
             </p>
           </section>
 
@@ -129,14 +139,39 @@ export default function PrivacyPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="font-display text-2xl font-medium">10. Changes to This Policy</h2>
+            <h2 className="font-display text-2xl font-medium">10. Directory Data</h2>
+            <p>
+              When you opt into the OYRB public directory, the specific information you have selected in your Directory settings becomes publicly visible at <a href="https://oyrb.space/find" className="text-[#B8896B] hover:underline">oyrb.space/find</a>. You control exactly what is shown — every field is opt-in, and your business name is the only required field.
+            </p>
+            <ul className="list-disc pl-6 space-y-1">
+              <li>You may allow or disallow search-engine indexing via a separate explicit toggle. When disabled, OYRB serves a <code>noindex</code> tag so search engines should not list your directory page.</li>
+              <li>You can delist at any time from your Dashboard. The public listing is removed within five (5) minutes; cached search-engine snapshots may take additional time to clear.</li>
+              <li>OYRB does not sell directory data to third parties. Aggregated, de-identified directory statistics may be published for marketing or research.</li>
+              <li>Each acceptance of the Directory Agreement is recorded with timestamp + version in the <code>directory_consent_log</code> table for audit purposes.</li>
+            </ul>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="font-display text-2xl font-medium">11. Cookies &amp; Tracking</h2>
+            <ul className="list-disc pl-6 space-y-1">
+              <li><strong>Essential cookies:</strong> required for authentication, session continuity, CSRF protection, and basic Platform functionality. Disabling these prevents you from signing in.</li>
+              <li><strong>Analytics:</strong> Vercel Analytics records aggregated, IP-anonymized page-view data to help us improve the Platform. No third-party advertising trackers, no cross-site tracking pixels, no behavioral-ad cookies.</li>
+              <li><strong>Stripe Checkout:</strong> when you reach a payment screen, Stripe sets its own cookies governed by Stripe&apos;s privacy policy.</li>
+            </ul>
+            <p>
+              We do not participate in the IAB Transparency &amp; Consent Framework or any ad-tech bidstream. There is no advertising on the Platform.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="font-display text-2xl font-medium">12. Changes to This Policy</h2>
             <p>
               We may update this Privacy Policy from time to time. Material changes will be notified via email or in-platform notice at least 30 days before taking effect. The &quot;Last updated&quot; date reflects the most recent version.
             </p>
           </section>
 
           <section className="space-y-3">
-            <h2 className="font-display text-2xl font-medium">11. Contact</h2>
+            <h2 className="font-display text-2xl font-medium">13. Contact</h2>
             <p>
               Privacy questions or requests? Email <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#B8896B] hover:underline">{CONTACT_EMAIL}</a>.
             </p>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { recordSignupConsent } from "./actions";
 
 export function SignupForm() {
   const router = useRouter();
@@ -55,6 +56,12 @@ export function SignupForm() {
       setLoading(false);
       return;
     }
+
+    // Record versioned acceptance of Terms + Privacy. Best-effort — the
+    // server action returns silently on error so a logging hiccup never
+    // blocks signup. The click-through above is the contract; this row is
+    // supporting audit evidence.
+    void recordSignupConsent();
 
     // Auto-confirm projects: Supabase returns a live session and the user
     // is already signed in. Skip the "check your email" step entirely and
@@ -150,7 +157,7 @@ export function SignupForm() {
           className="mt-0.5 h-4 w-4 shrink-0"
         />
         <span>
-          I agree to the{" "}
+          I confirm I am 18 or older and agree to the{" "}
           <a href="/terms" target="_blank" className="font-medium text-[#B8896B] underline">
             Terms of Service
           </a>{" "}

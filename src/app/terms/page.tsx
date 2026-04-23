@@ -6,10 +6,12 @@ export const metadata = {
   description: "Legal terms governing the use of OYRB.",
 };
 
-const LAST_UPDATED = "April 18, 2026";
-const COMPANY_NAME = "OYRB (Own Your Brand)";
+const LAST_UPDATED = "April 22, 2026";
+const EFFECTIVE_DATE = "April 22, 2026";
+const COMPANY_NAME = "OYRB LLC, a Georgia limited liability company (“OYRB”, “Own Your Brand”)";
 const CONTACT_EMAIL = "support@oyrb.space";
 const GOVERNING_STATE = "Georgia";
+const TOS_VERSION = "v1.1";
 
 export default function TermsPage() {
   return (
@@ -22,7 +24,7 @@ export default function TermsPage() {
             Terms of Service
           </h1>
           <p className="mt-2 text-sm text-[#737373]">
-            Last updated: {LAST_UPDATED}
+            Effective: {EFFECTIVE_DATE} · Last updated: {LAST_UPDATED} · Version {TOS_VERSION}
           </p>
 
           <div className="mt-6 rounded-md border border-[#E7E5E4] bg-[#FAFAF9] p-4 text-sm text-[#525252]">
@@ -238,13 +240,18 @@ export default function TermsPage() {
             <p>You agree NOT to use the Platform to:</p>
             <ul className="list-disc pl-6 space-y-2">
               <li>Offer, advertise, or provide services that are illegal under federal, state, or local law;</li>
-              <li>Engage in or facilitate adult entertainment, escort services, or sexually explicit services of any kind (prohibited by Stripe and our payment processor terms);</li>
-              <li>Misrepresent your identity, credentials, or service offerings;</li>
+              <li>Sell counterfeit, infringing, or unlicensed products or services;</li>
+              <li>Engage in or facilitate adult entertainment, escort services, or sexually explicit services of any kind, or any service involving minors (prohibited by Stripe and our payment processor terms);</li>
+              <li>Misrepresent your identity, credentials, or service offerings, or impersonate another person or business;</li>
               <li>Engage in fraudulent, deceptive, or predatory practices;</li>
+              <li>Post fake reviews, ratings, or testimonials, or manipulate the directory ranking or social-proof signals on the Platform;</li>
               <li>Harass, threaten, defame, or discriminate against any person;</li>
               <li>Transmit malware, spam, or harmful code;</li>
               <li>Attempt to gain unauthorized access to the Platform or another user&apos;s account;</li>
-              <li>Scrape, data-mine, or extract data from the Platform without written permission;</li>
+              <li>Share account credentials with multiple individuals (each Subscription is for a single Professional; staff seats — where included by your plan — are managed through the Dashboard, not by sharing logins);</li>
+              <li>Scrape, copy, data-mine, or extract data, code, designs, or content from the Platform, or resell any portion of the Platform or its data, without our written permission;</li>
+              <li>Reverse engineer, decompile, or attempt to derive the source code of any Platform component;</li>
+              <li>Circumvent payment systems, attempt chargeback fraud, or use stolen payment instruments;</li>
               <li>Use the Platform to facilitate money laundering or other financial crimes;</li>
               <li>Violate the intellectual property rights of others.</li>
             </ul>
@@ -259,7 +266,13 @@ export default function TermsPage() {
               <strong>By You.</strong> You may terminate your account at any time by cancelling your Subscription. Your data remains accessible through the end of your paid period and is retained for thirty (30) days afterward, after which it may be permanently deleted.
             </p>
             <p>
-              <strong>By Us.</strong> We may suspend or terminate your account immediately, with or without notice, for any violation of these Terms, suspected fraud, non-payment, or conduct we determine to be harmful to the Platform, other users, or third parties. Upon termination, your right to use the Services ceases. Sections that by their nature should survive termination (including Sections 5.7, 6.2, 11, 14, 15, 16, 17, 18, and 19) shall survive.
+              <strong>By Us.</strong> We may suspend or terminate your account immediately, with or without notice, for any violation of these Terms, suspected fraud, non-payment, or conduct we determine to be harmful to the Platform, other users, or third parties. Upon termination, your published site is taken offline within twenty-four (24) hours, and your right to use the Services ceases. Sections that by their nature should survive termination (including Sections 5.7, 6.2, 11, 14, 15, 16, 17, 18, and 19) shall survive.
+            </p>
+            <p>
+              <strong>Post-termination data handling.</strong> Account data is retained for ninety (90) days after termination to allow reactivation, then permanently deleted, except for records we are required by law to retain (e.g., transaction records retained for seven (7) years for tax compliance). System backups containing your data are rotated out within thirty (30) days.
+            </p>
+            <p>
+              <strong>Re-registration restriction.</strong> Users whose accounts were terminated by OYRB for cause may not re-register for the Services, with the same or any other email address, for a period of twelve (12) months following termination. Attempts to evade this restriction (including via alternate identities, payment methods, or businesses) constitute a separate violation of these Terms.
             </p>
           </section>
 
@@ -270,6 +283,9 @@ export default function TermsPage() {
             </p>
             <p>
               WE DO NOT WARRANT THAT THE PLATFORM WILL BE UNINTERRUPTED, ERROR-FREE, SECURE, OR THAT DEFECTS WILL BE CORRECTED. WE DO NOT WARRANT THE QUALITY, SAFETY, LEGALITY, OR OUTCOME OF SERVICES PROVIDED BY PROFESSIONALS USING THE PLATFORM.
+            </p>
+            <p>
+              <strong>Service Availability.</strong> OYRB targets 99% monthly uptime as an internal operational goal but does <strong>not</strong> guarantee uninterrupted service. You may not claim damages for downtime, latency, bugs, lost bookings, or data loss in excess of the Limitation of Liability cap in Section 15. We may modify, suspend, or discontinue features with reasonable notice. You may export your business and client data at any time from the Dashboard.
             </p>
             <p>
               WE ARE NOT RESPONSIBLE FOR THIRD-PARTY CONTENT, PRODUCTS, OR SERVICES ACCESSED THROUGH OR IN CONNECTION WITH THE PLATFORM.
@@ -414,7 +430,26 @@ export default function TermsPage() {
           </section>
 
           <section className="mt-8 space-y-4 text-[#2a2a2a]">
-            <h2 className="font-display text-2xl font-medium">25. Contact</h2>
+            <h2 className="font-display text-2xl font-medium">25. Directory Listing</h2>
+            <p>
+              Professionals may opt into the OYRB public directory at <a href="https://oyrb.space/find" className="text-[#B8896B] hover:underline">oyrb.space/find</a> at their sole discretion. By opting in and accepting the in-app Directory Agreement, you authorize OYRB to display the specific information you have selected (e.g., business name, profession, city, specialties, social handles, gallery preview, booking link) on the public directory and on related discovery surfaces operated by OYRB.
+            </p>
+            <p>
+              <strong>Delisting.</strong> You may delist at any time from your Dashboard → Directory settings. Delisting removes your listing from the public directory within five (5) minutes; cached search-engine snapshots may take additional time to clear at the search engine&apos;s discretion. OYRB does <strong>not</strong> guarantee search-engine indexing, ranking, or any specific volume of traffic, leads, or bookings from a directory listing.
+            </p>
+            <p>
+              <strong>Removal for cause.</strong> OYRB may remove or suspend a directory listing without notice if it contains false, misleading, spam, defamatory, infringing, sexually explicit, or unlawful content, or otherwise violates these Terms. Removal of a directory listing does not affect your underlying paid Subscription, which remains active and continues to provide access to the booking site, dashboard, and related features.
+            </p>
+            <p>
+              <strong>No sale of directory data.</strong> OYRB does not sell directory data to third parties. Aggregated, de-identified statistics about the directory (e.g., total active listings, popular specialties) may be published for marketing or research purposes.
+            </p>
+            <p>
+              Each acceptance of the Directory Agreement is recorded with a timestamp and version identifier in our systems for audit purposes. You may request an export of your directory consent history by contacting <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#B8896B] hover:underline">{CONTACT_EMAIL}</a>.
+            </p>
+          </section>
+
+          <section className="mt-8 space-y-4 text-[#2a2a2a]">
+            <h2 className="font-display text-2xl font-medium">26. Contact</h2>
             <p>
               Questions about these Terms? Email us at <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#B8896B] hover:underline">{CONTACT_EMAIL}</a>.
             </p>

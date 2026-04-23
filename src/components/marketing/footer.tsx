@@ -35,9 +35,14 @@ export function Footer() {
         </div>
 
         <div className="mt-12 border-t border-[#E7E5E4] pt-6 text-xs text-[#A3A3A3]">
-          <p>© {new Date().getFullYear()} OYRB. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} OYRB LLC, a Georgia limited liability company. All rights reserved.</p>
           <p className="mt-2">
             No booking fees, no cut of tips, no hidden charges. Professionals keep 100% of what their clients pay them. One flat monthly subscription — the price you see is the price you pay.
+          </p>
+          <p className="mt-2">
+            OYRB is a booking + website platform for beauty professionals. Use of this site constitutes agreement to our{" "}
+            <Link href="/terms" className="underline hover:text-[#525252]">Terms of Service</Link> and{" "}
+            <Link href="/privacy" className="underline hover:text-[#525252]">Privacy Policy</Link>. Not intended for users under 18.
           </p>
         </div>
       </div>
