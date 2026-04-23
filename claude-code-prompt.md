@@ -69,7 +69,7 @@ Steps in order:
 ## Pricing tiers (already decided)
 - **Starter — $24/mo**: 1 staff calendar, 1 template, basic booking, Stripe payments
 - **Studio — $49/mo**: up to 3 staff, all templates, deposits, intake forms, SMS reminders
-- **Scale — $89/mo**: unlimited staff, custom domain, multi-location, priority support
+- **Scale — $89/mo**: unlimited staff, custom domain, direct founder support, priority support
 
 Create all three in Stripe in test mode during Phase 1.
 

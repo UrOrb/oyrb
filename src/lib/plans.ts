@@ -68,7 +68,7 @@ export const TIERS: Record<Tier, TierSpec> = {
     features: [
       "Unlimited staff",
       "Custom domain",
-      "Multi-location booking",
+      "Direct founder support",
       "Unlimited SMS reminders",
       "Priority support",
       "Everything in Studio",

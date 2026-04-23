@@ -9,7 +9,7 @@ A booking + website platform for beauty professionals. Think StyleSeat or Vagaro
 |------|-------|----------|---------------|
 | **Starter** | $24/mo | Solo pros just starting out | 1 staff calendar, 1 template, booking page, Stripe payments, email confirmations |
 | **Studio** | $49/mo | Established solo pros and small teams | Up to 3 staff, all 3 templates, deposits, intake forms, SMS reminders, Google Calendar sync |
-| **Scale** | $89/mo | Multi-stylist shops, suite operators | Unlimited staff, custom domain, multi-location, priority support |
+| **Scale** | $89/mo | Multi-stylist shops, suite operators | Unlimited staff, custom domain, direct founder support, priority support |
 
 Additional revenue streams to layer on once launched:
 - **Template unlock packs:** $49–99 one-time for new template drops

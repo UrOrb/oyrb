@@ -68,7 +68,7 @@ const TIERS = [
     name: "Scale",
     price: "$89",
     sites: "3 sites included · add up to 2 more for $20/mo each",
-    features: ["Unlimited staff", "Custom domain", "Multi-location booking", "Unlimited SMS reminders", "Priority support", "Everything in Studio"],
+    features: ["Unlimited staff", "Custom domain", "Direct founder support", "Unlimited SMS reminders", "Priority support", "Everything in Studio"],
     highlight: false,
   },
 ];

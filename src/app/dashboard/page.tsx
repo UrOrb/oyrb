@@ -72,7 +72,7 @@ export default async function DashboardPage({
               tier: "scale" as const,
               name: "Scale",
               price: "$89",
-              features: ["Unlimited staff", "Custom domain", "Multi-location booking", "Unlimited SMS reminders", "Priority support", "Everything in Studio"],
+              features: ["Unlimited staff", "Custom domain", "Direct founder support", "Unlimited SMS reminders", "Priority support", "Everything in Studio"],
               highlight: false,
             },
           ].map((t) => (

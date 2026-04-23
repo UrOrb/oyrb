@@ -60,7 +60,7 @@ Run `supabase/migrations/001_initial_schema.sql` in the Supabase SQL editor. Cre
 |---|---|---|
 | Starter | $24/mo | 1 staff, 1 template, booking + payments |
 | Studio | $49/mo | 3 staff, all templates, deposits, SMS |
-| Scale | $89/mo | Unlimited staff, custom domain, multi-location |
+| Scale | $89/mo | Unlimited staff, custom domain, direct founder support |
 
 ## What's done (Phase 1)
 
