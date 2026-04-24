@@ -67,9 +67,9 @@ Steps in order:
 - Indexes on foreign keys, RLS policies so each business can only read/write their own rows
 
 ## Pricing tiers (already decided)
-- **Starter — $24/mo**: 1 staff calendar, 1 template, basic booking, Stripe payments
-- **Studio — $49/mo**: up to 3 staff, all templates, deposits, intake forms, SMS reminders
-- **Scale — $89/mo**: unlimited staff, custom domain, direct founder support, priority support
+- **Starter — $29/mo**: 1 staff calendar, 1 template, basic booking, Stripe payments
+- **Studio — $69/mo**: up to 3 staff, all templates, deposits, intake forms, SMS reminders
+- **Scale — $129/mo**: unlimited staff, custom domain, direct founder support, priority support
 
 Create all three in Stripe in test mode during Phase 1.
 

@@ -1,9 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, type ReadonlyURLSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { recordSignupConsent } from "./actions";
+
+// Forward any tier/cycle/trial params from /signup → /dashboard so the
+// gate-page CheckoutButton picks up the cycle the user selected on /pricing.
+function buildDashboardHref(params: ReadonlyURLSearchParams): string {
+  const next = new URLSearchParams();
+  for (const key of ["tier", "cycle", "trial"]) {
+    const v = params.get(key);
+    if (v) next.set(key, v);
+  }
+  const qs = next.toString();
+  return qs ? `/dashboard?${qs}` : "/dashboard";
+}
 
 export function SignupForm() {
   const router = useRouter();
@@ -65,11 +77,13 @@ export function SignupForm() {
 
     // Auto-confirm projects: Supabase returns a live session and the user
     // is already signed in. Skip the "check your email" step entirely and
-    // route them straight into the trial-start flow. If email confirmation
-    // is turned on later, data.session will be null and we fall through
-    // to the check-email screen below.
+    // route them straight into the trial-start flow. Preserve any
+    // tier/cycle/trial URL params so the user lands on the dashboard
+    // gate-page with the correct billing cycle pre-selected. If email
+    // confirmation is turned on later, data.session will be null and we
+    // fall through to the check-email screen below.
     if (data.session) {
-      router.replace("/dashboard");
+      router.replace(buildDashboardHref(searchParams));
       return;
     }
 
@@ -83,9 +97,15 @@ export function SignupForm() {
       return;
     }
     const supabase = createClient();
+    // Forward tier/cycle/trial through the OAuth round-trip via the
+    // callback's `next` param (the only thing the callback route honors)
+    // so a user who picked Annual on /pricing keeps that cycle when they
+    // finish Google auth.
+    const callback = new URL("/auth/callback", location.origin);
+    callback.searchParams.set("next", buildDashboardHref(searchParams));
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${location.origin}/auth/callback` },
+      options: { redirectTo: callback.toString() },
     });
   }
 

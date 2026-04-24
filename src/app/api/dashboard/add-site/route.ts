@@ -9,7 +9,7 @@ import { getAccountSummary } from "@/lib/account";
  *
  *   mode: "included" → user has free slots remaining; just create the row.
  *   mode: "addon"    → user has used their included slots and is paying the
- *                      $20/mo (or $200/yr) add-on. Bump the addon line item
+ *                      $25/mo (or $250/yr) add-on. Bump the addon line item
  *                      on their existing Stripe subscription, then create
  *                      the row. Stripe handles proration.
  *

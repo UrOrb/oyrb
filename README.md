@@ -43,9 +43,10 @@ Update `STRIPE_WEBHOOK_SECRET` in `.env.local` with the CLI-provided secret.
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server only) |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key |
 | `STRIPE_SECRET_KEY` | Stripe secret key (server only) |
-| `STRIPE_PRICE_STARTER` | Stripe Price ID — Starter ($24/mo) |
-| `STRIPE_PRICE_STUDIO` | Stripe Price ID — Studio ($49/mo) |
-| `STRIPE_PRICE_SCALE` | Stripe Price ID — Scale ($89/mo) |
+| `STRIPE_PRICE_STARTER_MONTHLY` / `_ANNUAL` | Stripe Price IDs — Starter ($29/mo, $290/yr) |
+| `STRIPE_PRICE_STUDIO_MONTHLY` / `_ANNUAL` | Stripe Price IDs — Studio ($69/mo, $690/yr) |
+| `STRIPE_PRICE_SCALE_MONTHLY` / `_ANNUAL` | Stripe Price IDs — Scale ($129/mo, $1290/yr) |
+| `STRIPE_PRICE_ADDON_SITE_MONTHLY` / `_ANNUAL` | Stripe Price IDs — Additional site ($25/mo, $250/yr) |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
 | `RESEND_API_KEY` | Resend API key |
 | `NEXT_PUBLIC_APP_URL` | Public base URL |
@@ -58,9 +59,9 @@ Run `supabase/migrations/001_initial_schema.sql` in the Supabase SQL editor. Cre
 
 | Plan | Price | Key features |
 |---|---|---|
-| Starter | $24/mo | 1 staff, 1 template, booking + payments |
-| Studio | $49/mo | 3 staff, all templates, deposits, SMS |
-| Scale | $89/mo | Unlimited staff, custom domain, direct founder support |
+| Starter | $29/mo | 1 staff, 1 template, booking + payments |
+| Studio | $69/mo | 3 staff, all templates, deposits, SMS |
+| Scale | $129/mo | Unlimited staff, custom domain, direct founder support |
 
 ## What's done (Phase 1)
 

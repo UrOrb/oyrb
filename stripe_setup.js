@@ -39,14 +39,14 @@ const SPEC = [
     prices: [
       {
         nickname: "starter_monthly",
-        amountCents: 2400,
+        amountCents: 2900,
         interval: "month",
         envName: "STRIPE_PRICE_STARTER_MONTHLY",
         metadata: { tier: "starter", sites_included: "1", site_cap: "1" },
       },
       {
         nickname: "starter_annual",
-        amountCents: 24000,
+        amountCents: 29000,
         interval: "year",
         envName: "STRIPE_PRICE_STARTER_ANNUAL",
         metadata: { tier: "starter", sites_included: "1", site_cap: "1" },
@@ -60,14 +60,14 @@ const SPEC = [
     prices: [
       {
         nickname: "studio_monthly",
-        amountCents: 4900,
+        amountCents: 6900,
         interval: "month",
         envName: "STRIPE_PRICE_STUDIO_MONTHLY",
         metadata: { tier: "studio", sites_included: "2", site_cap: "3" },
       },
       {
         nickname: "studio_annual",
-        amountCents: 49000,
+        amountCents: 69000,
         interval: "year",
         envName: "STRIPE_PRICE_STUDIO_ANNUAL",
         metadata: { tier: "studio", sites_included: "2", site_cap: "3" },
@@ -81,14 +81,14 @@ const SPEC = [
     prices: [
       {
         nickname: "scale_monthly",
-        amountCents: 8900,
+        amountCents: 12900,
         interval: "month",
         envName: "STRIPE_PRICE_SCALE_MONTHLY",
         metadata: { tier: "scale", sites_included: "3", site_cap: "5" },
       },
       {
         nickname: "scale_annual",
-        amountCents: 89000,
+        amountCents: 129000,
         interval: "year",
         envName: "STRIPE_PRICE_SCALE_ANNUAL",
         metadata: { tier: "scale", sites_included: "3", site_cap: "5" },
@@ -103,14 +103,14 @@ const SPEC = [
     prices: [
       {
         nickname: "addon_site_monthly",
-        amountCents: 2000,
+        amountCents: 2500,
         interval: "month",
         envName: "STRIPE_PRICE_ADDON_SITE_MONTHLY",
         metadata: { type: "site_addon" },
       },
       {
         nickname: "addon_site_annual",
-        amountCents: 20000,
+        amountCents: 25000,
         interval: "year",
         envName: "STRIPE_PRICE_ADDON_SITE_ANNUAL",
         metadata: { type: "site_addon" },

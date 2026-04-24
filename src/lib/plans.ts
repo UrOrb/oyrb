@@ -7,6 +7,17 @@
 export type Tier = "starter" | "studio" | "scale";
 export type BillingCycle = "monthly" | "annual";
 
+export type ComparisonRow = {
+  name: string;
+  price: string;
+};
+
+export type TierComparison = {
+  rows: ComparisonRow[];
+  total?: string;
+  takeaway: string;
+};
+
 export type TierSpec = {
   id: Tier;
   name: string;
@@ -19,6 +30,10 @@ export type TierSpec = {
   siteCap: number;
   /** Marketing copy. */
   features: string[];
+  /** "Compare to:" anchor block shown under each tier on the pricing page. */
+  comparison: TierComparison;
+  /** Subhead under the tier name on the pricing page. */
+  recommendedFor?: string;
   highlight?: boolean;
 };
 
@@ -27,8 +42,8 @@ export const TIERS: Record<Tier, TierSpec> = {
     id: "starter",
     name: "Starter",
     description: "For solo professionals just getting started.",
-    monthlyPriceCents: 2400,
-    annualPriceCents: 24000,
+    monthlyPriceCents: 2900,
+    annualPriceCents: 29000,
     sitesIncluded: 1,
     siteCap: 1,
     features: [
@@ -38,13 +53,21 @@ export const TIERS: Record<Tier, TierSpec> = {
       "Email confirmations",
       "Email booking reminders",
     ],
+    comparison: {
+      rows: [
+        { name: "GlossGenius Standard", price: "$24/mo + 2.6% transaction fees" },
+        { name: "Booksy Base",          price: "$30/mo + transaction fees" },
+        { name: "Vagaro Base",          price: "$30/mo + 2.75% transaction fees" },
+      ],
+      takeaway: "OYRB: One flat fee. Zero transaction fees.",
+    },
   },
   studio: {
     id: "studio",
     name: "Studio",
     description: "For growing studios that need more capacity.",
-    monthlyPriceCents: 4900,
-    annualPriceCents: 49000,
+    monthlyPriceCents: 6900,
+    annualPriceCents: 69000,
     sitesIncluded: 2,
     siteCap: 3,
     features: [
@@ -56,13 +79,23 @@ export const TIERS: Record<Tier, TierSpec> = {
       "Everything in Starter",
     ],
     highlight: true,
+    recommendedFor: "Recommended for most beauty pros",
+    comparison: {
+      rows: [
+        { name: "Vagaro Paid Tier",        price: "$50/mo + add-ons" },
+        { name: "Squarespace Website",     price: "$23/mo" },
+        { name: "Mailchimp Basic",         price: "$20/mo" },
+      ],
+      total: "Total elsewhere: ~$90–$110/mo",
+      takeaway: "OYRB: Everything included for $69/mo. Zero transaction fees.",
+    },
   },
   scale: {
     id: "scale",
     name: "Scale",
     description: "For multi-stylist shops and suite operators.",
-    monthlyPriceCents: 8900,
-    annualPriceCents: 89000,
+    monthlyPriceCents: 12900,
+    annualPriceCents: 129000,
     sitesIncluded: 3,
     siteCap: 5,
     features: [
@@ -73,11 +106,21 @@ export const TIERS: Record<Tier, TierSpec> = {
       "Priority support",
       "Everything in Studio",
     ],
+    comparison: {
+      rows: [
+        { name: "Vagaro 10-Staff",           price: "$120/mo" },
+        { name: "Custom domain service",     price: "$15/mo" },
+        { name: "Email marketing platform",  price: "$30/mo" },
+        { name: "Additional integrations",   price: "$20–40/mo" },
+      ],
+      total: "Total elsewhere: ~$150–$200/mo",
+      takeaway: "OYRB: All included for $129/mo. Zero transaction fees.",
+    },
   },
 };
 
-export const ADDON_MONTHLY_CENTS = 2000;
-export const ADDON_ANNUAL_CENTS = 20000;
+export const ADDON_MONTHLY_CENTS = 2500;
+export const ADDON_ANNUAL_CENTS = 25000;
 export const ADDON_NAME = "Additional site";
 
 /** Price-id env var name for a given (tier, cycle). */
@@ -110,7 +153,7 @@ export function fmtMoney(cents: number): string {
   return `$${(cents / 100).toFixed(0)}`;
 }
 
-/** "$24/mo" or "$240/yr" depending on cycle. */
+/** "$29/mo" or "$290/yr" depending on cycle. */
 export function fmtPriceLabel(cents: number, cycle: BillingCycle): string {
   return `${fmtMoney(cents)}/${cycle === "monthly" ? "mo" : "yr"}`;
 }
@@ -119,17 +162,17 @@ export function fmtPriceLabel(cents: number, cycle: BillingCycle): string {
 export const ANNUAL_SAVINGS_LABEL = "2 months free";
 
 /**
- * Display the annual price as its per-month equivalent. Whole-dollar
- * rounding is the canonical convention across plans and the add-on
- * (240→$20, 490→$41, 890→$74, 200→$17). Used only for display — actual
- * Stripe charges are still the full annual amount up front.
+ * Honest per-month equivalent of an annual price ($290 → "$24.17",
+ * $690 → "$57.50", $1290 → "$107.50"). Always two decimal places so
+ * the cards line up cleanly under the toggle. Display only — Stripe
+ * still bills the full annual amount up front.
  */
 export function fmtAnnualAsMonthly(annualCents: number): string {
-  const monthly = Math.round(annualCents / 12 / 100);
-  return `$${monthly}`;
+  const monthly = annualCents / 12 / 100;
+  return `$${monthly.toFixed(2)}`;
 }
 
-/** "$240 billed annually" — secondary text under the per-month headline. */
+/** "$290 billed annually" — secondary text under the per-month headline. */
 export function fmtAnnualBilled(annualCents: number): string {
   return `${fmtMoney(annualCents)} billed annually`;
 }

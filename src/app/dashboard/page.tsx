@@ -6,7 +6,7 @@ import { Check, ExternalLink, Plus, Pencil, Clock } from "lucide-react";
 import { CheckoutPoller } from "./checkout-poller";
 import { ApplyPendingTemplate } from "./apply-pending-template";
 import { getAccountSummary } from "@/lib/account";
-import { TIERS, fmtMoney } from "@/lib/plans";
+import { TIERS, fmtMoney, type BillingCycle } from "@/lib/plans";
 import { getGoalSnapshot } from "@/lib/goal-tracking";
 import { GoalMeter } from "./goal-meter";
 import { getMyListing } from "@/lib/directory";
@@ -16,7 +16,7 @@ import { StatsMigrationNotice } from "./stats-migration-notice";
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ checkout?: string }>;
+  searchParams: Promise<{ checkout?: string; cycle?: string; tier?: string }>;
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -35,6 +35,9 @@ export default async function DashboardPage({
 
   const params = await searchParams;
   const checkoutSuccess = params?.checkout === "success";
+  // Cycle preference forwarded from /pricing → /signup → /dashboard. Defaults
+  // to monthly when missing so direct visits to /dashboard behave as before.
+  const preferredCycle: BillingCycle = params?.cycle === "annual" ? "annual" : "monthly";
 
   // Post-checkout but webhook hasn't fired yet — show polling spinner
   if (checkoutSuccess && (!business || business.subscription_status !== "active")) {
@@ -57,21 +60,21 @@ export default async function DashboardPage({
             {
               tier: "starter" as const,
               name: "Starter",
-              price: "$24",
+              price: "$29",
               features: ["1 staff calendar", "1 template", "Stripe payments", "Email confirmations", "Email booking reminders"],
               highlight: false,
             },
             {
               tier: "studio" as const,
               name: "Studio",
-              price: "$49",
+              price: "$69",
               features: ["Up to 3 staff", "All templates", "Deposits", "Intake forms", "SMS reminders (24h before)", "Waitlist + last-min slot alerts", "Everything in Starter"],
               highlight: true,
             },
             {
               tier: "scale" as const,
               name: "Scale",
-              price: "$89",
+              price: "$129",
               features: ["Unlimited staff", "Custom domain", "Direct founder support", "Unlimited SMS reminders", "Priority support", "Everything in Studio"],
               highlight: false,
             },
@@ -100,7 +103,7 @@ export default async function DashboardPage({
               <div className="mt-6 flex flex-col gap-2">
                 <CheckoutButton
                   tier={t.tier}
-                  cycle="monthly"
+                  cycle={preferredCycle}
                   mode="trial"
                   className={`w-full rounded-md py-2.5 text-center text-sm font-medium transition-opacity hover:opacity-80 disabled:opacity-50 ${t.highlight ? "bg-[#0A0A0A] text-white" : "border border-[#E7E5E4] text-[#0A0A0A] hover:bg-[#F5F5F4]"}`}
                 >
@@ -108,7 +111,7 @@ export default async function DashboardPage({
                 </CheckoutButton>
                 <CheckoutButton
                   tier={t.tier}
-                  cycle="monthly"
+                  cycle={preferredCycle}
                   mode="skip"
                   className="w-full rounded-md py-1.5 text-center text-xs font-medium text-[#B8896B] hover:underline disabled:opacity-50"
                 >

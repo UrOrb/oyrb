@@ -4,6 +4,8 @@ import { PricingCards } from "./pricing-cards";
 
 export const metadata = {
   title: "Pricing",
+  description:
+    "Everything-included pricing for beauty professionals. Plans from $29/mo (or $24.17/mo billed annually). Zero transaction fees, no hidden charges.",
 };
 
 export default function PricingPage() {
@@ -38,7 +40,7 @@ export default function PricingPage() {
             {[
               {
                 q: "What does \"sites included\" mean?",
-                a: "Each plan comes with 1–3 fully separate booking sites — different brand, template, calendar, and clients per site. Need more? Studio and Scale let you add additional sites for $20/mo (or $200/yr) up to your plan's cap.",
+                a: "Each plan comes with 1–3 fully separate booking sites — different brand, template, calendar, and clients per site. Need more? Studio and Scale let you add additional sites for $25/mo (or $250/yr) up to your plan's cap.",
               },
               {
                 q: "Annual vs monthly — what's the difference?",

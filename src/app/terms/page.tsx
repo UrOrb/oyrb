@@ -77,7 +77,7 @@ export default function TermsPage() {
 
             <h3 className="font-medium mt-4">5.1 Subscription Fees</h3>
             <p>
-              Professionals pay a recurring monthly fee (Starter: $24/mo, Studio: $49/mo, Scale: $89/mo) to access the Platform. Fees are charged in advance on a monthly basis and are non-refundable except as expressly set forth below or as required by applicable law.
+              Professionals pay a recurring monthly fee (Starter: $29/mo, Studio: $69/mo, Scale: $129/mo) to access the Platform. Fees are charged in advance on a monthly basis and are non-refundable except as expressly set forth below or as required by applicable law.
             </p>
             <p>
               <strong>No additional fees or surcharges.</strong> The monthly subscription price listed above is the total amount billed. We do <strong>not</strong> charge per-booking fees, payment-processing surcharges, or take any cut of your client bookings, tips, or deposits — Professionals keep 100% of what their clients pay them. Applicable sales tax, if any, is displayed transparently at checkout and added to the total.

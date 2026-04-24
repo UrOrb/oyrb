@@ -19,26 +19,26 @@ and an annual Price.
 ### 1. Starter Plan
 - **Description:** For solo professionals just getting started.
 - Prices:
-  - **`$24.00 USD / month`** — nickname `starter_monthly`, metadata: `{ tier: "starter", sites_included: "1", site_cap: "1" }`
-  - **`$240.00 USD / year`** — nickname `starter_annual`, metadata: `{ tier: "starter", sites_included: "1", site_cap: "1" }`
+  - **`$29.00 USD / month`** — nickname `starter_monthly`, metadata: `{ tier: "starter", sites_included: "1", site_cap: "1" }`
+  - **`$290.00 USD / year`** — nickname `starter_annual`, metadata: `{ tier: "starter", sites_included: "1", site_cap: "1" }`
 
 ### 2. Studio Plan
 - **Description:** For growing studios that need more capacity.
 - Prices:
-  - **`$49.00 USD / month`** — nickname `studio_monthly`, metadata: `{ tier: "studio", sites_included: "2", site_cap: "3" }`
-  - **`$490.00 USD / year`** — nickname `studio_annual`, metadata: `{ tier: "studio", sites_included: "2", site_cap: "3" }`
+  - **`$69.00 USD / month`** — nickname `studio_monthly`, metadata: `{ tier: "studio", sites_included: "2", site_cap: "3" }`
+  - **`$690.00 USD / year`** — nickname `studio_annual`, metadata: `{ tier: "studio", sites_included: "2", site_cap: "3" }`
 
 ### 3. Scale Plan
 - **Description:** For multi-stylist shops and suite operators.
 - Prices:
-  - **`$89.00 USD / month`** — nickname `scale_monthly`, metadata: `{ tier: "scale", sites_included: "3", site_cap: "5" }`
-  - **`$890.00 USD / year`** — nickname `scale_annual`, metadata: `{ tier: "scale", sites_included: "3", site_cap: "5" }`
+  - **`$129.00 USD / month`** — nickname `scale_monthly`, metadata: `{ tier: "scale", sites_included: "3", site_cap: "5" }`
+  - **`$1290.00 USD / year`** — nickname `scale_annual`, metadata: `{ tier: "scale", sites_included: "3", site_cap: "5" }`
 
 ### 4. Additional Site Add-on
 - **Description:** One additional booking site, billed alongside your plan.
 - Prices:
-  - **`$20.00 USD / month`** — nickname `addon_site_monthly`, metadata: `{ type: "site_addon" }`
-  - **`$200.00 USD / year`** — nickname `addon_site_annual`, metadata: `{ type: "site_addon" }`
+  - **`$25.00 USD / month`** — nickname `addon_site_monthly`, metadata: `{ type: "site_addon" }`
+  - **`$250.00 USD / year`** — nickname `addon_site_annual`, metadata: `{ type: "site_addon" }`
 
 > Annual ≈ "2 months free" (10/12 of monthly × 12 = ~17% savings). Same logic
 > applies to the add-on.
@@ -135,7 +135,7 @@ the canonical list (Stripe + everything else).
    live webhook secret.
 6. **Recreate the webhook in live mode** with the same event subscriptions.
    Use the live signing secret.
-7. **Smoke-test in production** with a real card on a $24 plan; refund
+7. **Smoke-test in production** with a real card on a $29 plan; refund
    yourself afterwards.
 
 ---
@@ -165,11 +165,11 @@ specific bit of app behavior:
 
 | Plan | Monthly | Annual | Sites included | Site cap |
 |---|---|---|---|---|
-| Starter | $24/mo | $240/yr | 1 | 1 (no add-ons) |
-| Studio | $49/mo | $490/yr | 2 | 3 |
-| Scale | $89/mo | $890/yr | 3 | 5 |
+| Starter | $29/mo | $290/yr | 1 | 1 (no add-ons) |
+| Studio | $69/mo | $690/yr | 2 | 3 |
+| Scale | $129/mo | $1290/yr | 3 | 5 |
 
-Add-on: $20/mo or $200/yr per extra site. Studio + Scale only, capped by tier.
+Add-on: $25/mo or $250/yr per extra site. Studio + Scale only, capped by tier.
 Annual saves ~17% (= "2 months free").
 
 ---
