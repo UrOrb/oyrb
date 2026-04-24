@@ -6,6 +6,7 @@ import { addBan } from "@/lib/trial-bans";
 import { sendTrialReminder } from "@/lib/trial-emails";
 import { handlePayInFullCompleted } from "@/lib/pay-in-full";
 import { handleGiftCardCompleted } from "@/lib/gift-cards";
+import { checkAndReserveEvent, markEventCompleted } from "@/lib/webhook-idempotency";
 import type { Tier, BillingCycle } from "@/lib/plans";
 import type Stripe from "stripe";
 
@@ -34,9 +35,33 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
+  // ── Idempotency gate ────────────────────────────────────────────────────
+  // Database-level: event_id is the primary key of processed_webhook_events,
+  // so duplicate inserts raise a unique-violation that the helper turns into
+  // a no-op. Stripe re-delivers events on any non-2xx response, so flaky
+  // network paths and prior partial failures both flow through this check.
+  const t0 = Date.now();
+  console.log(`[webhook] received ${event.id} (${event.type})`);
+
+  let reservation;
+  try {
+    reservation = await checkAndReserveEvent(event.id, event.type, event.data.object);
+  } catch (err) {
+    console.error(`[webhook] reservation failed for ${event.id}:`, err);
+    return NextResponse.json({ error: "Idempotency store unavailable" }, { status: 500 });
+  }
+
+  if (!reservation.proceed) {
+    console.log(`[webhook] ${event.id} (${event.type}) DUPLICATE — skipping`);
+    return NextResponse.json({ received: true, idempotent: true });
+  }
+
+  console.log(`[webhook] ${event.id} (${event.type}) ${reservation.reason.toUpperCase()} — processing`);
+
   const supabase = createAdminClient();
 
-  switch (event.type) {
+  try {
+    switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
 
@@ -257,9 +282,23 @@ export async function POST(request: Request) {
         .eq("stripe_subscription_id", subscriptionId);
       break;
     }
-  }
+    }
 
-  return NextResponse.json({ received: true });
+    await markEventCompleted(event.id, true);
+    console.log(`[webhook] ${event.id} (${event.type}) SUCCESS in ${Date.now() - t0}ms`);
+    return NextResponse.json({ received: true });
+  } catch (err) {
+    const message = err instanceof Error
+      ? `${err.message}\n${err.stack ?? ""}`.slice(0, 4000)
+      : String(err).slice(0, 4000);
+    await markEventCompleted(event.id, false, message).catch((updateErr) => {
+      console.error(`[webhook] failed to mark ${event.id} as failed:`, updateErr);
+    });
+    console.error(`[webhook] ${event.id} (${event.type}) FAILED in ${Date.now() - t0}ms:`, err);
+    // Return 500 so Stripe retries; on retry the idempotency helper sees
+    // status='failed' and returns reason="retry", letting us re-attempt.
+    return NextResponse.json({ error: "Handler failed" }, { status: 500 });
+  }
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────
