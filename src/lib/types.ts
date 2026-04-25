@@ -41,6 +41,13 @@ export type Business = {
   subscription_status: SubscriptionStatus;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
+  // ── Stripe Connect (Standard) — added in migration 029.
+  stripe_connect_account_id: string | null;
+  stripe_connect_onboarding_complete: boolean;
+  stripe_connect_charges_enabled: boolean;
+  stripe_connect_payouts_enabled: boolean;
+  stripe_connect_details_submitted: boolean;
+  stripe_connect_requirements_currently_due: string[] | null;
   created_at: string;
 };
 

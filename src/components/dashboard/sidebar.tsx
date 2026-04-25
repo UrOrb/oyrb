@@ -10,6 +10,7 @@ import {
   Users,
   Clock,
   Mail,
+  CreditCard,
   Settings,
 } from "lucide-react";
 
@@ -21,6 +22,7 @@ const NAV = [
   { label: "Waitlist", href: "/dashboard/waitlist", icon: Clock },
   { label: "Clients", href: "/dashboard/clients", icon: Users },
   { label: "Marketing", href: "/dashboard/marketing", icon: Mail },
+  { label: "Payments", href: "/dashboard/payments", icon: CreditCard },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
