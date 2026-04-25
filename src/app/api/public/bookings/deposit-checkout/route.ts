@@ -6,6 +6,7 @@ import {
   clientPaymentsEnabled,
   CLIENT_PAYMENTS_DISABLED_MESSAGE,
 } from "@/lib/client-payments";
+import { loadConnectAccountForCheckout } from "@/lib/stripe-connect";
 
 type Payload = {
   business_id: string;
@@ -76,6 +77,15 @@ export async function POST(request: NextRequest) {
   if (!business || !business.is_published) {
     return NextResponse.json({ error: "Business not accepting bookings" }, { status: 404 });
   }
+
+  // Connect pre-flight: the deposit charge happens directly on the pro's
+  // connected Stripe account, so we refuse before opening a Checkout Session
+  // if their account isn't fully onboarded + charges-enabled.
+  const gate = await loadConnectAccountForCheckout(supabase, business.id);
+  if (!gate.ok) {
+    return NextResponse.json(gate.body, { status: gate.status });
+  }
+  const connectedAccountId = gate.accountId;
 
   const { data: service } = await supabase
     .from("services")
@@ -155,32 +165,42 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
-      line_items: lineItems,
-      customer_email: body.email,
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      metadata: {
-        booking_type: "deposit",
-        business_id: body.business_id,
-        service_id: body.service_id,
-        start_at: body.start_at,
-        name: body.name,
-        email: body.email,
-        phone: body.phone ?? "",
-        notes: body.notes?.slice(0, 400) ?? "",
-        sms_consent: String(body.sms_consent ?? false),
-        marketing_opt_in: String(!!body.marketing_opt_in),
-        tip_cents: String(tipCents),
-        series_interval_weeks: String(body.series_interval_weeks ?? 0),
-        series_occurrences: String(body.series_occurrences ?? 1),
-        age_confirmed: "true",
-        age_is_minor: String(!!body.age_is_minor),
-        guardian_name: body.age_is_minor ? (body.guardian_name?.trim().slice(0, 120) ?? "") : "",
+    // Direct charge on the pro's connected account — money flows
+    // client's card → pro's Stripe balance → pro's bank. OYRB never
+    // touches the funds. The `stripeAccount` request option is the
+    // Connect-level switch; the session itself is otherwise normal.
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: "payment",
+        payment_method_types: ["card"],
+        line_items: lineItems,
+        customer_email: body.email,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        metadata: {
+          booking_type: "deposit",
+          business_id: body.business_id,
+          service_id: body.service_id,
+          start_at: body.start_at,
+          name: body.name,
+          email: body.email,
+          phone: body.phone ?? "",
+          notes: body.notes?.slice(0, 400) ?? "",
+          sms_consent: String(body.sms_consent ?? false),
+          marketing_opt_in: String(!!body.marketing_opt_in),
+          tip_cents: String(tipCents),
+          series_interval_weeks: String(body.series_interval_weeks ?? 0),
+          series_occurrences: String(body.series_occurrences ?? 1),
+          age_confirmed: "true",
+          age_is_minor: String(!!body.age_is_minor),
+          guardian_name: body.age_is_minor ? (body.guardian_name?.trim().slice(0, 120) ?? "") : "",
+          // Stash for downstream consumers (confirm route, webhook handler)
+          // so they know which connected account to retrieve the session from.
+          connected_account_id: connectedAccountId,
+        },
       },
-    });
+      { stripeAccount: connectedAccountId }
+    );
 
     return NextResponse.json({ url: session.url });
   } catch (err) {

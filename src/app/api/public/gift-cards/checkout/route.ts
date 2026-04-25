@@ -6,6 +6,7 @@ import {
   clientPaymentsEnabled,
   CLIENT_PAYMENTS_DISABLED_MESSAGE,
 } from "@/lib/client-payments";
+import { loadConnectAccountForCheckout } from "@/lib/stripe-connect";
 
 const MIN_AMOUNT_CENTS = 500;      // $5 floor (above Stripe's $0.50)
 const MAX_AMOUNT_CENTS = 100_000;  // $1,000 ceiling — prevents runaway custom amounts
@@ -83,43 +84,58 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Business not found" }, { status: 404 });
   }
 
+  // Connect pre-flight: gift-card proceeds settle directly on the pro's
+  // connected account, so refuse if their Stripe account isn't ready.
+  const gate = await loadConnectAccountForCheckout(supabase, biz.id);
+  if (!gate.ok) {
+    return NextResponse.json(gate.body, { status: gate.status });
+  }
+  const connectedAccountId = gate.accountId;
+
   const origin = new URL(request.url).origin;
   const successUrl = `${origin}/s/${slug}/gift-cards/success?session_id={CHECKOUT_SESSION_ID}`;
   const cancelUrl = `${origin}/s/${slug}/gift-cards`;
 
   try {
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
-      customer_email: buyerEmail,
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            unit_amount: amountCentsRaw,
-            product_data: {
-              name: `Gift card — ${biz.business_name}`,
-              description: `Redeemable at ${biz.business_name}`,
+    // Direct charge on the pro's connected account — funds settle in
+    // their Stripe balance and they own the redemption liability.
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: "payment",
+        payment_method_types: ["card"],
+        customer_email: buyerEmail,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        line_items: [
+          {
+            quantity: 1,
+            price_data: {
+              currency: "usd",
+              unit_amount: amountCentsRaw,
+              product_data: {
+                name: `Gift card — ${biz.business_name}`,
+                description: `Redeemable at ${biz.business_name}`,
+              },
             },
           },
+        ],
+        metadata: {
+          // Discriminator the webhook uses to route to handleGiftCardCompleted
+          booking_type: "gift_card",
+          business_id: biz.id,
+          pro_user_id: biz.owner_id,
+          amount_cents: String(amountCentsRaw),
+          buyer_name: buyerName.slice(0, 120),
+          buyer_email: buyerEmail,
+          recipient_name: (body.recipient_name ?? "").slice(0, 120),
+          recipient_email: (body.recipient_email ?? "").trim().toLowerCase().slice(0, 240),
+          message: (body.message ?? "").slice(0, 280),
+          // Connect breadcrumb for downstream handlers (webhook, success page).
+          connected_account_id: connectedAccountId,
         },
-      ],
-      metadata: {
-        // Discriminator the webhook uses to route to handleGiftCardCompleted
-        booking_type: "gift_card",
-        business_id: biz.id,
-        pro_user_id: biz.owner_id,
-        amount_cents: String(amountCentsRaw),
-        buyer_name: buyerName.slice(0, 120),
-        buyer_email: buyerEmail,
-        recipient_name: (body.recipient_name ?? "").slice(0, 120),
-        recipient_email: (body.recipient_email ?? "").trim().toLowerCase().slice(0, 240),
-        message: (body.message ?? "").slice(0, 280),
       },
-    });
+      { stripeAccount: connectedAccountId }
+    );
 
     return NextResponse.json({ url: session.url });
   } catch (err) {

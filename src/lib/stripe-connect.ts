@@ -1,6 +1,7 @@
 import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/server";
 import type Stripe from "stripe";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Connect (Standard) helpers.
@@ -79,3 +80,70 @@ export async function refreshAccountStatus(params: {
 /** Stripe Standard has no programmatic magic login link — pros sign in to
     their own Stripe dashboard. We just send them to the canonical URL. */
 export const STRIPE_STANDARD_DASHBOARD_URL = "https://dashboard.stripe.com/";
+
+/**
+ * Pre-flight check used by every public client-payment route (deposits,
+ * pay-in-full, gift cards) before opening a Checkout Session on the pro's
+ * connected account. A pro can only collect money once Stripe has approved
+ * the account AND we've recorded that approval locally.
+ *
+ * Returns either { ok: true, accountId } or { ok: false, response } where
+ * `response` is a ready-to-return NextResponse-shaped JSON body with a
+ * 503 status and a stable `code` the client UI can branch on.
+ */
+export type ConnectGate =
+  | { ok: true; accountId: string }
+  | {
+      ok: false;
+      status: 503;
+      body: { error: string; code: ConnectGateCode };
+    };
+
+export type ConnectGateCode =
+  | "connect_not_connected"
+  | "connect_onboarding_incomplete"
+  | "connect_restricted";
+
+/** Single consistent message the public-facing UI can show verbatim. */
+const CONNECT_NOT_READY_MESSAGE =
+  "This business hasn't finished setting up online payments yet. Please contact them directly to book.";
+
+export async function loadConnectAccountForCheckout(
+  supabase: SupabaseClient,
+  businessId: string
+): Promise<ConnectGate> {
+  const { data: row } = await supabase
+    .from("businesses")
+    .select(
+      "stripe_connect_account_id, stripe_connect_charges_enabled, stripe_connect_onboarding_complete, stripe_connect_details_submitted, stripe_connect_requirements_currently_due"
+    )
+    .eq("id", businessId)
+    .maybeSingle();
+
+  const accountId = row?.stripe_connect_account_id ?? null;
+  if (!accountId) {
+    return {
+      ok: false,
+      status: 503,
+      body: { error: CONNECT_NOT_READY_MESSAGE, code: "connect_not_connected" },
+    };
+  }
+  if (!row?.stripe_connect_onboarding_complete) {
+    return {
+      ok: false,
+      status: 503,
+      body: {
+        error: CONNECT_NOT_READY_MESSAGE,
+        code: "connect_onboarding_incomplete",
+      },
+    };
+  }
+  if (!row?.stripe_connect_charges_enabled) {
+    return {
+      ok: false,
+      status: 503,
+      body: { error: CONNECT_NOT_READY_MESSAGE, code: "connect_restricted" },
+    };
+  }
+  return { ok: true, accountId };
+}
