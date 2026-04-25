@@ -151,30 +151,6 @@ export function PricingCards() {
                 ))}
               </ul>
 
-              {/* Comparison anchor — informative context, not a sales pitch.
-                  Muted background, secondary text, with the OYRB takeaway
-                  arrow line slightly emphasized. */}
-              <div className="mt-6 rounded-md border border-[#E7E5E4] bg-[#FAFAF9] p-4 text-xs">
-                <p className="font-semibold text-[#525252]">
-                  {tier.comparison.rows.length > 1 && tier.comparison.total
-                    ? "Compare to a similar stack elsewhere:"
-                    : "Compare to:"}
-                </p>
-                <ul className="mt-2 flex flex-col gap-1 text-[#737373]">
-                  {tier.comparison.rows.map((row) => (
-                    <li key={row.name}>
-                      <span className="text-[#525252]">{row.name}</span> — {row.price}
-                    </li>
-                  ))}
-                </ul>
-                {tier.comparison.total && (
-                  <p className="mt-2 text-[#525252]">{tier.comparison.total}</p>
-                )}
-                <p className="mt-3 font-semibold text-[#0A0A0A]">→ {tier.comparison.takeaway}</p>
-              </div>
-
-              {/* CTAs anchored to the bottom of the card so all three line up
-                  even when feature/comparison block heights differ. */}
               <div className="mt-auto flex flex-col gap-2 pt-8">
                 <Link
                   href={`/signup?tier=${tier.id}&cycle=${cycle}&trial=1`}

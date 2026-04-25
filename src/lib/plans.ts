@@ -7,17 +7,6 @@
 export type Tier = "starter" | "studio" | "scale";
 export type BillingCycle = "monthly" | "annual";
 
-export type ComparisonRow = {
-  name: string;
-  price: string;
-};
-
-export type TierComparison = {
-  rows: ComparisonRow[];
-  total?: string;
-  takeaway: string;
-};
-
 export type TierSpec = {
   id: Tier;
   name: string;
@@ -30,8 +19,6 @@ export type TierSpec = {
   siteCap: number;
   /** Marketing copy. */
   features: string[];
-  /** "Compare to:" anchor block shown under each tier on the pricing page. */
-  comparison: TierComparison;
   /** Subhead under the tier name on the pricing page. */
   recommendedFor?: string;
   highlight?: boolean;
@@ -53,14 +40,6 @@ export const TIERS: Record<Tier, TierSpec> = {
       "Email confirmations",
       "Email booking reminders",
     ],
-    comparison: {
-      rows: [
-        { name: "GlossGenius Standard", price: "$24/mo + 2.6% transaction fees" },
-        { name: "Booksy Base",          price: "$30/mo + transaction fees" },
-        { name: "Vagaro Base",          price: "$30/mo + 2.75% transaction fees" },
-      ],
-      takeaway: "OYRB: One flat fee. Zero transaction fees.",
-    },
   },
   studio: {
     id: "studio",
@@ -80,15 +59,6 @@ export const TIERS: Record<Tier, TierSpec> = {
     ],
     highlight: true,
     recommendedFor: "Recommended for most beauty pros",
-    comparison: {
-      rows: [
-        { name: "Vagaro Paid Tier",        price: "$50/mo + add-ons" },
-        { name: "Squarespace Website",     price: "$23/mo" },
-        { name: "Mailchimp Basic",         price: "$20/mo" },
-      ],
-      total: "Total elsewhere: ~$90–$110/mo",
-      takeaway: "OYRB: Everything included for $69/mo. Zero transaction fees.",
-    },
   },
   scale: {
     id: "scale",
@@ -106,16 +76,6 @@ export const TIERS: Record<Tier, TierSpec> = {
       "Priority support",
       "Everything in Studio",
     ],
-    comparison: {
-      rows: [
-        { name: "Vagaro 10-Staff",           price: "$120/mo" },
-        { name: "Custom domain service",     price: "$15/mo" },
-        { name: "Email marketing platform",  price: "$30/mo" },
-        { name: "Additional integrations",   price: "$20–40/mo" },
-      ],
-      total: "Total elsewhere: ~$150–$200/mo",
-      takeaway: "OYRB: All included for $129/mo. Zero transaction fees.",
-    },
   },
 };
 
