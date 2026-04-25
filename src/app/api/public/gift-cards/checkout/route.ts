@@ -93,7 +93,8 @@ export async function POST(request: NextRequest) {
   const connectedAccountId = gate.accountId;
 
   const origin = new URL(request.url).origin;
-  const successUrl = `${origin}/s/${slug}/gift-cards/success?session_id={CHECKOUT_SESSION_ID}`;
+  const acctParam = encodeURIComponent(connectedAccountId);
+  const successUrl = `${origin}/s/${slug}/gift-cards/success?session_id={CHECKOUT_SESSION_ID}&acct=${acctParam}`;
   const cancelUrl = `${origin}/s/${slug}/gift-cards`;
 
   try {

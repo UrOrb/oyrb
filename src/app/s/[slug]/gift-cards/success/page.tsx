@@ -12,7 +12,7 @@ export const revalidate = 0;
 
 type Props = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ session_id?: string }>;
+  searchParams: Promise<{ session_id?: string; acct?: string }>;
 };
 
 // Stripe redirects here on successful gift-card payment. We check the DB
@@ -21,7 +21,11 @@ type Props = {
 // staring at "processing" for ages.
 export default async function GiftCardSuccessPage({ params, searchParams }: Props) {
   const { slug } = await params;
-  const { session_id } = await searchParams;
+  const { session_id, acct } = await searchParams;
+  // Connect: gift-cards/checkout puts the pro's acct_… on the success URL.
+  // Fallback retrieve below needs it or Stripe returns 404.
+  const connectedAccountId =
+    typeof acct === "string" && acct.startsWith("acct_") ? acct : null;
 
   if (!session_id) {
     return <NotFoundView />;
@@ -40,7 +44,11 @@ export default async function GiftCardSuccessPage({ params, searchParams }: Prop
 
   if (!isPaid) {
     try {
-      const session = await stripe.checkout.sessions.retrieve(session_id);
+      const session = await stripe.checkout.sessions.retrieve(
+        session_id,
+        undefined,
+        connectedAccountId ? { stripeAccount: connectedAccountId } : undefined,
+      );
       if (session.payment_status === "paid") {
         isPaid = true;
         amountCents = session.amount_total ?? null;

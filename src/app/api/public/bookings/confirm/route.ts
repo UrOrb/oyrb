@@ -7,17 +7,29 @@ import { formatCents } from "@/lib/types";
 
 // Called by the booking-confirmed page after Stripe redirects back.
 // Verifies the Checkout Session was paid, then creates the booking + client.
+//
+// Connect: deposits are charged on the pro's connected account, so the
+// session lives there too. The success URL carries `acct=` from
+// deposit-checkout — pass it as `stripeAccount` when retrieving or Stripe
+// returns 404.
 export async function POST(request: NextRequest) {
-  const { session_id } = await request.json().catch(() => ({}));
-  if (!session_id || typeof session_id !== "string") {
+  const parsed = await request.json().catch(() => ({} as Record<string, unknown>));
+  const session_id = typeof parsed.session_id === "string" ? parsed.session_id : null;
+  const connectedAccountId =
+    typeof parsed.connected_account_id === "string" && parsed.connected_account_id.startsWith("acct_")
+      ? parsed.connected_account_id
+      : null;
+  if (!session_id) {
     return NextResponse.json({ error: "session_id required" }, { status: 400 });
   }
 
   let session;
   try {
-    session = await stripe.checkout.sessions.retrieve(session_id, {
-      expand: ["payment_intent"],
-    });
+    session = await stripe.checkout.sessions.retrieve(
+      session_id,
+      { expand: ["payment_intent"] },
+      connectedAccountId ? { stripeAccount: connectedAccountId } : undefined,
+    );
   } catch (err) {
     console.error("Session retrieve failed:", err);
     return NextResponse.json({ error: "Invalid session" }, { status: 404 });

@@ -131,7 +131,8 @@ export async function POST(request: NextRequest) {
   const connectedAccountId = gate.accountId;
 
   const origin = new URL(request.url).origin;
-  const successUrl = `${origin}/booking/${resolved.token}/pay/success?session_id={CHECKOUT_SESSION_ID}`;
+  const acctParam = encodeURIComponent(connectedAccountId);
+  const successUrl = `${origin}/booking/${resolved.token}/pay/success?session_id={CHECKOUT_SESSION_ID}&acct=${acctParam}`;
   const cancelUrl = `${origin}/booking/${resolved.token}/pay`;
 
   const whenLabel = new Date(booking.start_at).toLocaleString("en-US", {

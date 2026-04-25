@@ -86,6 +86,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(gate.body, { status: gate.status });
   }
   const connectedAccountId = gate.accountId;
+  // The deposit /confirm route + booking-confirmed page need to retrieve
+  // the session via {stripeAccount}, but they only see the URL. Carry the
+  // acct on the success URL — Stripe IDs aren't secrets, and it's simpler
+  // than a server round-trip to look it up later.
+  const acctParam = encodeURIComponent(connectedAccountId);
 
   const { data: service } = await supabase
     .from("services")
@@ -125,7 +130,7 @@ export async function POST(request: NextRequest) {
   }
 
   const origin = new URL(request.url).origin;
-  const successUrl = `${origin}/s/${business.slug}/booking-confirmed?session_id={CHECKOUT_SESSION_ID}`;
+  const successUrl = `${origin}/s/${business.slug}/booking-confirmed?session_id={CHECKOUT_SESSION_ID}&acct=${acctParam}`;
   const cancelUrl = `${origin}/s/${business.slug}`;
 
   const tipCents = Math.max(0, Math.floor(body.tip_cents ?? 0));

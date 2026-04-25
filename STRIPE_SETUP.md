@@ -102,6 +102,9 @@ the canonical list (Stripe + everything else).
 | `STRIPE_PRICE_SCALE_ANNUAL` | " | |
 | `STRIPE_PRICE_ADDON_SITE_MONTHLY` | " | |
 | `STRIPE_PRICE_ADDON_SITE_ANNUAL` | " | |
+| `STRIPE_CONNECT_WEBHOOK_SECRET` | Stripe → Developers → Webhooks (Connect endpoint signing secret) | Different from `STRIPE_WEBHOOK_SECRET`. See section H. |
+| `CLIENT_PAYMENTS_ENABLED` | Manual | Master kill-switch for client payments. `false` until Connect is fully wired and verified. |
+| `PAY_NOW_ENABLED` | Manual | Gates the pay-in-full UI; orthogonal to `CLIENT_PAYMENTS_ENABLED`. |
 
 ---
 
@@ -158,6 +161,41 @@ specific bit of app behavior:
 > **Idempotency:** Stripe retries webhooks. Every handler must be
 > idempotent — selecting / upserting by `stripe_subscription_id` instead of
 > blindly inserting. The current handler does this.
+
+---
+
+## E.2 Connect webhook events (separate endpoint)
+
+Client-payment flows (deposits, pay-in-full, gift cards) and pro account
+state changes use **Stripe Connect direct charges**. These deliver events
+to a *separate* webhook endpoint with its own signing secret.
+
+**URL:** `https://oyrb.space/api/stripe/webhook/connect`
+**Code:** `src/app/api/stripe/webhook/connect/route.ts`
+**Signing secret:** `STRIPE_CONNECT_WEBHOOK_SECRET` (NOT the same as
+`STRIPE_WEBHOOK_SECRET` — they're verified independently).
+**Idempotency ledger:** `stripe_connect_events` table (separate from
+`processed_webhook_events`).
+
+In Stripe Dashboard → Developers → Webhooks → Add endpoint, select
+**"Listen to events on Connected accounts"** (not "Your account") and
+subscribe to:
+
+| Stripe event | App behavior |
+|---|---|
+| `checkout.session.completed` | Routes by `metadata.booking_type`. `pay_in_full` → marks booking paid + emails. `gift_card` → inserts gift_cards row + emails buyer/recipient/pro. `deposit` → audit-log only (the booking-confirmed page calls `/api/public/bookings/confirm` for the actual completion). |
+| `payment_intent.succeeded` | Audit only — booking truth lives in `checkout.session.completed`. |
+| `payment_intent.payment_failed` | Audit only. |
+| `charge.refunded` | Email the pro a heads-up. OYRB does not surface refund UI; pros operate refunds from their Stripe Dashboard. |
+| `charge.dispute.created` | Email the pro urgently with a link to the Stripe dispute. Same — no in-app UI. |
+| `account.updated` | Pull the account from Stripe and write `charges_enabled`, `payouts_enabled`, `details_submitted`, `requirements.currently_due` back to the businesses row so the dashboard reflects the latest state without a manual refresh. |
+| `account.application.deauthorized` | The pro revoked OYRB's access from inside dashboard.stripe.com. Clear `stripe_connect_account_id` and reset all flags so the public-facing routes start failing the pre-flight gate immediately. |
+
+> **Why two endpoints, not one with both secrets:** signature verification
+> is unambiguous (one secret per URL), the handlers diverge (different
+> tables, different flow), and the `stripe_connect_events` table doubles
+> as a per-pro audit log. It's easier to disable one side independently
+> if either has a bug.
 
 ---
 
