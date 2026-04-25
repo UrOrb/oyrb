@@ -151,6 +151,18 @@ export function PricingCards() {
                 ))}
               </ul>
 
+              <div className="mt-6 rounded-md border border-[#EAE2D9] bg-[#FAF6F2] p-4 text-xs">
+                <p className="font-semibold text-[#0A0A0A]">What you get:</p>
+                <ul className="mt-2 flex flex-col gap-1.5">
+                  {tier.valueProps.map((v) => (
+                    <li key={v} className="flex items-start gap-2 text-[#525252]">
+                      <Check size={14} className="mt-0.5 shrink-0 text-[#B8896B]" />
+                      <span>{v}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
               <div className="mt-auto flex flex-col gap-2 pt-8">
                 <Link
                   href={`/signup?tier=${tier.id}&cycle=${cycle}&trial=1`}

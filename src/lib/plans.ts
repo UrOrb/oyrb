@@ -19,6 +19,8 @@ export type TierSpec = {
   siteCap: number;
   /** Marketing copy. */
   features: string[];
+  /** Three-bullet "What you get" summary shown below the feature list. */
+  valueProps: string[];
   /** Subhead under the tier name on the pricing page. */
   recommendedFor?: string;
   highlight?: boolean;
@@ -40,6 +42,11 @@ export const TIERS: Record<Tier, TierSpec> = {
       "Email confirmations",
       "Email booking reminders",
     ],
+    valueProps: [
+      "One flat fee — no surprises",
+      "Zero transaction fees on bookings",
+      "Everything you need to start",
+    ],
   },
   studio: {
     id: "studio",
@@ -59,6 +66,11 @@ export const TIERS: Record<Tier, TierSpec> = {
     ],
     highlight: true,
     recommendedFor: "Recommended for most beauty pros",
+    valueProps: [
+      "Bookings + payments + website + email — all in one",
+      "Replaces $90–$110/mo of separate tools",
+      "Zero transaction fees, ever",
+    ],
   },
   scale: {
     id: "scale",
@@ -75,6 +87,11 @@ export const TIERS: Record<Tier, TierSpec> = {
       "Unlimited SMS reminders",
       "Priority support",
       "Everything in Studio",
+    ],
+    valueProps: [
+      "Multi-stylist tools, custom domain, marketing all in",
+      "Replaces $150–$200/mo of separate platforms",
+      "Zero transaction fees, ever",
     ],
   },
 };
