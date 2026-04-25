@@ -3,6 +3,10 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 import { resolveToken } from "@/lib/booking-tokens";
 import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
+import {
+  clientPaymentsEnabled,
+  CLIENT_PAYMENTS_DISABLED_MESSAGE,
+} from "@/lib/client-payments";
 
 /**
  * Starts a Stripe Checkout Session for the pre-appointment "pay in full"
@@ -17,6 +21,12 @@ import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
 export async function POST(request: NextRequest) {
   if (process.env.PAY_NOW_ENABLED !== "true") {
     return NextResponse.json({ error: "Pay-now is not enabled" }, { status: 404 });
+  }
+  if (!clientPaymentsEnabled()) {
+    return NextResponse.json(
+      { error: CLIENT_PAYMENTS_DISABLED_MESSAGE },
+      { status: 503 }
+    );
   }
 
   const ip = ipFromRequest(request);

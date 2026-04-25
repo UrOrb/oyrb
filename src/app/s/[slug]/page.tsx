@@ -12,6 +12,7 @@ import { StudioTemplate } from "@/components/templates/studio";
 import { LuxeTemplate } from "@/components/templates/luxe";
 import { OriginalTemplate } from "@/components/templates/original";
 import { BookingWidget } from "./booking-widget";
+import { clientPaymentsEnabled } from "@/lib/client-payments";
 import { ChatWidget } from "./chat-widget";
 import { FaqSection, ReviewsSection, type Faq, type Review } from "./faq-reviews";
 import { InquiryForm } from "./inquiry-form";
@@ -318,6 +319,7 @@ export default async function PublicSitePage({ params }: Props) {
         slotsOpenThisWeek={slotsOpenThisWeek}
         slug={slug}
         phoneVerificationEnabled={!!process.env.TWILIO_VERIFY_SERVICE_SID}
+        clientPaymentsEnabled={clientPaymentsEnabled()}
         rules={{
           intervalMinutes: biz.booking_interval_minutes ?? 30,
           allowLastMinute: biz.allow_last_minute_booking ?? true,

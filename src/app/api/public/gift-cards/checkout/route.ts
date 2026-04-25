@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
+import {
+  clientPaymentsEnabled,
+  CLIENT_PAYMENTS_DISABLED_MESSAGE,
+} from "@/lib/client-payments";
 
 const MIN_AMOUNT_CENTS = 500;      // $5 floor (above Stripe's $0.50)
 const MAX_AMOUNT_CENTS = 100_000;  // $1,000 ceiling — prevents runaway custom amounts
@@ -17,6 +21,13 @@ const MAX_AMOUNT_CENTS = 100_000;  // $1,000 ceiling — prevents runaway custom
  * Stripe card-decline on the hosted page never leaves an orphan record.
  */
 export async function POST(request: NextRequest) {
+  if (!clientPaymentsEnabled()) {
+    return NextResponse.json(
+      { error: CLIENT_PAYMENTS_DISABLED_MESSAGE },
+      { status: 503 }
+    );
+  }
+
   const ip = ipFromRequest(request);
   const hit = rateLimit(`giftcheckout:${ip}`, 8, 60_000);
   if (!hit.ok) {

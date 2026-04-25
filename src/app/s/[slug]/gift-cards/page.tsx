@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/server";
 import { GiftCardForm } from "./form";
+import { clientPaymentsEnabled } from "@/lib/client-payments";
 
 export const metadata = {
   title: "Gift cards — OYRB",
@@ -22,6 +23,8 @@ export default async function GiftCardsPage({ params }: Props) {
     .maybeSingle();
 
   if (!biz) notFound();
+
+  const paymentsOn = clientPaymentsEnabled();
 
   return (
     <div className="min-h-screen bg-[#FAFAF9] py-12 px-4">
@@ -45,12 +48,31 @@ export default async function GiftCardsPage({ params }: Props) {
           </p>
         </div>
 
-        <GiftCardForm slug={slug} businessName={biz.business_name} />
+        {paymentsOn ? (
+          <>
+            <GiftCardForm slug={slug} businessName={biz.business_name} />
 
-        <p className="mt-6 text-center text-[11px] text-[#A3A3A3]">
-          Payment is secure via Stripe. Gift cards don&apos;t expire but are
-          redeemable at <strong>{biz.business_name}</strong> only.
-        </p>
+            <p className="mt-6 text-center text-[11px] text-[#A3A3A3]">
+              Payment is secure via Stripe. Gift cards don&apos;t expire but
+              are redeemable at <strong>{biz.business_name}</strong> only.
+            </p>
+          </>
+        ) : (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
+            <p className="text-xs font-semibold uppercase tracking-wider text-amber-900">
+              Coming soon
+            </p>
+            <h2 className="mt-2 font-display text-xl font-medium text-amber-950">
+              Gift cards are paused
+            </h2>
+            <p className="mt-3 text-sm text-amber-900">
+              We&apos;re upgrading how online payments are handled at{" "}
+              <strong>{biz.business_name}</strong>. Gift cards will return
+              once the new system is live. In the meantime, please contact
+              the salon directly.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

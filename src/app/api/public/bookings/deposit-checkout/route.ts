@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
+import {
+  clientPaymentsEnabled,
+  CLIENT_PAYMENTS_DISABLED_MESSAGE,
+} from "@/lib/client-payments";
 
 type Payload = {
   business_id: string;
@@ -25,6 +29,13 @@ type Payload = {
 // Booking isn't created yet — it's created in /api/public/bookings/confirm
 // after Stripe redirects back with a paid session_id.
 export async function POST(request: NextRequest) {
+  if (!clientPaymentsEnabled()) {
+    return NextResponse.json(
+      { error: CLIENT_PAYMENTS_DISABLED_MESSAGE },
+      { status: 503 }
+    );
+  }
+
   const ip = ipFromRequest(request);
   const minute = rateLimit(`deposit:m:${ip}`, 6, 60_000);
   const hour = rateLimit(`deposit:h:${ip}`, 30, 60 * 60_000);
