@@ -51,6 +51,11 @@ type Props = {
   /** Master switch — when false, services that require a deposit can't be
       booked online. Set by the server page from CLIENT_PAYMENTS_ENABLED. */
   clientPaymentsEnabled?: boolean;
+  /** Per-pro Connect status. False when the pro hasn't finished Stripe
+      Connect setup. With clientPaymentsEnabled=true, this is what gates
+      the booking flow at runtime — the kill-switch is global, this is
+      per-business. */
+  proConnectReady?: boolean;
 };
 
 const MON_FIRST_DAY_IDX = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -170,7 +175,11 @@ export function BookingWidget({
   phoneVerificationEnabled,
   rules,
   clientPaymentsEnabled = false,
+  proConnectReady = false,
 }: Props) {
+  // Two layers of "can we charge online?" The kill-switch is the global
+  // pause; the Connect gate is per-pro. Online payment requires both.
+  const onlinePaymentLive = clientPaymentsEnabled && proConnectReady;
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"service" | "time" | "info" | "confirm" | "done">("service");
   const [service, setService] = useState<Service | null>(null);
@@ -364,9 +373,11 @@ export function BookingWidget({
     startAt.setHours(h, m, 0, 0);
 
     const hasDeposit = (service.deposit_cents ?? 0) > 0;
-    if (hasDeposit && !clientPaymentsEnabled) {
+    if (hasDeposit && !onlinePaymentLive) {
       setError(
-        `Online deposit payments are temporarily paused while we upgrade. Please contact ${businessName} directly to book this service.`
+        clientPaymentsEnabled
+          ? `Online payment isn't available for ${businessName} yet. Please contact them directly to book this service.`
+          : `Online deposit payments are temporarily paused while we upgrade. Please contact ${businessName} directly to book this service.`,
       );
       return;
     }
@@ -865,17 +876,17 @@ export function BookingWidget({
                     </p>
                     <p className="mt-1 text-[#525252]">
                       {fmtPrice(service.price_cents)}
-                      {service.deposit_cents && service.deposit_cents > 0 && clientPaymentsEnabled && (
+                      {service.deposit_cents && service.deposit_cents > 0 && onlinePaymentLive && (
                         <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
                           {fmtPrice(service.deposit_cents)} deposit due now · rest due at appointment
                         </span>
                       )}
                     </p>
-                    {service.deposit_cents && service.deposit_cents > 0 && !clientPaymentsEnabled && (
+                    {service.deposit_cents && service.deposit_cents > 0 && !onlinePaymentLive && (
                       <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
-                        This service usually requires an online deposit. Online
-                        payments are paused right now — please contact{" "}
-                        <strong>{businessName}</strong> directly to book.
+                        {clientPaymentsEnabled
+                          ? <>This service usually requires an online deposit. Online payment isn&apos;t available for <strong>{businessName}</strong> yet — please contact them directly to book.</>
+                          : <>This service usually requires an online deposit. Online payments are paused right now — please contact <strong>{businessName}</strong> directly to book.</>}
                       </p>
                     )}
                     <div className="mt-3 border-t border-[#E7E5E4] pt-3 text-xs text-[#525252]">
@@ -886,7 +897,7 @@ export function BookingWidget({
                   </div>
 
                   {/* Tip selector — only when there's a deposit to charge */}
-                  {service.deposit_cents && service.deposit_cents > 0 && clientPaymentsEnabled && (
+                  {service.deposit_cents && service.deposit_cents > 0 && onlinePaymentLive && (
                     <div className="rounded-lg border border-[#E7E5E4] bg-white p-4">
                       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#737373]">
                         Add a tip? (optional)
@@ -1131,7 +1142,7 @@ export function BookingWidget({
                       !ackAuthorize ||
                       !ackAge ||
                       (isMinor && guardianName.trim().length < 2) ||
-                      (!!service?.deposit_cents && service.deposit_cents > 0 && !clientPaymentsEnabled)
+                      (!!service?.deposit_cents && service.deposit_cents > 0 && !onlinePaymentLive)
                     }
                     onClick={submit}
                     className="w-full rounded-md py-3 text-sm font-semibold disabled:opacity-50"
@@ -1142,9 +1153,11 @@ export function BookingWidget({
                           ? "Redirecting to payment…"
                           : "Booking…")
                       : (service && service.deposit_cents && service.deposit_cents > 0
-                          ? (clientPaymentsEnabled
+                          ? (onlinePaymentLive
                               ? `Pay ${fmtPrice(service.deposit_cents)} deposit & confirm`
-                              : "Online deposits paused — contact salon directly")
+                              : (clientPaymentsEnabled
+                                  ? "Online payment not available — contact directly"
+                                  : "Online deposits paused — contact salon directly"))
                           : "Confirm booking")}
                   </button>
                 </div>

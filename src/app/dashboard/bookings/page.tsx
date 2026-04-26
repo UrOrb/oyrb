@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { formatCents } from "@/lib/types";
-import { Calendar, Clock, Mail, Phone, MessageSquare } from "lucide-react";
+import { Calendar, Clock, Mail, Phone, MessageSquare, ExternalLink } from "lucide-react";
 import { CancelBookingButton } from "./cancel-button";
 import { getCurrentBusiness } from "@/lib/current-site";
 
@@ -41,6 +41,16 @@ export default async function BookingsPage({ searchParams }: Props) {
     <div>
       <h1 className="font-display text-2xl font-medium tracking-tight">Bookings</h1>
       <p className="mt-1 text-sm text-[#737373]">All appointments, newest first.</p>
+
+      {/* OYRB doesn't process refunds — money never lands in our account
+          (Connect direct charges go to the pro's Stripe). The pro issues
+          refunds from their own Stripe Dashboard; per-row "Refund" links
+          below deep-link to the right payment. */}
+      <p className="mt-3 text-[11px] text-[#737373]">
+        Need to refund a client? Each paid booking has a{" "}
+        <span className="font-medium text-[#525252]">Refund</span> link
+        that opens the payment in your Stripe Dashboard.
+      </p>
 
       <section className="mt-8">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-[#525252]">Upcoming ({upcoming.length})</h2>
@@ -127,6 +137,21 @@ function BookingRow({ b }: { b: any }) {
           >
             💳 Paid in full
           </span>
+        )}
+        {/* Refund deep-link. We don't process refunds in OYRB — direct
+            charges live on the pro's connected account, so the link goes
+            straight to the payment in their Stripe Dashboard. The pro
+            must already be logged into that account for it to resolve. */}
+        {b.stripe_payment_intent_id && (
+          <a
+            href={`https://dashboard.stripe.com/payments/${b.stripe_payment_intent_id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open this payment in your Stripe Dashboard to issue a refund"
+            className="inline-flex items-center gap-1 rounded-full border border-[#E7E5E4] bg-white px-2.5 py-1 text-[10px] font-medium text-[#525252] hover:border-[#B8896B] hover:text-[#0A0A0A]"
+          >
+            Refund <ExternalLink size={10} />
+          </a>
         )}
         <span
           className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${

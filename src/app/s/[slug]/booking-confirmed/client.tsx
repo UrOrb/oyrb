@@ -10,9 +10,11 @@ type Status = "checking" | "confirmed" | "error";
 export function BookingConfirmedClient({
   slug,
   sessionId,
+  connectedAccountId,
 }: {
   slug: string;
   sessionId: string;
+  connectedAccountId: string;
 }) {
   const [status, setStatus] = useState<Status>("checking");
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +33,10 @@ export function BookingConfirmedClient({
         const res = await fetch("/api/public/bookings/confirm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ session_id: sessionId }),
+          body: JSON.stringify({
+            session_id: sessionId,
+            connected_account_id: connectedAccountId || undefined,
+          }),
         });
         const data = await res.json();
         if (cancelled) return;
@@ -53,7 +58,7 @@ export function BookingConfirmedClient({
     return () => {
       cancelled = true;
     };
-  }, [sessionId]);
+  }, [sessionId, connectedAccountId]);
 
   return (
     <main className="mx-auto flex min-h-[80vh] max-w-md flex-col items-center justify-center px-6 py-16 text-center">

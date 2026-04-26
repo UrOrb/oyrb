@@ -4,6 +4,8 @@ import { resolveToken } from "@/lib/booking-tokens";
 import { createAdminClient } from "@/lib/supabase/server";
 import { formatCents } from "@/lib/types";
 import { PayButton } from "./pay-button";
+import { clientPaymentsEnabled } from "@/lib/client-payments";
+import { connectReady } from "@/lib/stripe-connect";
 
 // Magic-link pages are always per-request + never indexable.
 export const metadata = {
@@ -28,7 +30,13 @@ type BookingRow = {
     deposit_cents: number | null;
   } | null;
   clients: { name: string; email: string | null } | null;
-  businesses: { business_name: string; slug: string } | null;
+  businesses: {
+    business_name: string;
+    slug: string;
+    stripe_connect_account_id: string | null;
+    stripe_connect_charges_enabled: boolean;
+    stripe_connect_onboarding_complete: boolean;
+  } | null;
 };
 
 export default async function PayBookingPage({ params }: Props) {
@@ -48,7 +56,12 @@ export default async function PayBookingPage({ params }: Props) {
       id, start_at, status, deposit_paid, paid_in_full_at, paid_amount_cents,
       services(name, price_cents, deposit_cents),
       clients(name, email),
-      businesses(business_name, slug)
+      businesses(
+        business_name, slug,
+        stripe_connect_account_id,
+        stripe_connect_charges_enabled,
+        stripe_connect_onboarding_complete
+      )
     `)
     .eq("id", resolved.bookingId)
     .maybeSingle();
@@ -72,6 +85,27 @@ export default async function PayBookingPage({ params }: Props) {
         businessName={booking.businesses.business_name}
         token={token}
         paidAmountCents={booking.paid_amount_cents ?? price_cents}
+      />
+    );
+  }
+
+  // Two-layer payment gate, mirroring the storefront booking widget.
+  // Phase 3's API pre-flight will refuse the eventual checkout call too,
+  // but rendering the explanation up front beats letting the client click
+  // "Pay" and see a generic error toast.
+  const paymentsOn = clientPaymentsEnabled();
+  const proReady = connectReady({
+    stripe_connect_account_id: booking.businesses.stripe_connect_account_id,
+    stripe_connect_charges_enabled: booking.businesses.stripe_connect_charges_enabled,
+    stripe_connect_onboarding_complete:
+      booking.businesses.stripe_connect_onboarding_complete,
+  });
+  if (!paymentsOn || !proReady) {
+    return (
+      <PaymentUnavailableView
+        businessName={booking.businesses.business_name}
+        token={token}
+        reason={!paymentsOn ? "kill_switch" : "pro_not_ready"}
       />
     );
   }
@@ -193,6 +227,58 @@ function PaidView({
         <Link
           href={`/booking/${token}`}
           className="mt-6 inline-block text-xs text-[#A3A3A3] underline"
+        >
+          ← Back to my booking
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function PaymentUnavailableView({
+  businessName,
+  token,
+  reason,
+}: {
+  businessName: string;
+  token: string;
+  reason: "kill_switch" | "pro_not_ready";
+}) {
+  // Reason-specific copy — the kill-switch is an OYRB-side temporary
+  // pause; pro_not_ready is a per-business state. The booking itself is
+  // still valid; the client just can't pay online.
+  const headline =
+    reason === "kill_switch"
+      ? "Online payment is paused"
+      : "Online payment isn't available";
+  const body =
+    reason === "kill_switch" ? (
+      <>
+        We&apos;re upgrading how payments are handled. Your booking with{" "}
+        <strong>{businessName}</strong> is still confirmed — just settle up at
+        your appointment.
+      </>
+    ) : (
+      <>
+        <strong>{businessName}</strong> hasn&apos;t set up online payments
+        yet. Your booking is still confirmed — pay at your appointment, or
+        contact them directly.
+      </>
+    );
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#FAFAF9] p-4">
+      <div className="max-w-md rounded-2xl border border-[#E7C9A8] bg-[#FBF4EC] p-8 text-center shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#7C5A3F]">
+          Pay at the appointment
+        </p>
+        <h1 className="mt-2 font-display text-2xl font-medium text-[#5A3F2A]">
+          {headline}
+        </h1>
+        <p className="mt-3 text-sm text-[#7C5A3F]">{body}</p>
+        <Link
+          href={`/booking/${token}`}
+          className="mt-6 inline-block rounded-full border border-[#E7C9A8] bg-white px-5 py-2 text-xs font-semibold text-[#5A3F2A] hover:bg-[#FBF4EC]"
         >
           ← Back to my booking
         </Link>

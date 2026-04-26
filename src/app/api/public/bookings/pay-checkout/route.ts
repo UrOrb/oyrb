@@ -7,6 +7,7 @@ import {
   clientPaymentsEnabled,
   CLIENT_PAYMENTS_DISABLED_MESSAGE,
 } from "@/lib/client-payments";
+import { loadConnectAccountForCheckout } from "@/lib/stripe-connect";
 
 /**
  * Starts a Stripe Checkout Session for the pre-appointment "pay in full"
@@ -121,8 +122,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Connect pre-flight: balance/tip lands directly on the pro's connected
+  // account, so refuse if their Stripe account isn't fully ready.
+  const gate = await loadConnectAccountForCheckout(supabase, booking.business_id);
+  if (!gate.ok) {
+    return NextResponse.json(gate.body, { status: gate.status });
+  }
+  const connectedAccountId = gate.accountId;
+
   const origin = new URL(request.url).origin;
-  const successUrl = `${origin}/booking/${resolved.token}/pay/success?session_id={CHECKOUT_SESSION_ID}`;
+  const acctParam = encodeURIComponent(connectedAccountId);
+  const successUrl = `${origin}/booking/${resolved.token}/pay/success?session_id={CHECKOUT_SESSION_ID}&acct=${acctParam}`;
   const cancelUrl = `${origin}/booking/${resolved.token}/pay`;
 
   const whenLabel = new Date(booking.start_at).toLocaleString("en-US", {
@@ -134,53 +144,61 @@ export async function POST(request: NextRequest) {
   });
 
   try {
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
-      customer_email: booking.clients.email ?? undefined,
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            unit_amount: balanceCents,
-            product_data: {
-              name: booking.deposit_paid
-                ? `Balance — ${booking.services.name}`
-                : `${booking.services.name} (paid in full)`,
-              description: `${booking.businesses.business_name} · ${whenLabel}`,
+    // Direct charge on the pro's connected account — the balance + tip
+    // settle straight into their Stripe balance. The `stripeAccount`
+    // request option is the Connect switch.
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: "payment",
+        payment_method_types: ["card"],
+        customer_email: booking.clients.email ?? undefined,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        line_items: [
+          {
+            quantity: 1,
+            price_data: {
+              currency: "usd",
+              unit_amount: balanceCents,
+              product_data: {
+                name: booking.deposit_paid
+                  ? `Balance — ${booking.services.name}`
+                  : `${booking.services.name} (paid in full)`,
+                description: `${booking.businesses.business_name} · ${whenLabel}`,
+              },
             },
           },
-        },
-        ...(tipCents > 0
-          ? [
-              {
-                quantity: 1,
-                price_data: {
-                  currency: "usd",
-                  unit_amount: tipCents,
-                  product_data: {
-                    name: "Tip",
-                    description: `Gratuity for ${booking.businesses.business_name}`,
+          ...(tipCents > 0
+            ? [
+                {
+                  quantity: 1,
+                  price_data: {
+                    currency: "usd",
+                    unit_amount: tipCents,
+                    product_data: {
+                      name: "Tip",
+                      description: `Gratuity for ${booking.businesses.business_name}`,
+                    },
                   },
                 },
-              },
-            ]
-          : []),
-      ],
-      // Webhook discriminator — must match the type-check in webhook/route.ts.
-      metadata: {
-        booking_type: "pay_in_full",
-        booking_id: booking.id,
-        token: resolved.token,
-        balance_cents: String(balanceCents),
-        tip_cents: String(tipCents),
-        total_cents: String(totalCents),
-        deposit_was_paid: String(!!booking.deposit_paid),
+              ]
+            : []),
+        ],
+        // Webhook discriminator — must match the type-check in webhook/route.ts.
+        metadata: {
+          booking_type: "pay_in_full",
+          booking_id: booking.id,
+          token: resolved.token,
+          balance_cents: String(balanceCents),
+          tip_cents: String(tipCents),
+          total_cents: String(totalCents),
+          deposit_was_paid: String(!!booking.deposit_paid),
+          // Connect breadcrumb for downstream handlers (webhook, success page).
+          connected_account_id: connectedAccountId,
+        },
       },
-    });
+      { stripeAccount: connectedAccountId }
+    );
 
     return NextResponse.json({ url: session.url });
   } catch (err) {

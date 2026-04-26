@@ -13,7 +13,7 @@ export const revalidate = 0;
 
 type Props = {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ session_id?: string }>;
+  searchParams: Promise<{ session_id?: string; acct?: string }>;
 };
 
 // Stripe redirects here after the hosted checkout. If the webhook has
@@ -23,7 +23,12 @@ type Props = {
 // "processing" page while the webhook is still in flight.
 export default async function PaySuccessPage({ params, searchParams }: Props) {
   const { token } = await params;
-  const { session_id } = await searchParams;
+  const { session_id, acct } = await searchParams;
+  // Connect: pay-checkout opened the session on the pro's connected account
+  // and put acct_… on the success URL. The fallback retrieve below needs
+  // it as stripeAccount or Stripe returns 404.
+  const connectedAccountId =
+    typeof acct === "string" && acct.startsWith("acct_") ? acct : null;
 
   const resolved = await resolveToken(token);
   if (!resolved) {
@@ -62,7 +67,11 @@ export default async function PaySuccessPage({ params, searchParams }: Props) {
   // reconcile the row shortly (emails + paid_in_full_at stamp).
   if (!isPaid && session_id) {
     try {
-      const session = await stripe.checkout.sessions.retrieve(session_id);
+      const session = await stripe.checkout.sessions.retrieve(
+        session_id,
+        undefined,
+        connectedAccountId ? { stripeAccount: connectedAccountId } : undefined,
+      );
       if (session.payment_status === "paid") {
         isPaid = true;
         paidAmount = session.amount_total ?? paidAmount;
