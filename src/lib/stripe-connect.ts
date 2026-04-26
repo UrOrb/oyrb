@@ -82,6 +82,27 @@ export async function refreshAccountStatus(params: {
 export const STRIPE_STANDARD_DASHBOARD_URL = "https://dashboard.stripe.com/";
 
 /**
+ * Synchronous gate for UI surfaces that already have a business row in hand
+ * (dashboard pages, storefront SSR). Returns true iff the pro can actually
+ * accept online payments right now. Equivalent to `deriveStatus(...).status
+ * === "ready"`, but cheaper to read at call sites.
+ *
+ * Use this instead of `loadConnectAccountForCheckout` when you don't need
+ * the account_id and don't want a second DB roundtrip.
+ */
+export function connectReady(row: {
+  stripe_connect_account_id: string | null;
+  stripe_connect_charges_enabled: boolean;
+  stripe_connect_onboarding_complete: boolean;
+}): boolean {
+  return (
+    !!row.stripe_connect_account_id &&
+    row.stripe_connect_onboarding_complete &&
+    row.stripe_connect_charges_enabled
+  );
+}
+
+/**
  * Pre-flight check used by every public client-payment route (deposits,
  * pay-in-full, gift cards) before opening a Checkout Session on the pro's
  * connected account. A pro can only collect money once Stripe has approved

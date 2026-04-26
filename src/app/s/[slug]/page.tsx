@@ -13,6 +13,7 @@ import { LuxeTemplate } from "@/components/templates/luxe";
 import { OriginalTemplate } from "@/components/templates/original";
 import { BookingWidget } from "./booking-widget";
 import { clientPaymentsEnabled } from "@/lib/client-payments";
+import { connectReady } from "@/lib/stripe-connect";
 import { ChatWidget } from "./chat-widget";
 import { FaqSection, ReviewsSection, type Faq, type Review } from "./faq-reviews";
 import { InquiryForm } from "./inquiry-form";
@@ -320,6 +321,12 @@ export default async function PublicSitePage({ params }: Props) {
         slug={slug}
         phoneVerificationEnabled={!!process.env.TWILIO_VERIFY_SERVICE_SID}
         clientPaymentsEnabled={clientPaymentsEnabled()}
+        proConnectReady={connectReady({
+          stripe_connect_account_id: biz.stripe_connect_account_id,
+          stripe_connect_charges_enabled: biz.stripe_connect_charges_enabled,
+          stripe_connect_onboarding_complete:
+            biz.stripe_connect_onboarding_complete,
+        })}
         rules={{
           intervalMinutes: biz.booking_interval_minutes ?? 30,
           allowLastMinute: biz.allow_last_minute_booking ?? true,

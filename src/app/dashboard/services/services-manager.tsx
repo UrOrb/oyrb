@@ -1,14 +1,25 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { Plus, Trash2, Save, Edit3, X } from "lucide-react";
 import { createService, updateService, deleteService } from "./actions";
 import { formatCents, formatDuration, type Service } from "@/lib/types";
 
 const inputCls =
   "w-full rounded-md border border-[#E7E5E4] bg-white px-3 py-2 text-sm placeholder:text-[#A3A3A3] focus:border-[#B8896B] focus:outline-none";
+const inputClsDisabled =
+  "w-full rounded-md border border-[#E7E5E4] bg-[#F5F5F4] px-3 py-2 text-sm text-[#A3A3A3]";
 
-export function ServicesManager({ services }: { services: Service[] }) {
+export function ServicesManager({
+  services,
+  depositsAllowed,
+}: {
+  services: Service[];
+  /** False when the pro hasn't finished Stripe Connect setup. Disables the
+      deposit field on create + edit; existing deposit_cents stays in DB. */
+  depositsAllowed: boolean;
+}) {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -50,7 +61,7 @@ export function ServicesManager({ services }: { services: Service[] }) {
             action={(fd) => submitUpdate(s.id, fd)}
             className="rounded-lg border border-[#B8896B] bg-white p-5"
           >
-            <ServiceFields defaults={s} />
+            <ServiceFields defaults={s} depositsAllowed={depositsAllowed} />
             <div className="mt-4 flex gap-2">
               <button disabled={pending} className="inline-flex items-center gap-1.5 rounded-md bg-[#0A0A0A] px-4 py-2 text-sm font-medium text-white">
                 <Save size={13} /> Save
@@ -94,7 +105,7 @@ export function ServicesManager({ services }: { services: Service[] }) {
 
       {creating ? (
         <form action={submitCreate} className="rounded-lg border border-[#B8896B] bg-white p-5">
-          <ServiceFields />
+          <ServiceFields depositsAllowed={depositsAllowed} />
           <div className="mt-4 flex gap-2">
             <button disabled={pending} className="inline-flex items-center gap-1.5 rounded-md bg-[#0A0A0A] px-4 py-2 text-sm font-medium text-white">
               <Plus size={13} /> Create
@@ -116,7 +127,16 @@ export function ServicesManager({ services }: { services: Service[] }) {
   );
 }
 
-function ServiceFields({ defaults }: { defaults?: Service }) {
+function ServiceFields({
+  defaults,
+  depositsAllowed,
+}: {
+  defaults?: Service;
+  depositsAllowed: boolean;
+}) {
+  // Existing deposit_cents stays in the DB even when Connect is paused —
+  // we just don't let the pro change the value until they reconnect.
+  const existingDeposit = defaults ? defaults.deposit_cents / 100 : 0;
   return (
     <div className="grid gap-3 md:grid-cols-2">
       <div className="md:col-span-2">
@@ -136,8 +156,31 @@ function ServiceFields({ defaults }: { defaults?: Service }) {
         <input required type="number" min="0" step="1" name="price_dollars" defaultValue={defaults ? defaults.price_cents / 100 : 0} className={inputCls} />
       </div>
       <div>
-        <label className="mb-1 block text-xs font-medium">Deposit ($)</label>
-        <input type="number" min="0" step="1" name="deposit_dollars" defaultValue={defaults ? defaults.deposit_cents / 100 : 0} className={inputCls} />
+        <label className="mb-1 block text-xs font-medium">
+          Deposit ($)
+          {!depositsAllowed && (
+            <span className="ml-1 font-normal text-[#A3A3A3]">· locked</span>
+          )}
+        </label>
+        <input
+          type="number"
+          min="0"
+          step="1"
+          name="deposit_dollars"
+          defaultValue={existingDeposit}
+          disabled={!depositsAllowed}
+          aria-describedby={!depositsAllowed ? "deposit-locked-help" : undefined}
+          className={depositsAllowed ? inputCls : inputClsDisabled}
+        />
+        {!depositsAllowed && (
+          <p id="deposit-locked-help" className="mt-1 text-[11px] text-[#7C5A3F]">
+            Connect Stripe in{" "}
+            <Link href="/dashboard/payments" className="font-medium underline hover:text-[#0A0A0A]">
+              Payments
+            </Link>{" "}
+            to enable deposits.
+          </p>
+        )}
       </div>
       {defaults && (
         <label className="flex items-end gap-2 pb-2">

@@ -12,6 +12,8 @@ import { GoalMeter } from "./goal-meter";
 import { getMyListing } from "@/lib/directory";
 import { DirectoryNudge } from "./directory-nudge";
 import { StatsMigrationNotice } from "./stats-migration-notice";
+import { ConnectStatusBanner } from "./connect-status-banner";
+import { deriveStatus } from "@/lib/stripe-connect";
 
 export default async function DashboardPage({
   searchParams,
@@ -177,6 +179,19 @@ export default async function DashboardPage({
       </p>
 
       <TrialBanner />
+
+      {/* Stripe Connect setup nudge — null when status === "ready". */}
+      <ConnectStatusBanner
+        status={deriveStatus({
+          stripe_connect_account_id: business.stripe_connect_account_id,
+          stripe_connect_details_submitted:
+            business.stripe_connect_details_submitted,
+          stripe_connect_charges_enabled:
+            business.stripe_connect_charges_enabled,
+          stripe_connect_requirements_currently_due:
+            business.stripe_connect_requirements_currently_due,
+        }).status}
+      />
 
       {showStatsNotice && <StatsMigrationNotice businessId={business.id} />}
 
