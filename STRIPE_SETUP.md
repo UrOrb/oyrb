@@ -199,6 +199,47 @@ subscribe to:
 
 ---
 
+## E.3 Race window: account.updated vs charge attempts
+
+There's an unavoidable gap between Stripe flipping `charges_enabled` on
+a connected account and our DB reflecting that change. During the window:
+
+- A pro becomes restricted (Stripe → `charges_enabled = false`). Until
+  the `account.updated` webhook arrives and `refreshAccountStatus` runs,
+  our `businesses.stripe_connect_charges_enabled` still says `true`. The
+  storefront and pre-flight will allow a checkout. The `stripe.checkout
+  .sessions.create` call against the connected account will then fail
+  with a `charges_disabled` error and surface as a 500 to the client.
+- A pro becomes ready (Stripe enabled them). Until our DB syncs, the
+  pre-flight will refuse with `connect_restricted` and the storefront
+  shows "Online payment not available."
+
+**Why we don't try harder:** closing the window completely would mean
+calling `stripe.accounts.retrieve` on every checkout attempt, which
+doubles checkout latency and turns Stripe's API into our hot path.
+
+**Why it's safe:** Stripe itself is the source of truth for whether a
+charge can succeed. A charge our pre-flight wrongly allows during the
+window still gets accepted or rejected by Stripe per the live account
+state, so funds never end up in an inconsistent state — worst case is
+a momentary UX gap.
+
+**Mitigations in place:**
+- `account.updated` is one of the subscribed Connect events, so the gap
+  is bounded by Stripe's webhook latency (typically a few seconds, with
+  retries on 5xx via the idempotency ledger).
+- `/api/stripe/connect/return` calls `refreshAccountStatus` synchronously
+  when the pro lands back from onboarding, so the most common
+  state-change path (pro finishes KYC) closes the window immediately.
+- The Phase 3 pre-flight is a defense-in-depth check, not a guarantee.
+
+If you ever see a charge that pre-flight allowed but Stripe rejected,
+look for an `account.updated` event in `stripe_connect_events` whose
+`received_at` is within ~30s after the failed checkout — that's the
+fingerprint of this race.
+
+---
+
 ## F. Pricing logic snapshot (cross-reference)
 
 | Plan | Monthly | Annual | Sites included | Site cap |

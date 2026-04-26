@@ -160,6 +160,16 @@ export async function POST(request: Request) {
         // helper that pulls from Stripe + writes back the columns. Stripe's
         // payload already carries the values we need, but going through
         // the helper keeps this one source of truth.
+        //
+        // Race window (documented in STRIPE_SETUP.md §E.3): there is an
+        // unavoidable gap between Stripe flipping a flag (e.g. enabling /
+        // disabling charges) and our DB reflecting the change. During that
+        // window the pre-flight `loadConnectAccountForCheckout` may allow
+        // or refuse a charge that Stripe itself would decide differently.
+        // Stripe is the ultimate source of truth — a charge that pre-flight
+        // allows during the window will still be accepted/rejected by
+        // Stripe per the live state of the connected account, so funds
+        // never end up in a bad state. Worst case is a momentary UX gap.
         const { data: biz } = await supabase
           .from("businesses")
           .select("id")

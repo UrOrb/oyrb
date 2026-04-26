@@ -14,6 +14,7 @@ import { DirectoryNudge } from "./directory-nudge";
 import { StatsMigrationNotice } from "./stats-migration-notice";
 import { ConnectStatusBanner } from "./connect-status-banner";
 import { deriveStatus } from "@/lib/stripe-connect";
+import { getCurrentBusiness } from "@/lib/current-site";
 
 export default async function DashboardPage({
   searchParams,
@@ -180,18 +181,11 @@ export default async function DashboardPage({
 
       <TrialBanner />
 
-      {/* Stripe Connect setup nudge — null when status === "ready". */}
-      <ConnectStatusBanner
-        status={deriveStatus({
-          stripe_connect_account_id: business.stripe_connect_account_id,
-          stripe_connect_details_submitted:
-            business.stripe_connect_details_submitted,
-          stripe_connect_charges_enabled:
-            business.stripe_connect_charges_enabled,
-          stripe_connect_requirements_currently_due:
-            business.stripe_connect_requirements_currently_due,
-        }).status}
-      />
+      {/* Stripe Connect setup nudge — null when status === "ready".
+          For multi-site pros, getCurrentBusiness() respects the
+          SiteSwitcher cookie so the banner reflects the site they're
+          currently editing, not always the oldest one. */}
+      <ConnectStatusBannerForActiveSite />
 
       {showStatsNotice && <StatsMigrationNotice businessId={business.id} />}
 
@@ -296,6 +290,24 @@ export default async function DashboardPage({
 }
 
 // ── Trial banner ────────────────────────────────────────────────────────────
+// Connect banner that follows the SiteSwitcher selection. The dashboard
+// page itself uses businesses[0] for legacy reasons (subscription gate +
+// stats notice), but the Connect banner needs to match whichever site
+// the pro is currently editing — multi-site pros otherwise see the
+// banner stuck on their oldest site's status.
+async function ConnectStatusBannerForActiveSite() {
+  const active = await getCurrentBusiness();
+  if (!active) return null;
+  const status = deriveStatus({
+    stripe_connect_account_id: active.stripe_connect_account_id,
+    stripe_connect_details_submitted: active.stripe_connect_details_submitted,
+    stripe_connect_charges_enabled: active.stripe_connect_charges_enabled,
+    stripe_connect_requirements_currently_due:
+      active.stripe_connect_requirements_currently_due,
+  }).status;
+  return <ConnectStatusBanner status={status} />;
+}
+
 // Shown only when the user's subscription is in `trialing` status. Displays
 // the conversion date + amount so there are no surprises on day 15.
 async function TrialBanner() {
