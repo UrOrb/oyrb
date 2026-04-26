@@ -12,7 +12,9 @@ import {
   Mail,
   CreditCard,
   Settings,
+  HelpCircle,
 } from "lucide-react";
+import { dispatchHelpToggle } from "@/app/dashboard/help-panel";
 
 const NAV = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -56,6 +58,21 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      {/* Help — sits at the bottom of the sidebar, separated from the
+          primary nav. Toggles the global HelpPanel mounted in the
+          dashboard layout. Not a route, so the active styling rules
+          above don't apply. */}
+      <div className="border-t border-[#E7E5E4] p-3">
+        <button
+          type="button"
+          onClick={dispatchHelpToggle}
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-[#525252] transition-colors hover:bg-[#F5F5F4] hover:text-[#0A0A0A]"
+        >
+          <HelpCircle size={16} strokeWidth={1.5} />
+          Help
+        </button>
+      </div>
     </aside>
   );
 }

@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The help-chat API reads the four /help/*.md docs at module init via
+  // fs.readFileSync. They live outside /src so Next's default tracer
+  // doesn't pick them up — explicitly include them in the function bundle.
+  outputFileTracingIncludes: {
+    "/api/dashboard/help-chat": ["./help/**/*.md"],
+  },
   images: {
     remotePatterns: [
       {

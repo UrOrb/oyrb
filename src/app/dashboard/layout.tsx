@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusiness, listMySites } from "@/lib/current-site";
 import { SiteSwitcher } from "./site-switcher";
 import { AvatarMenu } from "./avatar-menu";
+import { HelpPanel } from "./help-panel";
 
 export const metadata = {
   title: "Dashboard",
@@ -73,6 +74,11 @@ export default async function DashboardLayout({
         </header>
         <main className="flex-1 p-6 md:p-8">{children}</main>
       </div>
+
+      {/* Mounted once per dashboard render. The Sidebar Help button
+          dispatches a window event that this panel listens for, so we
+          don't need a Context provider just for an open/close boolean. */}
+      <HelpPanel />
     </div>
   );
 }
