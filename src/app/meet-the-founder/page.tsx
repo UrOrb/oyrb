@@ -172,7 +172,7 @@ export default function AboutPage() {
             {[
               { lbl: "Founded", val: "Georgia, 2026" },
               { lbl: "For", val: "Every beauty specialty" },
-              { lbl: "Built by", val: "A nail artist" },
+              { lbl: "Built by", val: "Ex salon owner / nail artist" },
             ].map((m) => (
               <div key={m.lbl} className="flex flex-col gap-1">
                 <span
@@ -217,40 +217,104 @@ export default function AboutPage() {
                 className="mb-10 text-4xl leading-none tracking-[-0.02em] md:text-6xl"
                 style={{ fontFamily: '"Fraunces", serif', fontWeight: 400 }}
               >
-                I&apos;ve been a nail artist for{" "}
+                I was a nail artist for{" "}
                 <em
                   className="italic"
                   style={{ color: PALETTE.accent, fontWeight: 400 }}
                 >
                   twelve years.
-                </em>
+                </em>{" "}
+                I also owned salons.
               </h2>
               <p
                 className="mb-8 max-w-xl text-xl italic leading-relaxed"
                 style={{ fontFamily: '"Fraunces", serif', fontWeight: 400 }}
               >
-                In that time, I&apos;ve tried every booking platform on the
-                market.
+                For most of those years, I worked in salons that taught me
+                one quiet rule: do less for your clients.
+              </p>
+              <p
+                className="mb-5 max-w-xl text-[17px] italic leading-[1.7]"
+                style={{ color: PALETTE.ink }}
+              >
+                &ldquo;Don&apos;t prime the nail that well — you want them to
+                come back.&rdquo;
+              </p>
+              <p
+                className="mb-5 max-w-xl text-[17px] italic leading-[1.7]"
+                style={{ color: PALETTE.ink }}
+              >
+                &ldquo;Don&apos;t do that much cuticle work — save something
+                for next time.&rdquo;
+              </p>
+              <p
+                className="mb-5 max-w-xl text-[17px] italic leading-[1.7]"
+                style={{ color: PALETTE.ink }}
+              >
+                &ldquo;Don&apos;t make it last two months — you won&apos;t
+                have returning clients.&rdquo;
               </p>
               <p
                 className="mb-5 max-w-xl text-[17px] leading-[1.7]"
                 style={{ color: PALETTE.ink }}
               >
-                The ones that take a percentage of every appointment. The ones
-                that charge extra for reminders, deposits, and a custom domain.
-                The &ldquo;professional&rdquo; templates that looked identical
-                to every other salon three doors down.
+                Every version of the same sentence. Every version meaning the
+                same thing — keep her just broken enough to need you again.
               </p>
               <p
                 className="mb-5 max-w-xl text-[17px] leading-[1.7]"
                 style={{ color: PALETTE.ink }}
               >
-                None of them felt like mine. None of them made sense for how I
-                actually ran my business. And none of them reflected the craft
-                I&apos;d spent more than a decade building.
+                I refused. I always refused.
+              </p>
+              <p
+                className="mb-5 max-w-xl text-[17px] leading-[1.7]"
+                style={{ color: PALETTE.ink }}
+              >
+                If a client paid me $100 or more, her set was lasting. Two
+                months minimum. Not because I was soft — because I&apos;d been
+                the customer too. I knew what it felt like to spend money I
+                couldn&apos;t really afford on someone who didn&apos;t make it
+                worth it.
+              </p>
+              <p
+                className="mb-5 max-w-xl text-[17px] leading-[1.7]"
+                style={{ color: PALETTE.ink }}
+              >
+                I was told I&apos;d lose clients that way. I didn&apos;t.
+                They came back through every low I had. They came back because
+                they stopped seeing me as a vendor and started seeing me as a
+                person who wouldn&apos;t waste them.
+              </p>
+              <p
+                className="mb-5 max-w-xl text-[17px] leading-[1.7]"
+                style={{ color: PALETTE.ink }}
+              >
+                When I started owning salons, I saw the other side of it —
+                the bills, the booking apps, the tech that promised to make
+                things easier and somehow always cost more than it saved. I
+                tried every booking platform on the market. The ones that
+                took a percentage of every appointment. The ones that charged
+                extra for reminders, deposits, and a custom domain. The
+                &ldquo;professional&rdquo; templates that looked identical to
+                every other salon three doors down.
+              </p>
+              <p
+                className="mb-5 max-w-xl text-[17px] leading-[1.7]"
+                style={{ color: PALETTE.ink }}
+              >
+                The same ethic I&apos;d refused in the chair was alive and
+                well — just dressed up as software now.
+              </p>
+              <p
+                className="mb-5 max-w-xl text-[17px] leading-[1.7]"
+                style={{ color: PALETTE.ink }}
+              >
+                So I stepped away from both the chair and the salons to build
+                something better.
               </p>
               <p className="max-w-xl text-[17px] leading-[1.7]">
-                <strong>So I built OYRB.</strong>
+                <strong>I built OYRB.</strong>
               </p>
             </div>
           </div>
@@ -479,21 +543,45 @@ export default function AboutPage() {
                 }}
               >
                 <p className="max-w-xl">
-                  My name is Halania. I&apos;m the founder of OYRB and a nail
-                  artist based in Georgia.
+                  My name is Halania. I&apos;m the founder of OYRB. I spent
+                  twelve years as a nail artist and salon owner in Georgia
+                  before stepping away to build the platform our industry
+                  deserved.
                 </p>
                 <p className="max-w-xl">
-                  I built this platform because I believe every beauty pro
-                  deserves software that{" "}
+                  I built it because I believe every beauty pro deserves
+                  software that{" "}
                   <em style={{ color: PALETTE.accent, fontStyle: "italic" }}>
                     respects the craft
                   </em>{" "}
-                  as much as the craft respects the client.
+                  as much as the craft respects the client. Because I lived
+                  both sides — the chair and the business — and I watched too
+                  many talented friends and salon owners give hundreds of
+                  dollars a month to apps that took more than they gave back.
                 </p>
                 <p className="max-w-xl">
-                  I built it because I watched too many talented friends in
-                  this industry give hundreds of dollars a month to apps that
-                  took more than they gave back.
+                  And if you&apos;ve been reading this thinking{" "}
+                  <em style={{ fontStyle: "italic" }}>
+                    &ldquo;I want this for myself, but I don&apos;t know if
+                    I&apos;m ready&rdquo;
+                  </em>{" "}
+                  — I need you to hear something.{" "}
+                  <strong>
+                    You are not behind. You are exactly on time.
+                  </strong>
+                </p>
+                <p className="max-w-xl">
+                  Every founder I admire was once where you are now. Every
+                  booked-out beauty pro started with one client. The
+                  difference between the ones who make it and the ones who
+                  don&apos;t isn&apos;t talent — it&apos;s consistency, and
+                  the willingness to keep going on the days that feel heavy.
+                </p>
+                <p className="max-w-xl">
+                  I built OYRB for the day you&apos;re ready. Whether
+                  that&apos;s today, next month, or after you&apos;ve been
+                  thinking about it for a year. The tools will be here when
+                  you are.
                 </p>
                 <p className="max-w-xl">
                   If you ever need anything — setup help, a feature request, or
