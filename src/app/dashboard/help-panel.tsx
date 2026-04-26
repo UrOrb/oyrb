@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, Send, HelpCircle, Loader2 } from "lucide-react";
+import { X, Send, HelpCircle, Loader2, RotateCcw } from "lucide-react";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -130,14 +130,36 @@ export function HelpPanel() {
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            aria-label="Close help"
-            className="rounded-md p-1.5 text-[#737373] hover:bg-[#F5F5F4] hover:text-[#0A0A0A]"
-          >
-            <X size={16} />
-          </button>
+          <div className="flex items-center gap-1">
+            {/* Only meaningful once a thread exists. Hidden in empty
+                state so the header isn't cluttered with a button that
+                would be a no-op. Clears the thread + any error in
+                place; doesn't close the panel or reload. */}
+            {messages.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMessages([]);
+                  setError(null);
+                  setInput("");
+                  inputRef.current?.focus();
+                }}
+                title="New chat"
+                aria-label="New chat"
+                className="rounded-md p-1.5 text-[#737373] hover:bg-[#F5F5F4] hover:text-[#0A0A0A]"
+              >
+                <RotateCcw size={16} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="Close help"
+              className="rounded-md p-1.5 text-[#737373] hover:bg-[#F5F5F4] hover:text-[#0A0A0A]"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Body */}
