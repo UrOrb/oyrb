@@ -1,8 +1,8 @@
 import { resend } from "@/lib/email";
+import { getFromAddress, EmailPurpose, DEFAULT_REPLY_TO } from "@/lib/email-from";
 import { createAdminClient } from "@/lib/supabase/server";
 import { TIERS, fmtMoney, type Tier, type BillingCycle } from "@/lib/plans";
 
-const FROM = process.env.RESEND_FROM_EMAIL ?? "OYRB <bookings@oyrb.space>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://oyrb.space";
 
 export type ReminderType = "7_day" | "3_day" | "1_day";
@@ -78,7 +78,13 @@ export async function sendTrialReminder(input: {
   });
 
   try {
-    await resend.emails.send({ from: FROM, to: input.toEmail, subject, html });
+    await resend.emails.send({
+      from: getFromAddress(EmailPurpose.ACCOUNT),
+      replyTo: DEFAULT_REPLY_TO,
+      to: input.toEmail,
+      subject,
+      html,
+    });
   } catch (err) {
     console.error(`Trial reminder send failed (${input.reminderType}):`, err);
     return { sent: false, reason: "send_error" };

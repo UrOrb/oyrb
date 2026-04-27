@@ -1,11 +1,10 @@
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendPaymentReceived, resend } from "@/lib/email";
+import { getFromAddress, EmailPurpose } from "@/lib/email-from";
 import { formatCents } from "@/lib/types";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.oyrb.space";
-const FROM_EMAIL =
-  process.env.RESEND_FROM_EMAIL ?? "OYRB <bookings@oyrb.space>";
 
 /**
  * Webhook handler for the pay-in-full checkout session completing. Marks
@@ -144,7 +143,7 @@ export async function handlePayInFullCompleted(
       });
       try {
         await resend.emails.send({
-          from: FROM_EMAIL,
+          from: getFromAddress(EmailPurpose.PAYMENT),
           to: ownerEmail,
           subject: `💳 ${booking.clients.name} paid ${formatCents(paidAmount)} for ${booking.services.name}`,
           html: `

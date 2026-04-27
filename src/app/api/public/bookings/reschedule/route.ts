@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { resolveToken } from "@/lib/booking-tokens";
 import { resend } from "@/lib/email";
+import { getFromAddress, EmailPurpose, DEFAULT_REPLY_TO } from "@/lib/email-from";
 import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "OYRB <bookings@oyrb.space>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.oyrb.space";
 const RESCHEDULE_CUTOFF_MS = 24 * 60 * 60 * 1000;
 
@@ -190,7 +190,8 @@ export async function POST(request: NextRequest) {
     if (booking.clients.email) {
       tasks.push(
         resend.emails.send({
-          from: FROM_EMAIL,
+          from: getFromAddress(EmailPurpose.BOOKING),
+          replyTo: DEFAULT_REPLY_TO,
           to: booking.clients.email,
           subject: `Rescheduled: ${booking.services.name} with ${booking.businesses.business_name}`,
           html: `
@@ -215,7 +216,7 @@ export async function POST(request: NextRequest) {
     if (ownerEmail) {
       tasks.push(
         resend.emails.send({
-          from: FROM_EMAIL,
+          from: getFromAddress(EmailPurpose.BOOKING),
           to: ownerEmail,
           subject: `${booking.clients.name} rescheduled — ${booking.services.name}`,
           html: `

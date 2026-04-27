@@ -2,10 +2,9 @@ import { randomBytes } from "crypto";
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { resend } from "@/lib/email";
+import { getFromAddress, EmailPurpose, DEFAULT_REPLY_TO } from "@/lib/email-from";
 import { formatCents } from "@/lib/types";
 
-const FROM_EMAIL =
-  process.env.RESEND_FROM_EMAIL ?? "OYRB <bookings@oyrb.space>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.oyrb.space";
 
 /**
@@ -108,7 +107,8 @@ export async function handleGiftCardCompleted(
   //    the only email that goes out (no separate "gifted" note).
   if (m.buyer_email) {
     await resend.emails.send({
-      from: FROM_EMAIL,
+      from: getFromAddress(EmailPurpose.PAYMENT),
+      replyTo: DEFAULT_REPLY_TO,
       to: m.buyer_email,
       subject: `Your ${formatCents(amountCents)} gift card for ${businessName}`,
       html: giftBuyerHtml({
@@ -126,7 +126,8 @@ export async function handleGiftCardCompleted(
   //    directly with the code + personal message.
   if (m.recipient_email && m.recipient_email !== m.buyer_email) {
     await resend.emails.send({
-      from: FROM_EMAIL,
+      from: getFromAddress(EmailPurpose.BOOKING),
+      replyTo: DEFAULT_REPLY_TO,
       to: m.recipient_email,
       subject: `${m.buyer_name || "Someone"} sent you a gift card to ${businessName}`,
       html: giftRecipientHtml({
@@ -145,7 +146,7 @@ export async function handleGiftCardCompleted(
   const ownerEmail = await resolveOwnerEmail(supabase, proUserId, biz?.contact_email ?? null);
   if (ownerEmail) {
     await resend.emails.send({
-      from: FROM_EMAIL,
+      from: getFromAddress(EmailPurpose.BOOKING),
       to: ownerEmail,
       subject: `🎁 A gift card for ${formatCents(amountCents)} was just purchased`,
       html: giftProHtml({
