@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Fraunces } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
-import { HelpWidget } from "@/components/help/help-widget";
 import "./globals.css";
 
 const inter = Inter({
@@ -47,7 +46,6 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[#FAFAF9] text-[#0A0A0A]">
         {children}
-        <HelpWidget />
         <Analytics />
       </body>
     </html>

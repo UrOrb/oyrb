@@ -179,8 +179,7 @@ export function TemplateBrowser({ themes }: { themes: TemplateTheme[] }) {
           );
         })}
 
-      {/* Back-to-top floating button — bottom-LEFT to avoid colliding with
-          the help widget in the bottom-right. ≥44x44 tap target per iOS AHIG. */}
+      {/* Back-to-top floating button. ≥44x44 tap target per iOS AHIG. */}
       {showBackToTop && (
         <button
           type="button"
