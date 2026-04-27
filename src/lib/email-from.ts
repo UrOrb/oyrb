@@ -21,6 +21,8 @@ export enum EmailPurpose {
   ACCOUNT = "ACCOUNT",
   /** Review / feedback solicitation. */
   FEEDBACK = "FEEDBACK",
+  /** Outbound from the OYRB support team: contact-form sends and direct human replies. */
+  SUPPORT = "SUPPORT",
   /** Catch-all when no other bucket fits. Currently aliased to hello@. */
   GENERAL = "GENERAL",
 }
@@ -30,6 +32,7 @@ const ADDRESSES: Record<EmailPurpose, string> = {
   [EmailPurpose.PAYMENT]:  "OYRB <billing@oyrb.space>",
   [EmailPurpose.ACCOUNT]:  "OYRB <account@oyrb.space>",
   [EmailPurpose.FEEDBACK]: "OYRB <feedback@oyrb.space>",
+  [EmailPurpose.SUPPORT]:  "OYRB Support <support@oyrb.space>",
   [EmailPurpose.GENERAL]:  "OYRB <hello@oyrb.space>",
 };
 
