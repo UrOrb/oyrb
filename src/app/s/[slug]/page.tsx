@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import { TEMPLATE_THEMES } from "@/lib/template-themes";
+import { fontFamilyFor } from "@/lib/storefront-fonts";
 import { BoldTemplate } from "@/components/templates/bold";
 import { CleanTemplate } from "@/components/templates/clean";
 import { StudioTemplate } from "@/components/templates/studio";
@@ -152,7 +153,16 @@ export default async function PublicSitePage({ params }: Props) {
   const slotsPerWeek = Math.floor(openMinutesPerWeek / 60);
   const slotsOpenThisWeek = Math.max(0, slotsPerWeek - (bookingsThisWeek ?? 0));
 
-  const theme = TEMPLATE_THEMES[biz.template_theme] ?? TEMPLATE_THEMES.aura;
+  // Resolve the base theme then override its displayFont / bodyFont with
+  // the pro's chosen Google fonts. The next/font CSS variables are mounted
+  // by the parent storefront layout so `var(--font-X)` resolves throughout
+  // the rendered template tree.
+  const baseTheme = TEMPLATE_THEMES[biz.template_theme] ?? TEMPLATE_THEMES.aura;
+  const theme = {
+    ...baseTheme,
+    displayFont: fontFamilyFor(biz.heading_font),
+    bodyFont: fontFamilyFor(biz.body_font),
+  };
 
   // Category-matched stock as a fallback when the owner hasn't uploaded their own.
   const stock = getStockImages(biz.service_category);
@@ -262,7 +272,13 @@ export default async function PublicSitePage({ params }: Props) {
   };
 
   return (
-    <>
+    // The wrapper sets the body font as the inheritance default so any
+    // template element, widget, or section that doesn't override
+    // fontFamily picks up the pro's chosen body font. Templates still
+    // use their own explicit displayFont on headings, which wins by
+    // specificity. The body font CSS var is mounted by the storefront
+    // layout one level up.
+    <div style={{ fontFamily: theme.bodyFont }}>
       {isOwner && (
         <a
           href="/dashboard"
@@ -345,6 +361,6 @@ export default async function PublicSitePage({ params }: Props) {
           btnText={theme.btnText}
         />
       )}
-    </>
+    </div>
   );
 }

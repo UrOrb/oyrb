@@ -8,6 +8,7 @@ import { LuxeTemplate } from "@/components/templates/luxe";
 import { OriginalTemplate } from "@/components/templates/original";
 import { getStockImages } from "@/lib/stock-images";
 import { DAY_NAMES, type BusinessHours } from "@/lib/types";
+import { fontFamilyFor, ALL_FONT_VARIABLE_CLASSES } from "@/lib/storefront-fonts";
 
 export type TemplatePreviewDraft = {
   business_name: string;
@@ -26,6 +27,10 @@ export type TemplatePreviewDraft = {
   template_content: Record<string, string>;
   service_category: string;
   subscription_status?: string;
+  /** Pro's chosen heading font slug (see src/lib/fonts.ts). */
+  heading_font?: string | null;
+  /** Pro's chosen body font slug (see src/lib/fonts.ts). */
+  body_font?: string | null;
 };
 
 type Service = {
@@ -44,7 +49,14 @@ type Props = {
 };
 
 export function TemplatePreview({ draft, services, hours }: Props) {
-  const theme = TEMPLATE_THEMES[draft.template_theme] ?? TEMPLATE_THEMES.aura;
+  // Same theme override as the storefront page — keeps live preview in
+  // lockstep with what /s/[slug] will render after save.
+  const baseTheme = TEMPLATE_THEMES[draft.template_theme] ?? TEMPLATE_THEMES.aura;
+  const theme = {
+    ...baseTheme,
+    displayFont: fontFamilyFor(draft.heading_font),
+    bodyFont: fontFamilyFor(draft.body_font),
+  };
   const stock = getStockImages(draft.service_category);
 
   const sampleBusiness = {
@@ -105,5 +117,11 @@ export function TemplatePreview({ draft, services, hours }: Props) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const Comp = Template as any;
-  return <Comp {...templateProps} />;
+  // Wrap so the storefront-fonts CSS variables resolve and unstyled body
+  // text inherits the chosen body font — matches /s/[slug] page behavior.
+  return (
+    <div className={ALL_FONT_VARIABLE_CLASSES} style={{ fontFamily: theme.bodyFont }}>
+      <Comp {...templateProps} />
+    </div>
+  );
 }

@@ -20,6 +20,10 @@ export type Business = {
   stat_3_type?: string | null;
   stats_migration_acknowledged_at?: string | null;
   template_theme: string;
+  /** Heading font slug — matches an id from src/lib/fonts.ts. */
+  heading_font: string;
+  /** Body font slug — matches an id from src/lib/fonts.ts. */
+  body_font: string;
   service_category: string;
   timezone: string;
   gallery_photos: string[];

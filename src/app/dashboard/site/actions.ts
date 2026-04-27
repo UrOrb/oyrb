@@ -4,6 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { getCurrentBusiness } from "@/lib/current-site";
 import { sanitizeStatLabel, STAT_TYPES } from "@/lib/pro-stats-types";
+import {
+  isHeadingFontId,
+  isBodyFontId,
+  DEFAULT_HEADING_FONT_ID,
+  DEFAULT_BODY_FONT_ID,
+} from "@/lib/fonts";
 
 const STARTER_THEMES = ["aura", "minimal", "bold"];
 const VALID_STAT_TYPES = new Set<string>(STAT_TYPES);
@@ -66,6 +72,18 @@ export async function updateSite(formData: FormData) {
         return "aura";
       }
       return requestedTheme;
+    })(),
+    // Font slugs — validated against the catalog in src/lib/fonts.ts.
+    // Anything not on the allowlist (typo, hand-crafted POST, removed
+    // option) collapses to the catalog default rather than persisting
+    // a broken value that the storefront would have to fall back from.
+    heading_font: (() => {
+      const v = formData.get("heading_font");
+      return isHeadingFontId(v) ? v : DEFAULT_HEADING_FONT_ID;
+    })(),
+    body_font: (() => {
+      const v = formData.get("body_font");
+      return isBodyFontId(v) ? v : DEFAULT_BODY_FONT_ID;
     })(),
     hero_image_url: (formData.get("hero_image_url") as string) || null,
     profile_image_url: (formData.get("profile_image_url") as string) || null,

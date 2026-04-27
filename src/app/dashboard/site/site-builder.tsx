@@ -7,7 +7,7 @@ import { DAY_NAMES, type Business, type BusinessHours } from "@/lib/types";
 import { ImageUpload, GalleryUpload } from "@/components/dashboard/image-upload";
 import { StockPicker } from "@/components/dashboard/stock-picker";
 import { updateSite } from "./actions";
-import { TemplatePreview, type TemplatePreviewDraft } from "./template-preview";
+import { TemplatePreview } from "./template-preview";
 import {
   STAT_TYPES,
   STAT_OPTION_LABELS,
@@ -16,6 +16,16 @@ import {
   isLabelSanitized,
   type StatType,
 } from "@/lib/pro-stats-types";
+import {
+  HEADING_FONTS,
+  BODY_FONTS,
+  DEFAULT_HEADING_FONT_ID,
+  DEFAULT_BODY_FONT_ID,
+} from "@/lib/fonts";
+import {
+  fontFamilyFor,
+  ALL_FONT_VARIABLE_CLASSES,
+} from "@/lib/storefront-fonts";
 
 type Service = {
   id: string;
@@ -50,6 +60,8 @@ type Draft = {
   instagram_url: string;
   template_layout: string;
   template_theme: string;
+  heading_font: string;
+  body_font: string;
   // Stats strip selections (Original layout). Type columns on the row
   // store which verified metric to display; labels stay in
   // template_content so they share the same editing pattern as other
@@ -86,6 +98,8 @@ function businessToDraft(business: Business, hoursRows: BusinessHours[]): Draft 
     instagram_url: business.instagram_url ?? "",
     template_layout: business.template_layout === "zip" ? "original" : (business.template_layout || "original"),
     template_theme: business.template_theme ?? "aura",
+    heading_font: business.heading_font ?? DEFAULT_HEADING_FONT_ID,
+    body_font: business.body_font ?? DEFAULT_BODY_FONT_ID,
     stat_1_type: (business as unknown as { stat_1_type?: string | null }).stat_1_type ?? "specialty",
     stat_2_type: (business as unknown as { stat_2_type?: string | null }).stat_2_type ?? "services_offered",
     stat_3_type: (business as unknown as { stat_3_type?: string | null }).stat_3_type ?? "location",
@@ -126,6 +140,8 @@ function draftToFormData(draft: Draft): FormData {
   fd.set("instagram_url", draft.instagram_url);
   fd.set("template_layout", draft.template_layout);
   fd.set("template_theme", draft.template_theme);
+  fd.set("heading_font", draft.heading_font);
+  fd.set("body_font", draft.body_font);
   fd.set("stat_1_type", draft.stat_1_type);
   fd.set("stat_2_type", draft.stat_2_type);
   fd.set("stat_3_type", draft.stat_3_type);
@@ -676,6 +692,18 @@ export function SiteBuilder({ business, hours, services, origin }: Props) {
               </div>
             </Section>
 
+            {/* Fonts */}
+            <Section title="Fonts" subtitle="Headings + body text on your storefront. Each option in the dropdown previews in its own font.">
+              <FontsEditor
+                businessName={draft.business_name || "My Studio"}
+                headingFont={draft.heading_font}
+                bodyFont={draft.body_font}
+                onHeadingChange={(v) => update("heading_font", v)}
+                onBodyChange={(v) => update("body_font", v)}
+                inputCls={inputCls}
+              />
+            </Section>
+
             {/* Template copy — dynamically filtered to fields that apply to
                 the currently-selected layout. Switching layouts refreshes
                 this panel immediately. Saved values for hidden fields stay
@@ -977,6 +1005,98 @@ function hoursRowsFromDraft(hours: Draft["hours"]): BusinessHours[] {
     open_time: h.open_time || null,
     close_time: h.close_time || null,
   }));
+}
+
+// ── Fonts editor ────────────────────────────────────────────────────────────
+// Two dropdowns + an inline preview pane. Each option in a dropdown
+// renders in its own font so the pro can compare options at a glance.
+// The preview pane reflects the *currently-selected* (potentially
+// unsaved) draft so feedback is instant — the larger storefront preview
+// on the right of the page also reflects this draft and updates in
+// lockstep.
+function FontsEditor({
+  businessName,
+  headingFont,
+  bodyFont,
+  onHeadingChange,
+  onBodyChange,
+  inputCls,
+}: {
+  businessName: string;
+  headingFont: string;
+  bodyFont: string;
+  onHeadingChange: (v: string) => void;
+  onBodyChange: (v: string) => void;
+  inputCls: string;
+}) {
+  return (
+    <div className={ALL_FONT_VARIABLE_CLASSES}>
+      <div className="grid gap-3 md:grid-cols-2">
+        <div>
+          <label className="block text-[11px] font-medium text-[#525252]">
+            Heading font
+          </label>
+          <select
+            value={headingFont}
+            onChange={(e) => onHeadingChange(e.target.value)}
+            className={inputCls}
+            // Render the currently-selected option (in the closed state)
+            // in that font itself.
+            style={{ fontFamily: fontFamilyFor(headingFont) }}
+          >
+            {HEADING_FONTS.map((f) => (
+              <option
+                key={f.id}
+                value={f.id}
+                style={{ fontFamily: fontFamilyFor(f.id) }}
+              >
+                {f.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-[11px] font-medium text-[#525252]">
+            Body font
+          </label>
+          <select
+            value={bodyFont}
+            onChange={(e) => onBodyChange(e.target.value)}
+            className={inputCls}
+            style={{ fontFamily: fontFamilyFor(bodyFont) }}
+          >
+            {BODY_FONTS.map((f) => (
+              <option
+                key={f.id}
+                value={f.id}
+                style={{ fontFamily: fontFamilyFor(f.id) }}
+              >
+                {f.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div
+        className="mt-4 rounded-md border border-[#E7E5E4] bg-[#FAFAF9] p-5"
+        style={{ fontFamily: fontFamilyFor(bodyFont) }}
+      >
+        <p className="text-[10px] uppercase tracking-wider text-[#A3A3A3]">
+          Preview
+        </p>
+        <h3
+          className="mt-2 text-2xl"
+          style={{ fontFamily: fontFamilyFor(headingFont), fontWeight: 600 }}
+        >
+          Welcome to {businessName}
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-[#525252]">
+          Book your next appointment with us. The quick brown fox jumps over the lazy dog.
+        </p>
+      </div>
+    </div>
+  );
 }
 
 // ── Stats strip editor ──────────────────────────────────────────────────────
