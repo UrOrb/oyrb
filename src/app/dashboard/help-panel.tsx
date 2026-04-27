@@ -1,9 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, Send, HelpCircle, Loader2, RotateCcw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { X, Send, HelpCircle, Loader2, RotateCcw, LifeBuoy } from "lucide-react";
 
 type Msg = { role: "user" | "assistant"; content: string };
+
+/**
+ * Threshold for the "Want me to connect you with the OYRB team?" offer.
+ * Counts user-role messages only — three back-and-forth exchanges is
+ * usually enough to tell whether the AI is going to land the answer or
+ * just spin. Below that we let the assistant try without distraction.
+ */
+const ESCALATION_USER_MESSAGE_THRESHOLD = 3;
+
+const SUPPORT_HANDOFF_PROMPT =
+  "Internal request, not a question for you. I'm escalating to OYRB's human support team. In 2–3 sentences, summarize what I've been asking about so support has the context. State the situation factually — don't suggest solutions or address me directly.";
 
 /**
  * Slide-in help chat panel mounted once in the dashboard layout. The
@@ -28,14 +40,29 @@ const SUGGESTIONS = [
 ];
 
 export function HelpPanel() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [escalating, setEscalating] = useState(false);
+  const [escalationError, setEscalationError] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const userMessageCount = messages.filter((m) => m.role === "user").length;
+  const lastMessage = messages[messages.length - 1];
+  // Show the escalation offer once the AI has answered the third+ user
+  // question. If the latest message is still from the user (or the chat
+  // is pending), we're mid-exchange — don't pre-empt the answer. The
+  // offer stays mounted while `escalating` so the button can display its
+  // own loading state instead of vanishing on click.
+  const showEscalation =
+    userMessageCount >= ESCALATION_USER_MESSAGE_THRESHOLD &&
+    !pending &&
+    lastMessage?.role === "assistant";
 
   // Window-level toggle listener — paired with the Sidebar Help button.
   useEffect(() => {
@@ -95,6 +122,50 @@ export function HelpPanel() {
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     send(input);
+  }
+
+  /**
+   * Generate a short summary of the chat via the same help-chat endpoint,
+   * then hand off to the contact form with the summary pre-filled. We
+   * don't render the summary turn in the chat — it's a one-shot, internal
+   * request whose only purpose is the prefill string.
+   *
+   * If summarisation fails, fall back to opening the form anyway with no
+   * prefill — the pro can describe the situation themselves rather than
+   * being blocked by an outage in the AI side.
+   */
+  async function escalateToSupport() {
+    if (escalating) return;
+    setEscalationError(null);
+    setEscalating(true);
+    let summary = "";
+    try {
+      const res = await fetch("/api/dashboard/help-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: SUPPORT_HANDOFF_PROMPT,
+          history: messages,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && typeof data.reply === "string") {
+        summary = data.reply.trim();
+      } else if (res.status === 429) {
+        setEscalationError("Slow down for a minute, then try again.");
+        setEscalating(false);
+        return;
+      }
+    } catch {
+      // Swallow — proceed with empty prefill.
+    }
+
+    const params = new URLSearchParams();
+    params.set("category", "other");
+    if (summary) params.set("prefill", summary);
+    setOpen(false);
+    setEscalating(false);
+    router.push(`/dashboard/support?${params.toString()}`);
   }
 
   return (
@@ -177,6 +248,13 @@ export function HelpPanel() {
                   {error}
                 </div>
               )}
+              {showEscalation && (
+                <EscalationOffer
+                  onEscalate={escalateToSupport}
+                  loading={escalating}
+                  errorMessage={escalationError}
+                />
+              )}
             </div>
           )}
         </div>
@@ -254,6 +332,42 @@ function Bubble({ role, text }: { role: "user" | "assistant"; text: string }) {
       <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-md bg-[#FBF4EC] px-4 py-2 text-sm text-[#0A0A0A]">
         {text}
       </div>
+    </div>
+  );
+}
+
+function EscalationOffer({
+  onEscalate,
+  loading,
+  errorMessage,
+}: {
+  onEscalate: () => void;
+  loading: boolean;
+  errorMessage: string | null;
+}) {
+  return (
+    <div className="mt-1 flex flex-col items-start gap-1.5 rounded-md border border-dashed border-[#E7E5E4] bg-[#FAFAF9] px-3 py-2.5">
+      <p className="text-[11px] uppercase tracking-wider text-[#A3A3A3]">
+        Not landing?
+      </p>
+      <button
+        type="button"
+        onClick={onEscalate}
+        disabled={loading}
+        className="inline-flex items-center gap-2 text-left text-xs font-medium text-[#0A0A0A] underline-offset-2 hover:underline disabled:opacity-60"
+      >
+        {loading ? (
+          <Loader2 size={12} className="animate-spin" />
+        ) : (
+          <LifeBuoy size={12} />
+        )}
+        {loading
+          ? "Pulling together a summary…"
+          : "Connect me with the OYRB team"}
+      </button>
+      {errorMessage && (
+        <p className="text-[11px] text-red-700">{errorMessage}</p>
+      )}
     </div>
   );
 }

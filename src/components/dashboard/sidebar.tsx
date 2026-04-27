@@ -13,6 +13,7 @@ import {
   CreditCard,
   Settings,
   HelpCircle,
+  LifeBuoy,
 } from "lucide-react";
 import { dispatchHelpToggle } from "@/app/dashboard/help-panel";
 
@@ -59,11 +60,10 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Help — sits at the bottom of the sidebar, separated from the
-          primary nav. Toggles the global HelpPanel mounted in the
-          dashboard layout. Not a route, so the active styling rules
-          above don't apply. */}
-      <div className="border-t border-[#E7E5E4] p-3">
+      {/* Help + Contact Support — bottom block, separated from the
+          primary nav. Help toggles the global HelpPanel (AI chat) mounted
+          in the dashboard layout. Contact Support is a real route. */}
+      <div className="flex flex-col gap-0.5 border-t border-[#E7E5E4] p-3">
         <button
           type="button"
           onClick={dispatchHelpToggle}
@@ -72,6 +72,17 @@ export function Sidebar() {
           <HelpCircle size={16} strokeWidth={1.5} />
           Help
         </button>
+        <Link
+          href="/dashboard/support"
+          className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+            pathname === "/dashboard/support"
+              ? "bg-[#F5F5F4] font-medium text-[#0A0A0A]"
+              : "text-[#525252] hover:bg-[#F5F5F4] hover:text-[#0A0A0A]"
+          }`}
+        >
+          <LifeBuoy size={16} strokeWidth={1.5} />
+          Contact Support
+        </Link>
       </div>
     </aside>
   );
