@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { resend } from "@/lib/email";
-
-const FROM = process.env.RESEND_FROM_EMAIL ?? "OYRB <bookings@oyrb.space>";
+import { getFromAddress, EmailPurpose } from "@/lib/email-from";
 
 export async function POST(request: NextRequest) {
   let body: {
@@ -80,7 +79,7 @@ export async function POST(request: NextRequest) {
       : "";
     try {
       await resend.emails.send({
-        from: FROM,
+        from: getFromAddress(EmailPurpose.BOOKING),
         to: toEmail,
         replyTo: email,
         subject: `New inquiry from ${name} — ${biz.business_name}`,

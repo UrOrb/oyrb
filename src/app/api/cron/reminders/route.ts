@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { resend } from "@/lib/email";
+import { getFromAddress, EmailPurpose, DEFAULT_REPLY_TO } from "@/lib/email-from";
 import { sendSms, tierAllowsSms } from "@/lib/sms";
 import { issueBookingToken } from "@/lib/booking-tokens";
-
-const FROM_EMAIL =
-  process.env.RESEND_FROM_EMAIL ?? "OYRB <bookings@oyrb.space>";
 
 /**
  * Runs via Vercel Cron (see vercel.json). Sends 24h reminders for
@@ -96,7 +94,8 @@ export async function GET(request: NextRequest) {
     if (client.email && resend) {
       try {
         await resend.emails.send({
-          from: FROM_EMAIL,
+          from: getFromAddress(EmailPurpose.BOOKING),
+          replyTo: DEFAULT_REPLY_TO,
           to: client.email,
           subject: `Reminder: ${svc.name} tomorrow with ${biz.business_name}`,
           html: `
@@ -191,7 +190,8 @@ export async function GET(request: NextRequest) {
 
     try {
       await resend.emails.send({
-        from: FROM_EMAIL,
+        from: getFromAddress(EmailPurpose.FEEDBACK),
+        replyTo: DEFAULT_REPLY_TO,
         to: b.clients.email,
         subject: `How was your ${b.services.name} with ${b.businesses.business_name}?`,
         html: `

@@ -2,10 +2,8 @@
 
 import { createAdminClient } from "./supabase/server";
 import { resend } from "./email";
+import { getFromAddress, EmailPurpose, DEFAULT_REPLY_TO } from "./email-from";
 import { sendSms, tierAllowsSms } from "./sms";
-
-const FROM_EMAIL =
-  process.env.RESEND_FROM_EMAIL ?? "OYRB <bookings@oyrb.space>";
 
 type Biz = {
   business_name: string;
@@ -69,7 +67,8 @@ export async function notifyWaitlistOnCancellation(params: {
     if (entry.client_email && resend) {
       try {
         await resend.emails.send({
-          from: FROM_EMAIL,
+          from: getFromAddress(EmailPurpose.BOOKING),
+          replyTo: DEFAULT_REPLY_TO,
           to: entry.client_email,
           subject: `A spot just opened with ${biz.business_name} ✦`,
           html: `

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { signMagicToken } from "@/lib/client-auth";
 import { resend } from "@/lib/email";
+import { getFromAddress, EmailPurpose, DEFAULT_REPLY_TO } from "@/lib/email-from";
 
-const FROM = process.env.RESEND_FROM_EMAIL ?? "OYRB <bookings@oyrb.space>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.oyrb.space";
 
 export async function POST(request: NextRequest) {
@@ -40,7 +40,8 @@ export async function POST(request: NextRequest) {
 
   try {
     await resend.emails.send({
-      from: FROM,
+      from: getFromAddress(EmailPurpose.ACCOUNT),
+      replyTo: DEFAULT_REPLY_TO,
       to: email,
       subject: "Your sign-in link for OYRB",
       html: `

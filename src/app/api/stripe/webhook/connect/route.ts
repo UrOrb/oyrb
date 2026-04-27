@@ -9,11 +9,9 @@ import {
   markConnectEventCompleted,
 } from "@/lib/stripe-connect-events";
 import { resend } from "@/lib/email";
+import { getFromAddress, EmailPurpose } from "@/lib/email-from";
 import { formatCents } from "@/lib/types";
 import type Stripe from "stripe";
-
-const FROM_EMAIL =
-  process.env.RESEND_FROM_EMAIL ?? "OYRB <bookings@oyrb.space>";
 
 /**
  * Stripe Connect webhook endpoint. Distinct from /api/stripe/webhook
@@ -265,7 +263,7 @@ async function notifyProOfRefund(
   const refundedAmount = charge.amount_refunded ?? 0;
   try {
     await resend.emails.send({
-      from: FROM_EMAIL,
+      from: getFromAddress(EmailPurpose.PAYMENT),
       to: ownerEmail,
       subject: `Refund issued — ${formatCents(refundedAmount)}`,
       html: `
@@ -294,7 +292,7 @@ async function notifyProOfDispute(
 
   try {
     await resend.emails.send({
-      from: FROM_EMAIL,
+      from: getFromAddress(EmailPurpose.PAYMENT),
       to: ownerEmail,
       subject: `⚠️ Chargeback opened — ${formatCents(dispute.amount)}`,
       html: `

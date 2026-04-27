@@ -3,11 +3,11 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { resend } from "@/lib/email";
+import { getFromAddress, EmailPurpose, DEFAULT_REPLY_TO } from "@/lib/email-from";
 import { getCurrentBusiness } from "@/lib/current-site";
 import { marketingUnsubUrl } from "@/lib/marketing-unsub";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const FROM = process.env.RESEND_FROM_EMAIL ?? "OYRB <bookings@oyrb.space>";
 const DAILY_CAP_PER_PRO = 1000;
 const PHYSICAL_ADDRESS =
   process.env.OYRB_MAILING_ADDRESS ??
@@ -299,7 +299,8 @@ export async function sendCampaign(formData: FormData): Promise<SendResult> {
     const unsubUrl = marketingUnsubUrl(r.email);
     try {
       await resend.emails.send({
-        from: FROM,
+        from: getFromAddress(EmailPurpose.BOOKING),
+        replyTo: DEFAULT_REPLY_TO,
         to: r.email,
         subject,
         html: wrapMarketingHtml({

@@ -3,10 +3,10 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin";
 import { resend } from "@/lib/email";
+import { getFromAddress, EmailPurpose, DEFAULT_REPLY_TO } from "@/lib/email-from";
 import { marketingUnsubUrl } from "@/lib/marketing-unsub";
 import { revalidatePath } from "next/cache";
 
-const FROM = process.env.RESEND_FROM_EMAIL ?? "OYRB <bookings@oyrb.space>";
 const DAILY_CAP_PLATFORM = 10_000;
 const PHYSICAL_ADDRESS =
   process.env.OYRB_MAILING_ADDRESS ??
@@ -165,7 +165,8 @@ export async function sendAnnouncement(formData: FormData): Promise<SendAnnounce
     const unsubUrl = marketingUnsubUrl(r.email);
     try {
       await resend.emails.send({
-        from: FROM,
+        from: getFromAddress(EmailPurpose.BOOKING),
+        replyTo: DEFAULT_REPLY_TO,
         to: r.email,
         subject,
         html: wrapAnnouncementHtml({

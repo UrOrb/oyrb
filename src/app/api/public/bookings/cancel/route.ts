@@ -3,8 +3,8 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { resolveToken } from "@/lib/booking-tokens";
 import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
 import { sendBookingCancellation, resend } from "@/lib/email";
+import { getFromAddress, EmailPurpose } from "@/lib/email-from";
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "OYRB <bookings@oyrb.space>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.oyrb.space";
 
 // Client-initiated cancellation via a magic-link token. No auth beyond
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
         const customerName = bookingRow.clients?.name ?? "A client";
         tasks.push(
           resend.emails.send({
-            from: FROM_EMAIL,
+            from: getFromAddress(EmailPurpose.BOOKING),
             to: ownerEmail,
             subject: `${customerName} cancelled — ${bookingRow.services.name}`,
             html: `

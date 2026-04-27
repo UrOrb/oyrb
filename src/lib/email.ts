@@ -1,11 +1,9 @@
 import { Resend } from "resend";
+import { getFromAddress, EmailPurpose, DEFAULT_REPLY_TO } from "@/lib/email-from";
 
 export const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
-
-const FROM =
-  process.env.RESEND_FROM_EMAIL ?? "OYRB <bookings@oyrb.space>";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.oyrb.space";
 
@@ -62,7 +60,8 @@ export async function sendBookingConfirmation(params: {
 
   try {
     await resend.emails.send({
-      from: FROM,
+      from: getFromAddress(EmailPurpose.BOOKING),
+      replyTo: DEFAULT_REPLY_TO,
       to,
       subject: `Booking confirmed with ${businessName}`,
       html: `
@@ -145,7 +144,8 @@ export async function sendPaymentReceived(params: {
 
   try {
     await resend.emails.send({
-      from: FROM,
+      from: getFromAddress(EmailPurpose.PAYMENT),
+      replyTo: DEFAULT_REPLY_TO,
       to,
       subject: `Payment received — ${serviceName} with ${businessName}`,
       html: `
@@ -209,7 +209,8 @@ export async function sendBookingCancellation(params: {
 
   try {
     await resend.emails.send({
-      from: FROM,
+      from: getFromAddress(EmailPurpose.BOOKING),
+      replyTo: DEFAULT_REPLY_TO,
       to,
       subject: `Cancelled: ${serviceName} with ${businessName}`,
       html: `
@@ -251,7 +252,8 @@ export async function sendRebookReminder(params: {
 
   try {
     await resend.emails.send({
-      from: FROM,
+      from: getFromAddress(EmailPurpose.BOOKING),
+      replyTo: DEFAULT_REPLY_TO,
       to,
       subject: `Time to rebook with ${businessName}?`,
       html: `
@@ -303,7 +305,7 @@ export async function sendOwnerNotification(params: {
 
   try {
     await resend.emails.send({
-      from: FROM,
+      from: getFromAddress(EmailPurpose.BOOKING),
       to,
       subject: `New booking: ${customerName} — ${serviceName}`,
       html: `
