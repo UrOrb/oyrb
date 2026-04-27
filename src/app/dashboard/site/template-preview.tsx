@@ -8,7 +8,7 @@ import { LuxeTemplate } from "@/components/templates/luxe";
 import { OriginalTemplate } from "@/components/templates/original";
 import { getStockImages } from "@/lib/stock-images";
 import { DAY_NAMES, type BusinessHours } from "@/lib/types";
-import { fontFamilyFor, ALL_FONT_VARIABLE_CLASSES } from "@/lib/storefront-fonts";
+import { resolveFontFamily, ALL_FONT_VARIABLE_CLASSES } from "@/lib/storefront-fonts";
 
 export type TemplatePreviewDraft = {
   business_name: string;
@@ -49,13 +49,13 @@ type Props = {
 };
 
 export function TemplatePreview({ draft, services, hours }: Props) {
-  // Same theme override as the storefront page — keeps live preview in
-  // lockstep with what /s/[slug] will render after save.
+  // Mirrors the storefront page resolution — null/empty draft value
+  // means "use the theme's font", anything else overrides.
   const baseTheme = TEMPLATE_THEMES[draft.template_theme] ?? TEMPLATE_THEMES.aura;
   const theme = {
     ...baseTheme,
-    displayFont: fontFamilyFor(draft.heading_font),
-    bodyFont: fontFamilyFor(draft.body_font),
+    displayFont: resolveFontFamily(draft.heading_font, baseTheme.displayFont),
+    bodyFont: resolveFontFamily(draft.body_font, baseTheme.bodyFont),
   };
   const stock = getStockImages(draft.service_category);
 

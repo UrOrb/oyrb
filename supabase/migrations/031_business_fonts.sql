@@ -1,21 +1,24 @@
 -- ═════════════════════════════════════════════════════════════════════════
--- 031 — Per-business font customization
+-- 031 — Per-business font customization (overrides only)
 --
 -- Pros pick a heading font + body font for their public storefront from
--- a curated list of 10 Google fonts (5 heading, 5 body). The IDs stored
--- here are slugs from src/lib/fonts.ts — keep that registry in sync if
--- you add or remove options.
+-- a curated catalog (see src/lib/fonts.ts). The columns here store the
+-- override:
+--   · NULL  → use the active theme's font (whatever template_themes.ts
+--             defines as displayFont / bodyFont for the chosen theme).
+--             Existing rows land here on day one — appearance unchanged.
+--   · slug  → override the theme; storefront renders the picked font.
 --
--- Defaults: Playfair Display (headings) + Inter (body). Existing rows
--- get the same defaults via the column-level DEFAULT, so this migration
--- is safe to run on production data without a separate UPDATE pass.
+-- Why nullable instead of a default: every theme already ships its own
+-- typography choices. Forcing a global default ("Playfair Display + Inter")
+-- on every existing business would silently change 30 themes' look. NULL
+-- = "trust the theme" preserves design intent.
 --
--- No CHECK constraint on values: the allowed list lives in TypeScript
--- and is enforced at write time by updateSite(). Keeping the DB column
--- permissive avoids a coordinated migration every time we tweak the
--- catalog (add/remove a font option).
+-- The slug values are validated in TypeScript (src/lib/fonts.ts) at write
+-- time. No CHECK constraint on the column so we can iterate the catalog
+-- without coordinated migrations.
 -- ═════════════════════════════════════════════════════════════════════════
 
 alter table public.businesses
-  add column if not exists heading_font text not null default 'playfair-display',
-  add column if not exists body_font    text not null default 'inter';
+  add column if not exists heading_font text,
+  add column if not exists body_font    text;

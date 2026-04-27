@@ -19,13 +19,15 @@ import {
 import {
   HEADING_FONTS,
   BODY_FONTS,
-  DEFAULT_HEADING_FONT_ID,
-  DEFAULT_BODY_FONT_ID,
+  firstFontInStack,
+  type FontDef,
 } from "@/lib/fonts";
 import {
   fontFamilyFor,
+  resolveFontFamily,
   ALL_FONT_VARIABLE_CLASSES,
 } from "@/lib/storefront-fonts";
+import { TEMPLATE_THEMES } from "@/lib/template-themes";
 
 type Service = {
   id: string;
@@ -98,8 +100,12 @@ function businessToDraft(business: Business, hoursRows: BusinessHours[]): Draft 
     instagram_url: business.instagram_url ?? "",
     template_layout: business.template_layout === "zip" ? "original" : (business.template_layout || "original"),
     template_theme: business.template_theme ?? "aura",
-    heading_font: business.heading_font ?? DEFAULT_HEADING_FONT_ID,
-    body_font: business.body_font ?? DEFAULT_BODY_FONT_ID,
+    // Empty string is the in-form sentinel for "use theme default"; the
+    // server action round-trips "" → NULL into the DB. Existing rows
+    // with NULL land here as "" so the picker selects the theme-default
+    // option.
+    heading_font: business.heading_font ?? "",
+    body_font: business.body_font ?? "",
     stat_1_type: (business as unknown as { stat_1_type?: string | null }).stat_1_type ?? "specialty",
     stat_2_type: (business as unknown as { stat_2_type?: string | null }).stat_2_type ?? "services_offered",
     stat_3_type: (business as unknown as { stat_3_type?: string | null }).stat_3_type ?? "location",
@@ -693,9 +699,10 @@ export function SiteBuilder({ business, hours, services, origin }: Props) {
             </Section>
 
             {/* Fonts */}
-            <Section title="Fonts" subtitle="Headings + body text on your storefront. Each option in the dropdown previews in its own font.">
+            <Section title="Fonts" subtitle="Pick a font to override what the theme ships with — or leave it on the theme's default.">
               <FontsEditor
                 businessName={draft.business_name || "My Studio"}
+                themeId={draft.template_theme}
                 headingFont={draft.heading_font}
                 bodyFont={draft.body_font}
                 onHeadingChange={(v) => update("heading_font", v)}
@@ -1008,14 +1015,17 @@ function hoursRowsFromDraft(hours: Draft["hours"]): BusinessHours[] {
 }
 
 // ── Fonts editor ────────────────────────────────────────────────────────────
-// Two dropdowns + an inline preview pane. Each option in a dropdown
-// renders in its own font so the pro can compare options at a glance.
-// The preview pane reflects the *currently-selected* (potentially
-// unsaved) draft so feedback is instant — the larger storefront preview
-// on the right of the page also reflects this draft and updates in
-// lockstep.
+// Two dropdowns + an inline preview pane. Each dropdown leads with a
+// "Use theme default (<ThemeFont>)" option — picking it stores empty
+// string, which the server action round-trips to NULL so the storefront
+// keeps showing the theme's font. Anything else overrides.
+//
+// Options are split into two <optgroup>s — fonts already used by an
+// OYRB theme vs fonts added on top of the theme set — and each option
+// label renders in its own font so a pro can scan the list at a glance.
 function FontsEditor({
   businessName,
+  themeId,
   headingFont,
   bodyFont,
   onHeadingChange,
@@ -1023,71 +1033,55 @@ function FontsEditor({
   inputCls,
 }: {
   businessName: string;
+  themeId: string;
   headingFont: string;
   bodyFont: string;
   onHeadingChange: (v: string) => void;
   onBodyChange: (v: string) => void;
   inputCls: string;
 }) {
+  const theme = TEMPLATE_THEMES[themeId] ?? TEMPLATE_THEMES.aura;
+  const themeHeadingName = firstFontInStack(theme.displayFont);
+  const themeBodyName = firstFontInStack(theme.bodyFont);
+
+  // Active font-families for the inline preview. Empty string falls
+  // through to the active theme — same logic as the storefront.
+  const activeHeadingFamily = resolveFontFamily(headingFont, theme.displayFont);
+  const activeBodyFamily = resolveFontFamily(bodyFont, theme.bodyFont);
+
   return (
     <div className={ALL_FONT_VARIABLE_CLASSES}>
       <div className="grid gap-3 md:grid-cols-2">
-        <div>
-          <label className="block text-[11px] font-medium text-[#525252]">
-            Heading font
-          </label>
-          <select
-            value={headingFont}
-            onChange={(e) => onHeadingChange(e.target.value)}
-            className={inputCls}
-            // Render the currently-selected option (in the closed state)
-            // in that font itself.
-            style={{ fontFamily: fontFamilyFor(headingFont) }}
-          >
-            {HEADING_FONTS.map((f) => (
-              <option
-                key={f.id}
-                value={f.id}
-                style={{ fontFamily: fontFamilyFor(f.id) }}
-              >
-                {f.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-[11px] font-medium text-[#525252]">
-            Body font
-          </label>
-          <select
-            value={bodyFont}
-            onChange={(e) => onBodyChange(e.target.value)}
-            className={inputCls}
-            style={{ fontFamily: fontFamilyFor(bodyFont) }}
-          >
-            {BODY_FONTS.map((f) => (
-              <option
-                key={f.id}
-                value={f.id}
-                style={{ fontFamily: fontFamilyFor(f.id) }}
-              >
-                {f.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FontSelect
+          label="Heading font"
+          themeFontName={themeHeadingName}
+          fonts={HEADING_FONTS}
+          value={headingFont}
+          activeFamily={activeHeadingFamily}
+          onChange={onHeadingChange}
+          inputCls={inputCls}
+        />
+        <FontSelect
+          label="Body font"
+          themeFontName={themeBodyName}
+          fonts={BODY_FONTS}
+          value={bodyFont}
+          activeFamily={activeBodyFamily}
+          onChange={onBodyChange}
+          inputCls={inputCls}
+        />
       </div>
 
       <div
         className="mt-4 rounded-md border border-[#E7E5E4] bg-[#FAFAF9] p-5"
-        style={{ fontFamily: fontFamilyFor(bodyFont) }}
+        style={{ fontFamily: activeBodyFamily }}
       >
         <p className="text-[10px] uppercase tracking-wider text-[#A3A3A3]">
           Preview
         </p>
         <h3
           className="mt-2 text-2xl"
-          style={{ fontFamily: fontFamilyFor(headingFont), fontWeight: 600 }}
+          style={{ fontFamily: activeHeadingFamily, fontWeight: 600 }}
         >
           Welcome to {businessName}
         </h3>
@@ -1095,6 +1089,72 @@ function FontsEditor({
           Book your next appointment with us. The quick brown fox jumps over the lazy dog.
         </p>
       </div>
+    </div>
+  );
+}
+
+function FontSelect({
+  label,
+  themeFontName,
+  fonts,
+  value,
+  activeFamily,
+  onChange,
+  inputCls,
+}: {
+  label: string;
+  themeFontName: string;
+  fonts: readonly FontDef[];
+  value: string;
+  activeFamily: string;
+  onChange: (v: string) => void;
+  inputCls: string;
+}) {
+  // Split the catalog by origin so each section renders under its own
+  // <optgroup>. Theme fonts come first — they'll feel familiar to pros
+  // who picked their theme based on its typography.
+  const themeFonts = fonts.filter((f) => f.origin === "theme");
+  const newFonts = fonts.filter((f) => f.origin === "new");
+
+  return (
+    <div>
+      <label className="block text-[11px] font-medium text-[#525252]">
+        {label}
+      </label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={inputCls}
+        // Render the closed-select label in the currently active font so
+        // the dropdown reflects what the storefront will use.
+        style={{ fontFamily: activeFamily }}
+      >
+        <option value="">{`Use theme default (${themeFontName})`}</option>
+        <optgroup label="— Theme fonts —">
+          {themeFonts.map((f) => (
+            <option
+              key={f.id}
+              value={f.id}
+              style={{ fontFamily: fontFamilyFor(f.id) ?? undefined }}
+            >
+              {f.label}
+            </option>
+          ))}
+        </optgroup>
+        {newFonts.length > 0 && (
+          <optgroup label="— New additions —">
+            {newFonts.map((f) => (
+              <option
+                key={f.id}
+                value={f.id}
+                style={{ fontFamily: fontFamilyFor(f.id) ?? undefined }}
+              >
+                {f.label}
+              </option>
+            ))}
+          </optgroup>
+        )}
+      </select>
     </div>
   );
 }

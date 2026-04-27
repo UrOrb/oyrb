@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import { TEMPLATE_THEMES } from "@/lib/template-themes";
-import { fontFamilyFor } from "@/lib/storefront-fonts";
+import { resolveFontFamily } from "@/lib/storefront-fonts";
 import { BoldTemplate } from "@/components/templates/bold";
 import { CleanTemplate } from "@/components/templates/clean";
 import { StudioTemplate } from "@/components/templates/studio";
@@ -153,15 +153,17 @@ export default async function PublicSitePage({ params }: Props) {
   const slotsPerWeek = Math.floor(openMinutesPerWeek / 60);
   const slotsOpenThisWeek = Math.max(0, slotsPerWeek - (bookingsThisWeek ?? 0));
 
-  // Resolve the base theme then override its displayFont / bodyFont with
-  // the pro's chosen Google fonts. The next/font CSS variables are mounted
-  // by the parent storefront layout so `var(--font-X)` resolves throughout
-  // the rendered template tree.
+  // Resolve the base theme, then ONLY override its displayFont / bodyFont
+  // when the business has explicitly picked one. NULL falls through to
+  // the theme's original font-stack string, so existing storefronts look
+  // exactly the way they did before the picker shipped. The next/font
+  // CSS variables are mounted by the parent storefront layout so any
+  // `var(--font-X)` we substitute resolves throughout the template tree.
   const baseTheme = TEMPLATE_THEMES[biz.template_theme] ?? TEMPLATE_THEMES.aura;
   const theme = {
     ...baseTheme,
-    displayFont: fontFamilyFor(biz.heading_font),
-    bodyFont: fontFamilyFor(biz.body_font),
+    displayFont: resolveFontFamily(biz.heading_font, baseTheme.displayFont),
+    bodyFont: resolveFontFamily(biz.body_font, baseTheme.bodyFont),
   };
 
   // Category-matched stock as a fallback when the owner hasn't uploaded their own.
