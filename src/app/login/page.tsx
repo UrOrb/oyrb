@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Nav } from "@/components/marketing/nav";
 import { LoginForm } from "./login-form";
 
@@ -21,7 +22,9 @@ export default function LoginPage() {
               Get started
             </Link>
           </p>
-          <LoginForm />
+          <Suspense fallback={null}>
+            <LoginForm />
+          </Suspense>
         </div>
       </main>
     </div>

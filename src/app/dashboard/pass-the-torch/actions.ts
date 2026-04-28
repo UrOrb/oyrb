@@ -652,6 +652,128 @@ export async function resendInvite(args: {
   return { success: true };
 }
 
+// ─── tryAcceptPendingInvite ─────────────────────────────────────────────
+// Phase 1F — auto-converts a pro_invites row into an accepted
+// pro_referrals row when a newly-signed-up (or existing) pro lands on
+// the dashboard with the `oyrb_pending_invite` token still in
+// localStorage. Idempotent and gracefully defers when the user hasn't
+// yet created their first business.
+//
+// Return shape is intentionally a status union (not the usual
+// success/error) so the dashboard handler can distinguish "try again
+// later" from "give up + clear the token from localStorage".
+
+export async function tryAcceptPendingInvite(args: {
+  token: string;
+}): Promise<
+  | { status: "accepted"; requesterName: string | null }
+  | { status: "deferred" }
+  | { status: "invalid" }
+  | { status: "expired" }
+  | { status: "already_accepted" }
+  | { status: "self_invite" }
+  | { error: string }
+> {
+  if (typeof args.token !== "string" || !/^[a-f0-9]{32}$/i.test(args.token)) {
+    return { status: "invalid" };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  // No business yet → defer. The dashboard handler keeps the token in
+  // localStorage and retries on the next render after the user has
+  // created their first site.
+  const me = await getCurrentBusiness();
+  if (!me) return { status: "deferred" };
+
+  // Use the admin client for the invite lookup — pro_invites has no
+  // anon SELECT policy, and the authenticated user isn't necessarily
+  // the requester (the invite belongs to the requester, the current
+  // user is the receiver-to-be).
+  const { createAdminClient } = await import("@/lib/supabase/server");
+  const admin = createAdminClient();
+
+  const { data: invite } = await admin
+    .from("pro_invites")
+    .select("id, requesting_business_id, vouch_note, status, expires_at, created_at, invitee_email")
+    .eq("token", args.token)
+    .maybeSingle();
+
+  if (!invite) return { status: "invalid" };
+  if (invite.status === "accepted") return { status: "already_accepted" };
+  if (new Date(invite.expires_at as string).getTime() < Date.now()) {
+    return { status: "expired" };
+  }
+  if (invite.requesting_business_id === me.id) return { status: "self_invite" };
+
+  // Defense-in-depth cap check — a pending invite already counted toward
+  // the requester's 5-active limit when it was created, so converting
+  // it nets to 0 unless other invites/requests landed in the meantime.
+  // If the requester is somehow over the cap right now we still let
+  // this through (it was their explicit invite) but skip the email.
+  const requesterActive = await countActiveReferrals(
+    admin,
+    invite.requesting_business_id as string,
+  );
+
+  // Look up requester's display info for the success toast + the
+  // accepted-email recipient (Phase 1G wires the email).
+  const { data: requester } = await admin
+    .from("businesses")
+    .select("business_name, slug, contact_email")
+    .eq("id", invite.requesting_business_id)
+    .maybeSingle();
+
+  const now = new Date().toISOString();
+
+  // Insert the accepted referral. Both consent timestamps land here
+  // because the requester acknowledged when they created the invite,
+  // and the receiver acknowledged by clicking the personalized link
+  // and going through signup.
+  const { error: insertErr } = await admin.from("pro_referrals").insert({
+    requesting_business_id: invite.requesting_business_id,
+    receiving_business_id: me.id,
+    status: "accepted",
+    vouch_note: invite.vouch_note,
+    requester_acknowledged_at: invite.created_at,
+    receiver_acknowledged_at: now,
+    requested_at: invite.created_at,
+    responded_at: now,
+  });
+  if (insertErr) {
+    // Unique constraint hit means a referral row between this pair
+    // already exists. Treat as already-accepted from the user's POV
+    // and still mark the invite consumed below.
+    if (!insertErr.message.toLowerCase().includes("duplicate")) {
+      return { error: insertErr.message };
+    }
+  }
+
+  const { error: inviteErr } = await admin
+    .from("pro_invites")
+    .update({ status: "accepted", accepted_at: now })
+    .eq("id", invite.id);
+  if (inviteErr) {
+    console.error("[tryAcceptPendingInvite] failed to mark invite accepted", inviteErr);
+  }
+
+  // TODO Phase 1G: sendReferralAcceptedEmail(requester.contact_email, me.business_name)
+  void requesterActive; // referenced in case we reintroduce a strict cap gate later
+
+  // Revalidate both sides so the dashboard reflects the new
+  // relationship and the requester's storefront updates if it's open.
+  revalidatePath("/dashboard/pass-the-torch");
+  if (requester?.slug) revalidatePath(`/s/${requester.slug}`);
+  if (me.slug) revalidatePath(`/s/${me.slug}`);
+
+  return {
+    status: "accepted",
+    requesterName: (requester?.business_name as string | null) ?? null,
+  };
+}
+
 // ─── searchProsBySlug ────────────────────────────────────────────────────
 // Slug-only search per Phase 1 spec. Accepts a bare slug, a /s/<slug>
 // path, or a full storefront URL. Returns up to 10 candidates ordered by

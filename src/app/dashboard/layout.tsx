@@ -4,6 +4,7 @@ import { getCurrentBusiness, listMySites } from "@/lib/current-site";
 import { SiteSwitcher } from "./site-switcher";
 import { AvatarMenu } from "./avatar-menu";
 import { HelpPanel } from "./help-panel";
+import { PendingInviteAcceptor } from "./pending-invite-acceptor";
 
 export const metadata = {
   title: "Dashboard",
@@ -92,6 +93,12 @@ export default async function DashboardLayout({
           dispatches a window event that this panel listens for, so we
           don't need a Context provider just for an open/close boolean. */}
       <HelpPanel />
+
+      {/* Pass the Torch (Phase 1F) — auto-converts a pending invite
+          token from /signup or /login into an accepted referral as
+          soon as the user has a business. No-op when no token is
+          stashed. Idempotent. */}
+      <PendingInviteAcceptor />
     </div>
   );
 }

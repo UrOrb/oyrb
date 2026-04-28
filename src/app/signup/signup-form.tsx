@@ -42,6 +42,16 @@ export function SignupForm() {
         );
       } catch {}
     }
+    // Pass the Torch invite token (Phase 1F): stash so the dashboard
+    // auto-acceptor can consume it once the user has created their
+    // first business. Survives email confirmation + checkout the same
+    // way the template stash does.
+    const invite = searchParams.get("invite");
+    if (invite && /^[a-f0-9]{32}$/i.test(invite)) {
+      try {
+        localStorage.setItem("oyrb_pending_invite", invite);
+      } catch {}
+    }
   }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
