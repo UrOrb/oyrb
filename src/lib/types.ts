@@ -52,8 +52,60 @@ export type Business = {
   stripe_connect_payouts_enabled: boolean;
   stripe_connect_details_submitted: boolean;
   stripe_connect_requirements_currently_due: string[] | null;
+  // ── Pass the Torch (Trusted Pros) — added in migration 032.
+  /** /find-taxonomy specialty for this business. NULL until the pro picks one. */
+  primary_specialty: Specialty | null;
+  /** Master toggle. When false, the storefront never renders Pros I Trust. */
+  pass_the_torch_enabled: boolean;
+  vacation_start: string | null;
+  vacation_end: string | null;
+  vacation_message: string | null;
   created_at: string;
 };
+
+export type Specialty =
+  | "hair"
+  | "nails"
+  | "lashes"
+  | "brows"
+  | "makeup"
+  | "skincare"
+  | "barber"
+  | "medical-spa";
+
+export const SPECIALTIES: readonly Specialty[] = [
+  "hair", "nails", "lashes", "brows", "makeup", "skincare", "barber", "medical-spa",
+] as const;
+
+export type ReferralStatus = "pending" | "accepted" | "declined" | "blocked";
+export type InviteStatus = "pending" | "accepted" | "expired";
+
+export interface ProReferral {
+  id: string;
+  requesting_business_id: string;
+  receiving_business_id: string;
+  status: ReferralStatus;
+  position: number;
+  vouch_note: string | null;
+  referral_specialty: Specialty | null;
+  requester_acknowledged_at: string | null;
+  receiver_acknowledged_at: string | null;
+  decline_cooldown_until: string | null;
+  requested_at: string;
+  responded_at: string | null;
+}
+
+export interface ProInvite {
+  id: string;
+  requesting_business_id: string;
+  invitee_email: string;
+  vouch_note: string | null;
+  token: string;
+  status: InviteStatus;
+  expires_at: string;
+  created_at: string;
+  accepted_at: string | null;
+}
 
 export type Service = {
   id: string;
