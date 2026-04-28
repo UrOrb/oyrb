@@ -6,9 +6,10 @@ import type { TemplateTheme } from "@/lib/template-themes";
 import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
 import { PlatformCredit } from "@/components/templates/platform-credit";
 import { ReviewsCarousel, type CarouselReview } from "@/components/templates/reviews-carousel";
+import { ProsITrust, type TrustedProsTemplateProps } from "@/components/storefront/pros-i-trust";
 import type { SampleBusiness, SampleService, SampleHour } from "@/lib/sample-data";
 
-interface StudioTemplateProps {
+interface StudioTemplateProps extends TrustedProsTemplateProps {
   business?: SampleBusiness;
   services?: SampleService[];
   hours?: SampleHour[];
@@ -35,7 +36,7 @@ function formatTime(t: string) {
   return `${h % 12 || 12}:${m.toString().padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
 
-export function StudioTemplate({ business, services, hours, theme, content, isEditorPreview, reviews }: StudioTemplateProps) {
+export function StudioTemplate({ business, services, hours, theme, content, isEditorPreview, reviews, trustedPros, referrerSlug, showTrustedPros }: StudioTemplateProps) {
   const c = (key: string, fallback: string): string => {
     const v = content?.[key];
     return typeof v === "string" && v.trim() ? v : fallback;
@@ -253,6 +254,27 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
             </div>
           </div>
         </section>
+      )}
+
+      {/* ── Pros I Trust ── (Pass the Torch — only renders when the page
+          context warrants and there's at least one accepted referral) */}
+      {showTrustedPros && trustedPros && trustedPros.length > 0 && referrerSlug && (
+        <ProsITrust
+          peers={trustedPros}
+          referrerSlug={referrerSlug}
+          theme={{
+            bg,
+            surface,
+            ink,
+            muted,
+            accent,
+            border,
+            radius,
+            displayFont,
+            bodyFont: theme?.bodyFont ?? '"Fraunces", Georgia, serif',
+          }}
+          variant="default"
+        />
       )}
 
       {/* ── Hours ── */}

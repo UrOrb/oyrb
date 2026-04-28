@@ -6,9 +6,10 @@ import type { TemplateTheme } from "@/lib/template-themes";
 import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
 import { PlatformCredit } from "@/components/templates/platform-credit";
 import { ReviewsCarousel, type CarouselReview } from "@/components/templates/reviews-carousel";
+import { ProsITrust, type TrustedProsTemplateProps } from "@/components/storefront/pros-i-trust";
 import type { SampleBusiness, SampleService, SampleHour } from "@/lib/sample-data";
 
-interface CleanTemplateProps {
+interface CleanTemplateProps extends TrustedProsTemplateProps {
   business?: SampleBusiness;
   services?: SampleService[];
   hours?: SampleHour[];
@@ -30,7 +31,7 @@ function formatTime(t: string) {
   return `${h % 12 || 12}:${m.toString().padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
 
-export function CleanTemplate({ business, services, hours, theme, content, isEditorPreview, reviews }: CleanTemplateProps) {
+export function CleanTemplate({ business, services, hours, theme, content, isEditorPreview, reviews, trustedPros, referrerSlug, showTrustedPros }: CleanTemplateProps) {
   const c = (key: string, fallback: string): string => {
     const v = content?.[key];
     return typeof v === "string" && v.trim() ? v : fallback;
@@ -219,6 +220,27 @@ export function CleanTemplate({ business, services, hours, theme, content, isEdi
           </section>
         )}
       </div>
+
+      {/* ── Pros I Trust ── (Pass the Torch) — full-width below the
+          two-column grid, before reviews. */}
+      {showTrustedPros && trustedPros && trustedPros.length > 0 && referrerSlug && (
+        <ProsITrust
+          peers={trustedPros}
+          referrerSlug={referrerSlug}
+          theme={{
+            bg,
+            surface,
+            ink,
+            muted,
+            accent,
+            border,
+            radius,
+            displayFont,
+            bodyFont: theme?.bodyFont ?? "system-ui, sans-serif",
+          }}
+          variant="default"
+        />
+      )}
 
       {/* ── Reviews carousel — slotted between the two-column main grid
           and the footer so the minimalist Clean aesthetic still gets a

@@ -5,9 +5,10 @@ import { MapPin, Phone, Link2, Star, Clock } from "lucide-react";
 import type { TemplateTheme } from "@/lib/template-themes";
 import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
 import { PlatformCredit } from "@/components/templates/platform-credit";
+import { ProsITrust, type TrustedProsTemplateProps } from "@/components/storefront/pros-i-trust";
 import type { SampleBusiness, SampleService, SampleHour } from "@/lib/sample-data";
 
-interface BoldTemplateProps {
+interface BoldTemplateProps extends TrustedProsTemplateProps {
   business?: SampleBusiness;
   services?: SampleService[];
   hours?: SampleHour[];
@@ -28,7 +29,7 @@ function formatTime(t: string) {
   return `${h % 12 || 12}:${m.toString().padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
 
-export function BoldTemplate({ business, services, hours, theme, content, isEditorPreview }: BoldTemplateProps) {
+export function BoldTemplate({ business, services, hours, theme, content, isEditorPreview, trustedPros, referrerSlug, showTrustedPros }: BoldTemplateProps) {
   const c = (key: string, fallback: string): string => {
     const v = content?.[key];
     return typeof v === "string" && v.trim() ? v : fallback;
@@ -270,6 +271,28 @@ export function BoldTemplate({ business, services, hours, theme, content, isEdit
           </aside>
         </div>
       </div>
+
+      {/* ── Pros I Trust ── (Pass the Torch) — full-width below the
+          two-column grid so the cards aren't constrained to the main
+          column. */}
+      {showTrustedPros && trustedPros && trustedPros.length > 0 && referrerSlug && (
+        <ProsITrust
+          peers={trustedPros}
+          referrerSlug={referrerSlug}
+          theme={{
+            bg,
+            surface,
+            ink,
+            muted,
+            accent,
+            border,
+            radius,
+            displayFont,
+            bodyFont: theme?.bodyFont ?? "system-ui, sans-serif",
+          }}
+          variant="bold"
+        />
+      )}
 
       {/* ── Footer ── */}
       <footer data-oyrb-bold-surface="dark" className="mt-8 px-6 py-8 text-center text-xs" style={{ borderTop: `1px solid ${border}`, backgroundColor: surface, color: muted }}>

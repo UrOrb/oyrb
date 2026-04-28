@@ -20,9 +20,16 @@ import { FaqSection, ReviewsSection, type Faq, type Review } from "./faq-reviews
 import { InquiryForm } from "./inquiry-form";
 import { DAY_NAMES } from "@/lib/types";
 import type { Metadata } from "next";
+import {
+  loadStorefrontTrustedPros,
+  isVacationActive,
+  resolveTrustedProsContext,
+} from "@/lib/pass-the-torch-storefront";
+import { VacationBanner } from "@/components/storefront/vacation-banner";
 
 interface Props {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ ref?: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -44,8 +51,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function PublicSitePage({ params }: Props) {
+export default async function PublicSitePage({ params, searchParams }: Props) {
   const { slug } = await params;
+  const { ref: refParam } = await searchParams;
   const supabase = createAdminClient();
 
   // Pull the signed-in user once up front — used both for the
@@ -239,6 +247,27 @@ export default async function PublicSitePage({ params }: Props) {
     ];
   }
 
+  // Pass the Torch — only load referrals when the trigger context will
+  // surface them on the storefront page. Healthy storefronts (no vacation,
+  // no incoming ?ref=) skip the query entirely. The booking-flow path
+  // (Phase 1E) loads referrals separately when a service search comes
+  // up empty.
+  const trustedProsContext = resolveTrustedProsContext({
+    business: {
+      vacation_start: biz.vacation_start ?? null,
+      vacation_end: biz.vacation_end ?? null,
+      pass_the_torch_enabled: biz.pass_the_torch_enabled ?? true,
+    },
+    refParam: typeof refParam === "string" ? refParam : null,
+  });
+  const trustedPros = trustedProsContext
+    ? await loadStorefrontTrustedPros(biz.id)
+    : [];
+  const vacationLive = isVacationActive({
+    vacation_start: biz.vacation_start ?? null,
+    vacation_end: biz.vacation_end ?? null,
+  });
+
   const templateProps = {
     business: sampleBusiness,
     services: sampleServices,
@@ -251,6 +280,9 @@ export default async function PublicSitePage({ params }: Props) {
     // ignore this prop — they render their own sample-review blocks
     // and get real reviews via the universal <ReviewsSection> below.
     reviews,
+    trustedPros,
+    referrerSlug: biz.slug,
+    showTrustedPros: trustedProsContext !== null && trustedPros.length > 0,
   } as any;
 
   // Legacy rows saved with `template_layout === "zip"` map to the renamed Original.
@@ -289,6 +321,22 @@ export default async function PublicSitePage({ params }: Props) {
         >
           ← Back to Dashboard
         </a>
+      )}
+      {vacationLive && biz.vacation_start && biz.vacation_end && (
+        <VacationBanner
+          businessName={biz.business_name}
+          vacationStart={biz.vacation_start}
+          vacationEnd={biz.vacation_end}
+          message={biz.vacation_message ?? null}
+          hasTrustedPros={trustedPros.length > 0}
+          theme={{
+            accent: theme.accent,
+            ink: theme.ink,
+            surface: theme.surface,
+            border: theme.border,
+            bodyFont: theme.bodyFont,
+          }}
+        />
       )}
       <Template {...templateProps} />
 
