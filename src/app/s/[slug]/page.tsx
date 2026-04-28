@@ -259,6 +259,7 @@ export default async function PublicSitePage({ params, searchParams }: Props) {
       vacation_start: biz.vacation_start ?? null,
       vacation_end: biz.vacation_end ?? null,
       pass_the_torch_enabled: passTheTorchEnabled,
+      pass_the_torch_visibility: biz.pass_the_torch_visibility ?? "smart",
     },
     refParam: typeof refParam === "string" ? refParam : null,
   });

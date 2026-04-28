@@ -57,11 +57,16 @@ export type Business = {
   primary_specialty: Specialty | null;
   /** Master toggle. When false, the storefront never renders Pros I Trust. */
   pass_the_torch_enabled: boolean;
+  /** When the section appears on the public storefront page (migration 033).
+   *  Booking-flow surface ignores this and always shows when triggered. */
+  pass_the_torch_visibility: PassTheTorchVisibility;
   vacation_start: string | null;
   vacation_end: string | null;
   vacation_message: string | null;
   created_at: string;
 };
+
+export type PassTheTorchVisibility = "always" | "smart" | "vacation_only";
 
 export type Specialty =
   | "hair"

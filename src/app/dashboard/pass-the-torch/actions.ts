@@ -556,6 +556,36 @@ export async function togglePassTheTorch(args: {
   return { success: true };
 }
 
+// ─── updatePassTheTorchVisibility ───────────────────────────────────────
+// Mirror of the DB CHECK. Bookkeeping-only setting — the booking-flow
+// surface ignores this and always shows referrals when triggered.
+
+const VISIBILITY_VALUES = new Set<string>(["always", "smart", "vacation_only"]);
+
+export async function updatePassTheTorchVisibility(args: {
+  visibility: "always" | "smart" | "vacation_only";
+}): Promise<ActionResult> {
+  if (!VISIBILITY_VALUES.has(args.visibility)) {
+    return { error: "Invalid visibility option." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const me = await getCurrentBusiness();
+  if (!me) return { error: "No active business." };
+
+  const { error } = await supabase
+    .from("businesses")
+    .update({ pass_the_torch_visibility: args.visibility })
+    .eq("id", me.id);
+  if (error) return { error: error.message };
+
+  revalidateAll(me.slug);
+  return { success: true };
+}
+
 // ─── cancelInvite ────────────────────────────────────────────────────────
 // Deletes a pending pro_invites row owned by the active business.
 

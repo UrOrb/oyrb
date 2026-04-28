@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import type { Specialty, Business } from "@/lib/types";
+import type { Specialty, Business, PassTheTorchVisibility } from "@/lib/types";
 
 /**
  * Storefront-side data + helpers for Pass the Torch.
@@ -206,22 +206,43 @@ export type StorefrontTrustedProsContext =
 /**
  * Resolves the trigger context for a public storefront render.
  *
- * Page-level rules (per Phase 1 spec):
- *   · Vacation overrides everything → 'vacation'.
- *   · Came-from-a-referral (?ref=) keeps the section visible → 'always'.
- *   · Otherwise → null. Healthy storefronts stay clean; the section
- *     only appears inside the booking widget when a service search has
- *     no availability (Phase 1E).
+ * The pro's visibility setting (migration 033) gates this:
+ *   · 'always'        → render whenever there are accepted referrals.
+ *   · 'smart' (def)   → vacation OR ?ref=, otherwise hide.
+ *   · 'vacation_only' → only during an active vacation window.
+ *
+ * The booking-flow surface (Phase 1E) ignores this and always shows
+ * referrals when triggered — that's the highest-value moment and the
+ * pro is already losing the client at that point.
  */
 export function resolveTrustedProsContext({
   business,
   refParam,
 }: {
-  business: Pick<Business, "vacation_start" | "vacation_end" | "pass_the_torch_enabled">;
+  business: Pick<
+    Business,
+    "vacation_start" | "vacation_end" | "pass_the_torch_enabled"
+  > & {
+    pass_the_torch_visibility?: PassTheTorchVisibility | null;
+  };
   refParam: string | null;
 }): StorefrontTrustedProsContext {
   if (!business.pass_the_torch_enabled) return null;
-  if (isVacationActive(business)) return "vacation";
+
+  const vacationLive = isVacationActive(business);
+  const visibility: PassTheTorchVisibility =
+    business.pass_the_torch_visibility ?? "smart";
+
+  if (visibility === "vacation_only") {
+    return vacationLive ? "vacation" : null;
+  }
+  if (visibility === "always") {
+    // Vacation still wins as the trigger reason so the banner copy +
+    // anchor scroll line up; otherwise it's just "always-on".
+    return vacationLive ? "vacation" : "always";
+  }
+  // 'smart' — original Phase 1 behavior.
+  if (vacationLive) return "vacation";
   if (refParam) return "always";
   return null;
 }

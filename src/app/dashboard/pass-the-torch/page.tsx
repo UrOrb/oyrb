@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusiness } from "@/lib/current-site";
 import type { ProReferral, ProInvite, Specialty } from "@/lib/types";
 import { MasterToggle } from "./master-toggle";
+import { VisibilitySelect } from "./visibility-select";
 import { VacationModeCard } from "./vacation-mode-card";
 import { MyTrustedProsSection } from "./my-trusted-pros-section";
 import { PendingRequestsSection } from "./pending-requests-section";
@@ -160,6 +161,11 @@ export default async function PassTheTorchPage() {
         />
 
         <MasterToggle enabled={business.pass_the_torch_enabled} />
+
+        <VisibilitySelect
+          value={business.pass_the_torch_visibility ?? "smart"}
+          enabled={business.pass_the_torch_enabled}
+        />
 
         <MyTrustedProsSection
           referrals={myList}
