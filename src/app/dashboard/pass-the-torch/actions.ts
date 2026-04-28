@@ -1,9 +1,42 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getCurrentBusiness } from "@/lib/current-site";
 import { SPECIALTIES, type Specialty } from "@/lib/types";
+import {
+  sendReferralRequestEmail,
+  sendReferralAcceptedEmail,
+  sendReferralInviteEmail,
+} from "@/lib/email";
+
+/**
+ * Best-effort lookup of an OYRB pro's email for transactional sends.
+ * Prefers the publicly-visible contact_email on their businesses row;
+ * falls back to the auth account's email if missing. Returns null when
+ * neither is available so the caller can skip the send rather than
+ * crash. Always uses the admin client because the auth.admin API is
+ * service-role only.
+ */
+async function resolveOwnerEmail(
+  admin: ReturnType<typeof createAdminClient>,
+  businessId: string,
+  knownContactEmail?: string | null,
+): Promise<string | null> {
+  if (knownContactEmail && knownContactEmail.trim()) return knownContactEmail.trim();
+  const { data } = await admin
+    .from("businesses")
+    .select("owner_id, contact_email")
+    .eq("id", businessId)
+    .maybeSingle();
+  if (!data) return null;
+  if (data.contact_email && (data.contact_email as string).trim()) {
+    return (data.contact_email as string).trim();
+  }
+  if (!data.owner_id) return null;
+  const { data: auth } = await admin.auth.admin.getUserById(data.owner_id as string);
+  return auth?.user?.email ?? null;
+}
 
 // Max 5 active vouches per requester. Active = pending OR accepted, on
 // either pro_referrals or pro_invites (a pending invite is a pre-referral
@@ -147,7 +180,11 @@ export async function requestReferral(args: {
     if (error) return { error: error.message };
   }
 
-  // TODO Phase 1G: sendReferralRequestEmail(target.contact_email, me.business_name, vouchNote)
+  const admin = createAdminClient();
+  const recipient = await resolveOwnerEmail(admin, target.id, target.contact_email);
+  if (recipient) {
+    await sendReferralRequestEmail(recipient, me.business_name, vouchNote);
+  }
 
   revalidateAll(me.slug);
   return { success: true };
@@ -235,7 +272,7 @@ export async function inviteByEmail(args: {
     if (error) return { error: error.message };
   }
 
-  // TODO Phase 1G: sendReferralInviteEmail(email, me.business_name, vouchNote, token)
+  await sendReferralInviteEmail(email, me.business_name, vouchNote, token);
 
   revalidateAll(me.slug);
   return { success: true, token };
@@ -284,19 +321,30 @@ export async function acceptReferral(args: {
     .eq("id", row.id);
   if (error) return { error: error.message };
 
-  // TODO Phase 1G: lookup requester's contact_email and business_name,
-  // then sendReferralAcceptedEmail(requesterEmail, me.business_name)
-
-  revalidateAll(me.slug);
-  // Also revalidate the requester's storefront so their accepted card
-  // appears immediately. We don't have their slug here without a fetch,
-  // so do a single query.
-  const { data: requester } = await supabase
+  // Notify the requester + revalidate their storefront so the accepted
+  // card appears immediately. One admin lookup covers both — we need
+  // the slug for the path revalidation and the email/contact fields
+  // for the send.
+  const admin = createAdminClient();
+  const { data: requester } = await admin
     .from("businesses")
-    .select("slug")
+    .select("slug, contact_email, owner_id")
     .eq("id", row.requesting_business_id)
     .maybeSingle();
-  if (requester?.slug) revalidatePath(`/s/${requester.slug}`);
+
+  if (requester) {
+    const recipient = await resolveOwnerEmail(
+      admin,
+      row.requesting_business_id,
+      (requester.contact_email as string | null) ?? null,
+    );
+    if (recipient) {
+      await sendReferralAcceptedEmail(recipient, me.business_name);
+    }
+    if (requester.slug) revalidatePath(`/s/${requester.slug}`);
+  }
+
+  revalidateAll(me.slug);
   return { success: true };
 }
 
@@ -474,7 +522,6 @@ export async function reorderReferrals(args: {
 
   // Use the admin client to bypass the receiver-only UPDATE RLS policy.
   // Safe because we just verified ownership above as the authenticated user.
-  const { createAdminClient } = await import("@/lib/supabase/server");
   const admin = createAdminClient();
 
   // Sequential to keep positions deterministic; the list is small (<=5).
@@ -646,7 +693,12 @@ export async function resendInvite(args: {
     .eq("id", row.id);
   if (error) return { error: error.message };
 
-  // TODO Phase 1G: sendReferralInviteEmail(row.invitee_email, me.business_name, row.vouch_note, token)
+  await sendReferralInviteEmail(
+    row.invitee_email as string,
+    me.business_name,
+    (row.vouch_note as string | null) ?? null,
+    token,
+  );
 
   revalidateAll(me.slug);
   return { success: true };
@@ -759,7 +811,18 @@ export async function tryAcceptPendingInvite(args: {
     console.error("[tryAcceptPendingInvite] failed to mark invite accepted", inviteErr);
   }
 
-  // TODO Phase 1G: sendReferralAcceptedEmail(requester.contact_email, me.business_name)
+  // Notify the original requester that their invite was accepted.
+  // Best-effort — if Resend isn't configured or the lookup yields no
+  // address, the function logs and moves on without failing the
+  // accept.
+  const requesterEmail = await resolveOwnerEmail(
+    admin,
+    invite.requesting_business_id as string,
+    null,
+  );
+  if (requesterEmail) {
+    await sendReferralAcceptedEmail(requesterEmail, me.business_name);
+  }
   void requesterActive; // referenced in case we reintroduce a strict cap gate later
 
   // Revalidate both sides so the dashboard reflects the new
