@@ -11,7 +11,7 @@ const EFFECTIVE_DATE = "April 22, 2026";
 const COMPANY_NAME = "OYRB LLC, a Georgia limited liability company (“OYRB”, “Own Your Brand”)";
 const CONTACT_EMAIL = "support@oyrb.space";
 const GOVERNING_STATE = "Georgia";
-const TOS_VERSION = "v1.1";
+const TOS_VERSION = "v1.2";
 
 export default function TermsPage() {
   return (
@@ -450,12 +450,11 @@ export default function TermsPage() {
 
           {/*
             PLACEHOLDER LANGUAGE — pending lawyer review per Priority 7
-            in the master OYRB context. Adding this clause is feature
-            disclosure, not a material rewrite of the existing Terms,
-            so TOS_VERSION above is intentionally NOT bumped. If legal
-            review tightens or expands the language, bump TOS_VERSION
-            (and PRIVACY_VERSION mirror in src/app/signup/actions.ts)
-            in lockstep so existing users re-accept on next sign-in.
+            in the master OYRB context. TOS_VERSION above was bumped
+            v1.1 → v1.2 alongside this addition so existing users
+            re-accept on next sign-in (mirrored in
+            src/app/signup/actions.ts). If legal review materially
+            tightens the language, bump again in lockstep.
           */}
           <section className="mt-8 space-y-4 text-[#2a2a2a]">
             <h2 className="font-display text-2xl font-medium">26. Pass the Torch (Trusted Pros)</h2>

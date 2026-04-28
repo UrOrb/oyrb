@@ -7,7 +7,7 @@ import { createAdminClient, createClient } from "@/lib/supabase/server";
 // changes so a fresh acceptance is required. The same constants live on the
 // /terms and /privacy pages (TOS_VERSION / PRIVACY_VERSION); keep them in
 // sync if the legal docs change.
-const TOS_VERSION = "v1.1";
+const TOS_VERSION = "v1.2";
 const PRIVACY_VERSION = "v1.1";
 
 /**
