@@ -25,6 +25,11 @@ export type NotifyBookingArgs = {
   priceLabel: string;
   siteUrl: string;
   businessTier?: string | null;
+  /** Pass the Torch — when this booking originated from a referral
+   *  (?ref= URL or the inline Pro Referrals widget), the resolved
+   *  display name of the referring pro. Drives the Layer-2 disclosure
+   *  block in the confirmation email. */
+  referrerName?: string | null;
 };
 
 // Fetches prior (up to 3) confirmed bookings for this client+business pair
@@ -109,6 +114,7 @@ export async function notifyBookingConfirmed(args: NotifyBookingArgs): Promise<{
     bookingToken: primaryToken ?? undefined,
     history,
     preferencesToken: preferencesToken ?? undefined,
+    referrerName: args.referrerName ?? null,
   }).catch((err) => {
     console.error("Confirmation email failed:", err);
   });

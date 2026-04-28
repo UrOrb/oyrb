@@ -22,6 +22,14 @@ export interface TrustedProPeer {
   vouch_note: string | null;
   /** Per-referral specialty override; falls back to peer's primary_specialty. */
   referral_specialty: Specialty | null;
+  /**
+   * Active service names this peer offers. Used by the booking-flow
+   * integration to soft-filter referrals by the service the client
+   * tried to book ("missing_service" trigger). Populated server-side
+   * when the storefront page loads referrals so the client doesn't
+   * round-trip per-peer.
+   */
+  service_names: string[];
 }
 
 /**
@@ -103,37 +111,72 @@ export async function loadStorefrontTrustedPros(
 
   const rows = (data ?? []) as unknown as Row[];
 
-  return rows
-    .map((r) => {
-      const receiver = Array.isArray(r.receiver) ? r.receiver[0] : r.receiver;
-      if (!receiver) return null;
-      // Defensive belt-and-suspenders: a referral row should never have
-      // its receiver equal to the requester (DB CHECK enforces this), but
-      // if anything ever drifts we drop the row instead of rendering the
-      // requester's name back at themselves on their own storefront.
-      if (receiver.id === businessId) {
-        console.error("[loadStorefrontTrustedPros] receiver.id === requester id; dropping", {
-          businessId,
-          receiverId: receiver.id,
-        });
-        return null;
-      }
-      // Master toggle off → peer doesn't want to be surfaced anywhere.
-      // Unpublished → don't link to a draft.
-      if (!receiver.pass_the_torch_enabled) return null;
-      if (!receiver.is_published) return null;
+  // First pass: validate + flatten the embedded receiver. Drops rows
+  // where the peer paused Pass the Torch, isn't published, or the
+  // receiver column impossibly equals the requester id.
+  type Resolved = {
+    receiverId: string;
+    business_name: string;
+    slug: string;
+    profile_image_url: string | null;
+    primary_specialty: Specialty | null;
+    vouch_note: string | null;
+    referral_specialty: Specialty | null;
+  };
+  const resolved: Resolved[] = [];
+  for (const r of rows) {
+    const receiver = Array.isArray(r.receiver) ? r.receiver[0] : r.receiver;
+    if (!receiver) continue;
+    if (receiver.id === businessId) {
+      console.error("[loadStorefrontTrustedPros] receiver.id === requester id; dropping", {
+        businessId,
+        receiverId: receiver.id,
+      });
+      continue;
+    }
+    if (!receiver.pass_the_torch_enabled) continue;
+    if (!receiver.is_published) continue;
+    resolved.push({
+      receiverId: receiver.id,
+      business_name: receiver.business_name,
+      slug: receiver.slug,
+      profile_image_url: receiver.profile_image_url,
+      primary_specialty: receiver.primary_specialty,
+      vouch_note: r.vouch_note,
+      referral_specialty: r.referral_specialty,
+    });
+  }
 
-      const peer: TrustedProPeer = {
-        business_name: receiver.business_name,
-        slug: receiver.slug,
-        profile_image_url: receiver.profile_image_url,
-        primary_specialty: receiver.primary_specialty,
-        vouch_note: r.vouch_note,
-        referral_specialty: r.referral_specialty,
-      };
-      return peer;
-    })
-    .filter((x): x is TrustedProPeer => x !== null);
+  if (resolved.length === 0) return [];
+
+  // Pull every peer's active service names in one query (max 5 peers,
+  // typically <50 services total). Booking-flow integration uses these
+  // to soft-filter referrals by the requested service.
+  const { data: services } = await supabase
+    .from("services")
+    .select("business_id, name")
+    .in("business_id", resolved.map((p) => p.receiverId))
+    .eq("active", true);
+
+  const servicesByBiz = new Map<string, string[]>();
+  for (const s of (services ?? []) as Array<{ business_id: string; name: string }>) {
+    const arr = servicesByBiz.get(s.business_id) ?? [];
+    arr.push(s.name);
+    servicesByBiz.set(s.business_id, arr);
+  }
+
+  return resolved.map((p) => {
+    const peer: TrustedProPeer = {
+      business_name: p.business_name,
+      slug: p.slug,
+      profile_image_url: p.profile_image_url,
+      primary_specialty: p.primary_specialty,
+      vouch_note: p.vouch_note,
+      referral_specialty: p.referral_specialty,
+      service_names: servicesByBiz.get(p.receiverId) ?? [],
+    };
+    return peer;
+  });
 }
 
 /**

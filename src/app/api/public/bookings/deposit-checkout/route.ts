@@ -24,6 +24,7 @@ type Payload = {
   age_confirmed?: boolean;
   age_is_minor?: boolean;
   guardian_name?: string;
+  referrer_slug?: string | null;
 };
 
 // Creates a Stripe Checkout Session to collect the deposit.
@@ -202,6 +203,11 @@ export async function POST(request: NextRequest) {
           // Stash for downstream consumers (confirm route, webhook handler)
           // so they know which connected account to retrieve the session from.
           connected_account_id: connectedAccountId,
+          // Pass the Torch attribution: forwarded into the booking
+          // confirmation email after Stripe redirects back. Empty when
+          // the booking didn't originate from a referral context.
+          referrer_slug:
+            (typeof body.referrer_slug === "string" && body.referrer_slug.slice(0, 80)) || "",
         },
       },
       { stripeAccount: connectedAccountId }

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useMemo, useTransition, useEffect } from "react";
-import { Calendar, X, Clock, Check, ArrowLeft } from "lucide-react";
+import { Calendar, X, Clock, Check, ArrowLeft, Heart } from "lucide-react";
 import { ClientAccountOffer } from "./client-account-offer";
+import { ProsITrust } from "@/components/storefront/pros-i-trust";
+import type { TrustedProPeer } from "@/lib/pass-the-torch-storefront";
 
 type Service = {
   id: string;
@@ -42,6 +44,16 @@ type Props = {
   accent: string;
   btnBg: string;
   btnText: string;
+  /** Extra theme tokens forwarded to the inline Pro Referrals carousel
+   *  inside this widget so the cards inherit the storefront's look. */
+  ink?: string;
+  surface?: string;
+  border?: string;
+  bodyFont?: string;
+  displayFont?: string;
+  radius?: number;
+  muted?: string;
+  bg?: string;
   clientPolicies?: string;
   cancellationPolicy?: string;
   slotsOpenThisWeek?: number;
@@ -56,6 +68,15 @@ type Props = {
       the booking flow at runtime — the kill-switch is global, this is
       per-business. */
   proConnectReady?: boolean;
+  /** Pass the Torch (Phase 1E) — referrals to surface inline at the
+   *  zero-availability moment ("missing_service" trigger). Always
+   *  passed by the storefront page; empty array is fine. */
+  trustedPros?: TrustedProPeer[];
+  /** Validated `?ref=<slug>` from the storefront URL (server-resolved
+   *  to confirm the slug exists and belongs to a published pro).
+   *  Threaded into the booking POST so the confirmation email can
+   *  include the disclosure. */
+  referrerSlugFromUrl?: string | null;
 };
 
 const MON_FIRST_DAY_IDX = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -168,6 +189,14 @@ export function BookingWidget({
   accent,
   btnBg,
   btnText,
+  ink = "#0A0A0A",
+  surface = "#FFFFFF",
+  border = "rgba(0,0,0,0.08)",
+  bodyFont = "system-ui, sans-serif",
+  displayFont = "system-ui, sans-serif",
+  radius = 12,
+  muted = "#737373",
+  bg = "#FAFAF9",
   clientPolicies,
   cancellationPolicy,
   slotsOpenThisWeek,
@@ -176,6 +205,8 @@ export function BookingWidget({
   rules,
   clientPaymentsEnabled = false,
   proConnectReady = false,
+  trustedPros = [],
+  referrerSlugFromUrl = null,
 }: Props) {
   // Two layers of "can we charge online?" The kill-switch is the global
   // pause; the Connect gate is per-pro. Online payment requires both.
@@ -409,6 +440,11 @@ export function BookingWidget({
           age_confirmed: ackAge,
           age_is_minor: isMinor,
           guardian_name: isMinor ? guardianName.trim() : undefined,
+          // Pass the Torch attribution: when a client lands here from a
+          // ?ref=<slug> URL or via the inline Pro Referrals widget, we
+          // forward the originating slug so the API can stamp the
+          // disclosure into the confirmation email.
+          referrer_slug: referrerSlugFromUrl ?? null,
         }),
       });
       const data = await res.json();
@@ -628,6 +664,56 @@ export function BookingWidget({
                       );
                     })}
                   </div>
+
+                  {/* Pass the Torch (Phase 1E): when there's no
+                      availability anywhere in the 3-week window, surface
+                      the pro's referrals inline with the Layer-2 client
+                      disclosure. Only renders when the storefront has
+                      at least one accepted referral. */}
+                  {dates.length === 0 && trustedPros.length > 0 && slug && (
+                    <div className="mt-5">
+                      <div
+                        className="flex items-start gap-2 rounded-lg p-3 text-xs leading-relaxed"
+                        style={{
+                          background: `${accent}10`,
+                          color: ink,
+                          border: `1px solid ${accent}33`,
+                          fontFamily: bodyFont,
+                        }}
+                      >
+                        <Heart size={14} className="mt-0.5 shrink-0" style={{ color: accent }} />
+                        <p>
+                          <strong style={{ fontWeight: 600 }}>
+                            Recommended by {businessName}.
+                          </strong>{" "}
+                          The pros below are independent professionals.
+                          Your booking is directly with them — {businessName} and
+                          OYRB are not responsible for services provided.
+                        </p>
+                      </div>
+
+                      <div className="mt-3 -mx-5">
+                        <ProsITrust
+                          peers={trustedPros}
+                          referrerSlug={slug}
+                          theme={{
+                            bg,
+                            surface,
+                            ink,
+                            muted,
+                            accent,
+                            border,
+                            radius,
+                            displayFont,
+                            bodyFont,
+                          }}
+                          variant="default"
+                          filterServiceName={service?.name ?? null}
+                          renderSectionWrapper={false}
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {date && (
                     <>

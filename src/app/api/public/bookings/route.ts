@@ -20,6 +20,10 @@ type BookingPayload = {
   age_confirmed?: boolean;
   age_is_minor?: boolean;
   guardian_name?: string;
+  /** Pass the Torch attribution: slug of the pro who referred this
+   *  booking. When present + valid, the confirmation email gets the
+   *  Layer-2 disclosure block. */
+  referrer_slug?: string | null;
 };
 
 export async function POST(request: NextRequest) {
@@ -278,6 +282,25 @@ export async function POST(request: NextRequest) {
   // Errors are caught so a failing email doesn't fail the booking response.
   const emailTasks: Promise<unknown>[] = [];
 
+  // Pass the Torch attribution: when the booking carried a valid
+  // referrer_slug from the storefront URL or the inline Pro Referrals
+  // widget, resolve the referrer's display name so the confirmation
+  // email can include the Layer-2 disclosure.
+  let referrerName: string | null = null;
+  if (
+    typeof body.referrer_slug === "string" &&
+    /^[a-z0-9-]{1,80}$/i.test(body.referrer_slug)
+  ) {
+    const { data: referrer } = await supabase
+      .from("businesses")
+      .select("business_name, is_published")
+      .eq("slug", body.referrer_slug)
+      .maybeSingle();
+    if (referrer && referrer.is_published) {
+      referrerName = referrer.business_name as string;
+    }
+  }
+
   emailTasks.push(
     notifyBookingConfirmed({
       bookingId: booking.id,
@@ -293,6 +316,7 @@ export async function POST(request: NextRequest) {
       priceLabel,
       siteUrl,
       businessTier: business.subscription_tier,
+      referrerName,
     }).catch((err) => {
       console.error("Customer notify failed:", err);
     })

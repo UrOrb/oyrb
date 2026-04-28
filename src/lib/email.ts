@@ -24,13 +24,18 @@ export async function sendBookingConfirmation(params: {
   bookingToken?: string;        // new: magic link token for this booking
   history?: HistoryItem[];      // new: up to 3 prior bookings with this pro
   preferencesToken?: string;    // new: manage-preferences token
+  /** Pass the Torch (Phase 1E). When set, the email gets the Layer-2
+   *  disclosure block crediting the referring pro and clarifying that
+   *  OYRB / the referrer aren't liable for services the destination
+   *  pro provides. */
+  referrerName?: string | null;
 }) {
   if (!resend) {
     console.warn("Resend not configured — skipping email");
     return;
   }
 
-  const { to, customerName, businessName, serviceName, startAt, price, siteUrl, bookingToken, history, preferencesToken } = params;
+  const { to, customerName, businessName, serviceName, startAt, price, siteUrl, bookingToken, history, preferencesToken, referrerName } = params;
   const whenLabel = startAt.toLocaleString("en-US", {
     weekday: "long",
     month: "long",
@@ -41,6 +46,20 @@ export async function sendBookingConfirmation(params: {
 
   const viewBookingUrl = bookingToken ? `${APP_URL}/booking/${bookingToken}` : null;
   const prefsUrl = preferencesToken ? `${APP_URL}/preferences/${preferencesToken}` : null;
+
+  // Pass the Torch — Layer-2 disclosure block. Renders only when this
+  // booking originated from a referral context (?ref= URL or the inline
+  // Pro Referrals widget). Spec-locked copy, do not edit lightly.
+  const referralDisclosure = referrerName
+    ? `
+        <div style="margin:20px 0;padding:14px 16px;border-radius:12px;background:#FFF7ED;border:1px solid #FDBA74;color:#7C2D12;font-size:13px;line-height:1.5;">
+          <strong style="color:#7C2D12;">💛 Recommended by ${referrerName}.</strong>
+          ${businessName} is an independent professional. Your booking is
+          directly with ${businessName} — ${referrerName} and OYRB are not
+          responsible for services provided.
+        </div>
+      `
+    : "";
 
   const historyBlock = history && history.length > 0
     ? `
@@ -77,6 +96,7 @@ export async function sendBookingConfirmation(params: {
             <p style="color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 4px;">Price</p>
             <p style="font-size:15px;font-weight:600;margin:0;">${price}</p>
           </div>
+          ${referralDisclosure}
           ${viewBookingUrl ? `
           <p style="color:#737373;font-size:14px;line-height:1.5;margin:0 0 20px;">View your booking, add it to your calendar, or reschedule anytime:</p>
           <div style="margin:0 0 16px;">

@@ -26,6 +26,7 @@ import {
   resolveTrustedProsContext,
 } from "@/lib/pass-the-torch-storefront";
 import { VacationBanner } from "@/components/storefront/vacation-banner";
+import { RefBadge } from "@/components/storefront/ref-badge";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -247,26 +248,45 @@ export default async function PublicSitePage({ params, searchParams }: Props) {
     ];
   }
 
-  // Pass the Torch — only load referrals when the trigger context will
-  // surface them on the storefront page. Healthy storefronts (no vacation,
-  // no incoming ?ref=) skip the query entirely. The booking-flow path
-  // (Phase 1E) loads referrals separately when a service search comes
-  // up empty.
+  // Pass the Torch — load referrals whenever the master toggle is on.
+  // The booking widget (Phase 1E) consumes this list inline at the
+  // zero-availability moment, so we need it on every render even on
+  // healthy (non-vacation, non-?ref=) storefronts. trustedProsContext
+  // still gates whether the FULL section renders on the page itself.
+  const passTheTorchEnabled = biz.pass_the_torch_enabled ?? true;
   const trustedProsContext = resolveTrustedProsContext({
     business: {
       vacation_start: biz.vacation_start ?? null,
       vacation_end: biz.vacation_end ?? null,
-      pass_the_torch_enabled: biz.pass_the_torch_enabled ?? true,
+      pass_the_torch_enabled: passTheTorchEnabled,
     },
     refParam: typeof refParam === "string" ? refParam : null,
   });
-  const trustedPros = trustedProsContext
+  const trustedPros = passTheTorchEnabled
     ? await loadStorefrontTrustedPros(biz.id)
     : [];
   const vacationLive = isVacationActive({
     vacation_start: biz.vacation_start ?? null,
     vacation_end: biz.vacation_end ?? null,
   });
+
+  // ?ref=<slug> → look up the referrer's display name once, server-side.
+  // Used for the "Recommended by …" hero badge AND threaded into the
+  // booking widget so it can stamp the disclosure into the booking
+  // payload + confirmation email.
+  let referrerName: string | null = null;
+  let referrerSlugClean: string | null = null;
+  if (typeof refParam === "string" && /^[a-z0-9-]{1,80}$/i.test(refParam)) {
+    const { data: referrer } = await supabase
+      .from("businesses")
+      .select("business_name, slug, is_published")
+      .eq("slug", refParam)
+      .maybeSingle();
+    if (referrer && referrer.is_published) {
+      referrerName = referrer.business_name as string;
+      referrerSlugClean = referrer.slug as string;
+    }
+  }
 
   const templateProps = {
     business: sampleBusiness,
@@ -321,6 +341,18 @@ export default async function PublicSitePage({ params, searchParams }: Props) {
         >
           ← Back to Dashboard
         </a>
+      )}
+      {referrerName && (
+        <RefBadge
+          referrerName={referrerName}
+          theme={{
+            accent: theme.accent,
+            ink: theme.ink,
+            surface: theme.surface,
+            border: theme.border,
+            bodyFont: theme.bodyFont,
+          }}
+        />
       )}
       {vacationLive && biz.vacation_start && biz.vacation_end && (
         <VacationBanner
@@ -381,6 +413,14 @@ export default async function PublicSitePage({ params, searchParams }: Props) {
         accent={theme.accent}
         btnBg={theme.btnBg}
         btnText={theme.btnText}
+        ink={theme.ink}
+        surface={theme.surface}
+        border={theme.border}
+        bodyFont={theme.bodyFont}
+        displayFont={theme.displayFont}
+        radius={theme.radius}
+        muted={theme.muted}
+        bg={theme.bg}
         clientPolicies={biz.client_policies ?? ""}
         cancellationPolicy={biz.cancellation_policy ?? ""}
         slotsOpenThisWeek={slotsOpenThisWeek}
@@ -399,6 +439,8 @@ export default async function PublicSitePage({ params, searchParams }: Props) {
           lastMinuteCutoffHours: biz.last_minute_cutoff_hours ?? 2,
           dailyBreakBlocks: biz.daily_break_blocks ?? [],
         }}
+        trustedPros={trustedPros}
+        referrerSlugFromUrl={referrerSlugClean}
       />
 
       {/* AI chat widget floats bottom-left (doesn't overlap booking) */}

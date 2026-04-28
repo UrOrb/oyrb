@@ -51,6 +51,17 @@ interface ProsITrustProps {
   caption?: React.ReactNode;
   /** Override the section heading text (defaults to "Pro Referrals"). */
   heading?: string;
+  /**
+   * When set, soft-filters peers by service-name match (case-insensitive
+   * substring). If at least one peer matches, only matching peers
+   * render. If none match, all peers render and a fallback caption is
+   * shown (booking-flow "missing_service" trigger per Phase 1 spec).
+   */
+  filterServiceName?: string | null;
+  /** Render the section section <section> wrapper (default true). When
+   * embedded inside another container — like the booking widget — the
+   * caller can opt out of the framing chrome. */
+  renderSectionWrapper?: boolean;
 }
 
 const CARD_WIDTH = 296; // px — fits 2-3 per row on desktop, 1.5 on mobile
@@ -63,6 +74,8 @@ export function ProsITrust({
   variant = "default",
   caption,
   heading = "Pro Referrals",
+  filterServiceName,
+  renderSectionWrapper = true,
 }: ProsITrustProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -91,7 +104,30 @@ export function ProsITrust({
     // peers length is stable across renders for a given storefront load.
   }, [peers.length]);
 
-  if (peers.length === 0) return null;
+  // Service-aware filter for the booking-flow "missing_service" trigger.
+  // If at least one peer offers a matching service, only those render.
+  // If none match, all peers render with a fallback note explaining why.
+  let effectivePeers = peers;
+  let fallbackNotice: string | null = null;
+  if (filterServiceName) {
+    const needle = filterServiceName.trim().toLowerCase();
+    const matched = peers.filter((p) =>
+      p.service_names.some(
+        (s) =>
+          s.toLowerCase() === needle ||
+          s.toLowerCase().includes(needle) ||
+          needle.includes(s.toLowerCase()),
+      ),
+    );
+    if (matched.length > 0) {
+      effectivePeers = matched;
+    } else {
+      fallbackNotice =
+        "None of these pros offer that exact service, but here are my pro referrals.";
+    }
+  }
+
+  if (effectivePeers.length === 0) return null;
 
   const headingSize =
     variant === "bold" ? 26 : variant === "editorial" ? 24 : 22;
@@ -99,45 +135,50 @@ export function ProsITrust({
   // Section padding ~30% lighter than the prior pass.
   const sectionPaddingY = variant === "editorial" ? 44 : 32;
 
-  return (
-    <section
-      id={PROS_I_TRUST_ANCHOR}
-      style={{
-        background: theme.bg,
-        borderTop: `1px solid ${theme.border}`,
-        paddingTop: sectionPaddingY,
-        paddingBottom: sectionPaddingY,
-      }}
-    >
-      <div className="mx-auto max-w-5xl px-6">
-        <h2
+  const inner = (
+    <>
+      <h2
+        style={{
+          fontFamily: theme.displayFont,
+          fontWeight: headingWeight,
+          fontSize: headingSize,
+          color: theme.ink,
+          margin: 0,
+        }}
+      >
+        {heading}
+      </h2>
+
+      {caption && (
+        <div
           style={{
-            fontFamily: theme.displayFont,
-            fontWeight: headingWeight,
-            fontSize: headingSize,
-            color: theme.ink,
-            margin: 0,
+            fontFamily: theme.bodyFont,
+            color: theme.muted,
+            fontSize: 13,
+            lineHeight: 1.55,
+            marginTop: 10,
+            maxWidth: 640,
           }}
         >
-          {heading}
-        </h2>
+          {caption}
+        </div>
+      )}
 
-        {caption && (
-          <div
-            style={{
-              fontFamily: theme.bodyFont,
-              color: theme.muted,
-              fontSize: 13,
-              lineHeight: 1.55,
-              marginTop: 10,
-              maxWidth: 640,
-            }}
-          >
-            {caption}
-          </div>
-        )}
+      {fallbackNotice && (
+        <p
+          style={{
+            fontFamily: theme.bodyFont,
+            color: theme.muted,
+            fontSize: 12.5,
+            fontStyle: "italic",
+            marginTop: 8,
+          }}
+        >
+          {fallbackNotice}
+        </p>
+      )}
 
-        <div className="group/carousel relative mt-5">
+      <div className="group/carousel relative mt-5">
           {/* Left chevron — desktop hover only. Hidden on mobile (swipe). */}
           <button
             type="button"
@@ -167,7 +208,7 @@ export function ProsITrust({
             className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             role="list"
           >
-            {peers.map((p) => (
+            {effectivePeers.map((p) => (
               <div
                 key={p.slug}
                 className="snap-start shrink-0"
@@ -202,7 +243,24 @@ export function ProsITrust({
             <ChevronRight size={16} />
           </button>
         </div>
-      </div>
+    </>
+  );
+
+  if (!renderSectionWrapper) {
+    return inner;
+  }
+
+  return (
+    <section
+      id={PROS_I_TRUST_ANCHOR}
+      style={{
+        background: theme.bg,
+        borderTop: `1px solid ${theme.border}`,
+        paddingTop: sectionPaddingY,
+        paddingBottom: sectionPaddingY,
+      }}
+    >
+      <div className="mx-auto max-w-5xl px-6">{inner}</div>
     </section>
   );
 }
