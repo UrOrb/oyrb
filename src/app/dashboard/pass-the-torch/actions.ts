@@ -556,6 +556,72 @@ export async function togglePassTheTorch(args: {
   return { success: true };
 }
 
+// ─── cancelInvite ────────────────────────────────────────────────────────
+// Deletes a pending pro_invites row owned by the active business.
+
+export async function cancelInvite(args: {
+  inviteId: string;
+}): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const me = await getCurrentBusiness();
+  if (!me) return { error: "No active business." };
+
+  const { data: row } = await supabase
+    .from("pro_invites")
+    .select("id, requesting_business_id")
+    .eq("id", args.inviteId)
+    .maybeSingle();
+  if (!row) return { error: "Invite not found." };
+  if (row.requesting_business_id !== me.id) return { error: "Not your invite." };
+
+  const { error } = await supabase.from("pro_invites").delete().eq("id", row.id);
+  if (error) return { error: error.message };
+
+  revalidateAll(me.slug);
+  return { success: true };
+}
+
+// ─── resendInvite ────────────────────────────────────────────────────────
+// Regenerates the token, extends the expiry by 30 days, re-sends the
+// email. Fresh token rotates on each resend so old links go stale.
+
+export async function resendInvite(args: {
+  inviteId: string;
+}): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const me = await getCurrentBusiness();
+  if (!me) return { error: "No active business." };
+
+  const { data: row } = await supabase
+    .from("pro_invites")
+    .select("id, requesting_business_id, invitee_email, vouch_note, status")
+    .eq("id", args.inviteId)
+    .maybeSingle();
+  if (!row) return { error: "Invite not found." };
+  if (row.requesting_business_id !== me.id) return { error: "Not your invite." };
+  if (row.status === "accepted") return { error: "That invite was already accepted." };
+
+  const token = crypto.randomUUID().replace(/-/g, "");
+  const newExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  const { error } = await supabase
+    .from("pro_invites")
+    .update({ token, expires_at: newExpiry, status: "pending" })
+    .eq("id", row.id);
+  if (error) return { error: error.message };
+
+  // TODO Phase 1G: sendReferralInviteEmail(row.invitee_email, me.business_name, row.vouch_note, token)
+
+  revalidateAll(me.slug);
+  return { success: true };
+}
+
 // ─── searchProsBySlug ────────────────────────────────────────────────────
 // Slug-only search per Phase 1 spec. Accepts a bare slug, a /s/<slug>
 // path, or a full storefront URL. Returns up to 10 candidates ordered by

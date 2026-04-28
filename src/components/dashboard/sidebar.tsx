@@ -14,14 +14,24 @@ import {
   Settings,
   HelpCircle,
   LifeBuoy,
+  Flame,
 } from "lucide-react";
 import { dispatchHelpToggle } from "@/app/dashboard/help-panel";
 
-const NAV = [
+type NavItem = {
+  label: string;
+  href: string;
+  icon: typeof LayoutDashboard;
+  /** Optional pending-count badge for items like Trusted Pros. Hidden when 0. */
+  badgeKey?: "pendingTrustedPros";
+};
+
+const NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Site", href: "/dashboard/site", icon: Globe },
   { label: "Services", href: "/dashboard/services", icon: Scissors },
   { label: "Bookings", href: "/dashboard/bookings", icon: CalendarDays },
+  { label: "Trusted Pros", href: "/dashboard/pass-the-torch", icon: Flame, badgeKey: "pendingTrustedPros" },
   { label: "Waitlist", href: "/dashboard/waitlist", icon: Clock },
   { label: "Clients", href: "/dashboard/clients", icon: Users },
   { label: "Marketing", href: "/dashboard/marketing", icon: Mail },
@@ -29,8 +39,16 @@ const NAV = [
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
-export function Sidebar() {
+type Props = {
+  /** Count of incoming pro_referrals in 'pending' state for the active business. */
+  pendingTrustedPros?: number;
+};
+
+export function Sidebar({ pendingTrustedPros = 0 }: Props) {
   const pathname = usePathname();
+  const badges: Record<string, number> = {
+    pendingTrustedPros,
+  };
 
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r border-[#E7E5E4] bg-[#FAFAF9] md:flex">
@@ -41,8 +59,9 @@ export function Sidebar() {
       </div>
 
       <nav className="flex flex-col gap-0.5 p-3 flex-1">
-        {NAV.map(({ label, href, icon: Icon }) => {
+        {NAV.map(({ label, href, icon: Icon, badgeKey }) => {
           const active = pathname === href;
+          const badge = badgeKey ? badges[badgeKey] : 0;
           return (
             <Link
               key={href}
@@ -54,7 +73,15 @@ export function Sidebar() {
               }`}
             >
               <Icon size={16} strokeWidth={1.5} />
-              {label}
+              <span className="flex-1">{label}</span>
+              {badge > 0 && (
+                <span
+                  aria-label={`${badge} pending`}
+                  className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#B8896B] px-1.5 text-[11px] font-semibold text-white"
+                >
+                  {badge > 9 ? "9+" : badge}
+                </span>
+              )}
             </Link>
           );
         })}
