@@ -9,6 +9,7 @@ import { MyTrustedProsSection } from "./my-trusted-pros-section";
 import { PendingRequestsSection } from "./pending-requests-section";
 import { TrustedBySection } from "./trusted-by-section";
 import { PendingInvitesSection } from "./pending-invites-section";
+import { DeclinedSection } from "./declined-section";
 
 export const metadata = { title: "Trusted Pros" };
 
@@ -49,6 +50,7 @@ export default async function PassTheTorchPage() {
     { data: outgoingPending },
     { data: incomingPending },
     { data: incomingAccepted },
+    { data: incomingDeclined },
     { data: pendingInvites },
   ] = await Promise.all([
     supabase
@@ -76,6 +78,12 @@ export default async function PassTheTorchPage() {
       .eq("status", "accepted")
       .order("responded_at", { ascending: false }),
     supabase
+      .from("pro_referrals")
+      .select("*")
+      .eq("receiving_business_id", business.id)
+      .eq("status", "declined")
+      .order("responded_at", { ascending: false }),
+    supabase
       .from("pro_invites")
       .select("*")
       .eq("requesting_business_id", business.id)
@@ -95,6 +103,7 @@ export default async function PassTheTorchPage() {
   collect(outgoingPending as ProReferral[] | null);
   collect(incomingPending as ProReferral[] | null);
   collect(incomingAccepted as ProReferral[] | null);
+  collect(incomingDeclined as ProReferral[] | null);
   peerIds.delete(business.id);
 
   const peerMap = new Map<string, ReferralPeer>();
@@ -136,6 +145,7 @@ export default async function PassTheTorchPage() {
   ];
   const incoming = enrichIncoming(incomingPending as ProReferral[] | null);
   const trustedBy = enrichIncoming(incomingAccepted as ProReferral[] | null);
+  const declined = enrichIncoming(incomingDeclined as ProReferral[] | null);
   const invites = (pendingInvites ?? []) as ProInvite[];
 
   const activeCount =
@@ -180,6 +190,8 @@ export default async function PassTheTorchPage() {
         {trustedBy.length > 0 && <TrustedBySection referrals={trustedBy} />}
 
         {invites.length > 0 && <PendingInvitesSection invites={invites} />}
+
+        {declined.length > 0 && <DeclinedSection declined={declined} />}
       </div>
     </div>
   );

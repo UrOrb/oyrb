@@ -388,6 +388,53 @@ export async function declineReferral(args: {
   return { success: true };
 }
 
+// ─── unblockDeclinedPro ─────────────────────────────────────────────────
+// Receiver-only undo of a decline. Deletes the declined row entirely so
+// the cooldown gate is gone and the requester is back to no-relationship
+// (free to send a fresh request through the normal flow).
+//
+// Why delete instead of "set status to null": there's no row state that
+// cleanly means "we used to decline this, never mind." Removing the
+// row is the simplest, most truthful representation of the new state.
+
+export async function unblockDeclinedPro(args: {
+  referralId: string;
+}): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const me = await getCurrentBusiness();
+  if (!me) return { error: "No active business." };
+
+  const { data: row } = await supabase
+    .from("pro_referrals")
+    .select("id, status, requesting_business_id, receiving_business_id")
+    .eq("id", args.referralId)
+    .maybeSingle();
+  if (!row) return { error: "Decline not found." };
+  if (row.receiving_business_id !== me.id) {
+    return { error: "Not your decline to reverse." };
+  }
+  if (row.status !== "declined") {
+    return { error: "That referral isn't in a declined state." };
+  }
+
+  const { error } = await supabase.from("pro_referrals").delete().eq("id", row.id);
+  if (error) return { error: error.message };
+
+  // Revalidate both sides — the requester's "Pending Requests" / cap
+  // view changes, and the receiver's "Declined" list shrinks.
+  const { data: requester } = await supabase
+    .from("businesses")
+    .select("slug")
+    .eq("id", row.requesting_business_id)
+    .maybeSingle();
+  revalidateAll(me.slug);
+  if (requester?.slug) revalidatePath(`/s/${requester.slug}`);
+  return { success: true };
+}
+
 // ─── removeReferral ──────────────────────────────────────────────────────
 // Either party can delete the row. RLS allows both sides to delete.
 

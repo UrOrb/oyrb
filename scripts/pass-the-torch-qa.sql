@@ -274,6 +274,92 @@ where requesting_business_id = (select id from public.businesses where slug = 'g
 
 
 -- =========================================================================
+-- SCENARIO 6 — Decline confirmation modal + reversal flow
+--
+-- Two-part test: (a) the new confirm modal in front of declineReferral
+-- prevents accidental one-click declines, and (b) the new "Declined"
+-- section on /dashboard/pass-the-torch lets the receiver undo a
+-- decline (deletes the row so the requester is back to no-relationship
+-- and can request fresh).
+--
+-- Run as B (receiver / 'lifeasalaniarenee-mo8pjfjn'). Setup inserts a
+-- declined row from A → B with the cooldown still active, mirroring
+-- what a real decline produces.
+-- =========================================================================
+
+-- 6a. Setup — declined row A → B, cooldown 20 days out (same shape as
+--     scenario 2 but framed from B's POV as the receiver).
+insert into public.pro_referrals (
+  requesting_business_id, receiving_business_id,
+  status, decline_cooldown_until, requested_at, responded_at
+)
+select
+  (select id from public.businesses where slug = 'glamboxroomllc-mo8xhd0q'),
+  (select id from public.businesses where slug = 'lifeasalaniarenee-mo8pjfjn'),
+  'declined',
+  now() + interval '20 days',
+  now() - interval '5 days',
+  now() - interval '1 day'
+on conflict (requesting_business_id, receiving_business_id) do update set
+  status = 'declined',
+  decline_cooldown_until = excluded.decline_cooldown_until,
+  responded_at = excluded.responded_at,
+  requester_acknowledged_at = null,
+  receiver_acknowledged_at = null;
+
+-- 6b. UI step (a) — confirmation modal sanity check (separate setup,
+--     run anytime: have A send a fresh PENDING request to B through
+--     the dashboard, then sign in as B and click Decline on it).
+--
+--     Open /dashboard/pass-the-torch as B. In the Pending Requests
+--     section, click "Decline" on a pending row.
+-- Expected: confirm modal opens with title "Decline this request?",
+--           body credits the requester's business name and warns about
+--           the 30-day cooldown, plus a quieter line about reversal.
+--           Two buttons: "Cancel" (light) and "Decline" (red).
+-- Verify both paths:
+--   · Click Cancel → modal closes, row stays in Pending Requests,
+--     pro_referrals row unchanged in the DB.
+--   · Click Decline → modal closes, row disappears optimistically,
+--     pro_referrals.status flips to 'declined' with a fresh
+--     decline_cooldown_until set 30 days out.
+-- Also test from inside VouchModal:
+--   · Click Accept on a pending row → VouchModal opens → click the
+--     "Decline" secondary button.
+-- Expected: VouchModal closes AND the confirm modal opens on top.
+--           Same Cancel / Decline behavior as above.
+
+-- 6c. UI step (b) — reversal via the Declined section.
+--
+--     Sign in as B (lifeasalaniarenee-mo8pjfjn). Open
+--     /dashboard/pass-the-torch.
+-- Expected: a "Declined" section renders at the bottom of the page
+--           (after Pending Email Invites). The row shows A's avatar +
+--           business name, slug, specialty pill, declined-at date,
+--           and "cooldown ends <date>" line.
+--
+--     Click "Allow them to ask again".
+-- Expected: row disappears optimistically. No error toast.
+
+-- 6d. Verify the row is gone — should return zero rows.
+select count(*) as remaining
+from public.pro_referrals
+where requesting_business_id = (select id from public.businesses where slug = 'glamboxroomllc-mo8xhd0q')
+  and receiving_business_id = (select id from public.businesses where slug = 'lifeasalaniarenee-mo8pjfjn');
+-- Expected: remaining = 0.
+
+-- 6e. UI step (c) — round-trip: sign in as A and try to send a fresh
+--     request to B through the dashboard's Add Trusted Pro flow.
+-- Expected: success. The cooldown is gone, no existing relationship,
+--           normal pending request created.
+
+-- 6f. Cleanup — delete any new pending row from step 6e.
+delete from public.pro_referrals
+where requesting_business_id = (select id from public.businesses where slug = 'glamboxroomllc-mo8xhd0q')
+  and receiving_business_id = (select id from public.businesses where slug = 'lifeasalaniarenee-mo8pjfjn');
+
+
+-- =========================================================================
 -- FULL RESET — wipe all Pass the Torch state for both test pros.
 -- Run this at the end (or any time) to leave a clean slate.
 -- =========================================================================

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Loader2, Image as ImageIcon, Inbox } from "lucide-react";
+import { useState } from "react";
+import { Image as ImageIcon, Inbox } from "lucide-react";
 import type { EnrichedReferral } from "./page";
 import { acceptReferral, declineReferral } from "./actions";
 import { VouchModal } from "./vouch-modal";
+import { DeclineConfirmModal } from "./decline-confirm-modal";
 
 type Props = {
   requests: EnrichedReferral[];
@@ -14,22 +15,34 @@ type Props = {
 export function PendingRequestsSection({ requests, myBusinessName: _myBusinessName }: Props) {
   const [list, setList] = useState(requests);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [decliningId, setDecliningId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pending, start] = useTransition();
 
   const acceptingRow = list.find((r) => r.id === acceptingId) ?? null;
+  const decliningRow = list.find((r) => r.id === decliningId) ?? null;
 
-  function decline(referralId: string) {
+  // Direct Decline button + VouchModal's "Decline" secondary both
+  // route through this confirm flow now (was a one-click decline →
+  // 30-day cooldown trap before).
+  function requestDecline(referralId: string) {
+    // If the accept modal happens to be open, close it first so the
+    // confirm modal isn't stacked behind it.
+    setAcceptingId(null);
+    setDecliningId(referralId);
+  }
+
+  // Actual server-side decline. Called from the confirm modal on user
+  // confirmation. Optimistically removes the row from the local list.
+  async function performDecline(referralId: string) {
     setError(null);
     const prev = list;
-    setList(list.filter((r) => r.id !== referralId)); // optimistic
-    start(async () => {
-      const result = await declineReferral({ referralId });
-      if ("error" in result) {
-        setError(result.error);
-        setList(prev);
-      }
-    });
+    setList((cur) => cur.filter((r) => r.id !== referralId));
+    const result = await declineReferral({ referralId });
+    if ("error" in result) {
+      setError(result.error);
+      setList(prev);
+    }
+    return result;
   }
 
   if (list.length === 0) return null;
@@ -70,9 +83,8 @@ export function PendingRequestsSection({ requests, myBusinessName: _myBusinessNa
             </div>
             <button
               type="button"
-              onClick={() => decline(r.id)}
-              disabled={pending}
-              className="rounded-md border border-[#E7E5E4] bg-white px-3 py-1.5 text-xs font-medium text-[#525252] hover:bg-[#F5F5F4] disabled:opacity-50"
+              onClick={() => requestDecline(r.id)}
+              className="rounded-md border border-[#E7E5E4] bg-white px-3 py-1.5 text-xs font-medium text-[#525252] hover:bg-[#F5F5F4]"
             >
               Decline
             </button>
@@ -92,11 +104,6 @@ export function PendingRequestsSection({ requests, myBusinessName: _myBusinessNa
           {error}
         </p>
       )}
-      {pending && (
-        <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-[#A3A3A3]">
-          <Loader2 size={10} className="animate-spin" /> Updating…
-        </p>
-      )}
 
       {acceptingRow && (
         <VouchModal
@@ -104,7 +111,7 @@ export function PendingRequestsSection({ requests, myBusinessName: _myBusinessNa
           onClose={() => setAcceptingId(null)}
           peerName={acceptingRow.peer.business_name}
           mode="accept"
-          onSecondary={() => decline(acceptingRow.id)}
+          onSecondary={() => requestDecline(acceptingRow.id)}
           onConfirm={async () => {
             const result = await acceptReferral({
               referralId: acceptingRow.id,
@@ -117,6 +124,16 @@ export function PendingRequestsSection({ requests, myBusinessName: _myBusinessNa
           }}
         />
       )}
+
+      <DeclineConfirmModal
+        open={!!decliningRow}
+        onClose={() => setDecliningId(null)}
+        peerName={decliningRow?.peer.business_name ?? ""}
+        onConfirm={async () => {
+          if (!decliningRow) return { error: "No request selected." };
+          return await performDecline(decliningRow.id);
+        }}
+      />
     </section>
   );
 }
