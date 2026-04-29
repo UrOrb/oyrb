@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowUp, Sparkles } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import type { TemplateTheme } from "@/lib/template-themes";
 
 // The 3 starter-tier themes (kept in sync with site-builder.tsx STARTER_THEMES).
@@ -109,14 +109,6 @@ export function TemplateBrowser({ themes }: { themes: TemplateTheme[] }) {
               <Pill active={plan === "scale"} onClick={() => setPlan("scale")}>Scale</Pill>
             </FilterGroup>
           </div>
-
-          <Link
-            href="/style-finder"
-            className="inline-flex items-center gap-1.5 rounded-full border border-[#B8896B] bg-[#B8896B] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
-            title="Style Finder quiz — coming soon"
-          >
-            <Sparkles size={13} /> Take the Style Finder
-          </Link>
         </div>
       </div>
 
