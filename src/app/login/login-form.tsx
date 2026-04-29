@@ -1,15 +1,29 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Pass the Torch invite token (Phase 1F): stash so the dashboard
+  // auto-acceptor consumes it after sign-in. Existing users will have
+  // a business already, so the action runs on their next dashboard
+  // render.
+  useEffect(() => {
+    const invite = searchParams.get("invite");
+    if (invite && /^[a-f0-9]{32}$/i.test(invite)) {
+      try {
+        localStorage.setItem("oyrb_pending_invite", invite);
+      } catch {}
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

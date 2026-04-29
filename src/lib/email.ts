@@ -24,13 +24,18 @@ export async function sendBookingConfirmation(params: {
   bookingToken?: string;        // new: magic link token for this booking
   history?: HistoryItem[];      // new: up to 3 prior bookings with this pro
   preferencesToken?: string;    // new: manage-preferences token
+  /** Pass the Torch (Phase 1E). When set, the email gets the Layer-2
+   *  disclosure block crediting the referring pro and clarifying that
+   *  OYRB / the referrer aren't liable for services the destination
+   *  pro provides. */
+  referrerName?: string | null;
 }) {
   if (!resend) {
     console.warn("Resend not configured — skipping email");
     return;
   }
 
-  const { to, customerName, businessName, serviceName, startAt, price, siteUrl, bookingToken, history, preferencesToken } = params;
+  const { to, customerName, businessName, serviceName, startAt, price, siteUrl, bookingToken, history, preferencesToken, referrerName } = params;
   const whenLabel = startAt.toLocaleString("en-US", {
     weekday: "long",
     month: "long",
@@ -41,6 +46,20 @@ export async function sendBookingConfirmation(params: {
 
   const viewBookingUrl = bookingToken ? `${APP_URL}/booking/${bookingToken}` : null;
   const prefsUrl = preferencesToken ? `${APP_URL}/preferences/${preferencesToken}` : null;
+
+  // Pass the Torch — Layer-2 disclosure block. Renders only when this
+  // booking originated from a referral context (?ref= URL or the inline
+  // Pro Referrals widget). Spec-locked copy, do not edit lightly.
+  const referralDisclosure = referrerName
+    ? `
+        <div style="margin:20px 0;padding:14px 16px;border-radius:12px;background:#FFF7ED;border:1px solid #FDBA74;color:#7C2D12;font-size:13px;line-height:1.5;">
+          <strong style="color:#7C2D12;">💛 Recommended by ${referrerName}.</strong>
+          ${businessName} is an independent professional. Your booking is
+          directly with ${businessName} — ${referrerName} and OYRB are not
+          responsible for services provided.
+        </div>
+      `
+    : "";
 
   const historyBlock = history && history.length > 0
     ? `
@@ -77,6 +96,7 @@ export async function sendBookingConfirmation(params: {
             <p style="color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 4px;">Price</p>
             <p style="font-size:15px;font-weight:600;margin:0;">${price}</p>
           </div>
+          ${referralDisclosure}
           ${viewBookingUrl ? `
           <p style="color:#737373;font-size:14px;line-height:1.5;margin:0 0 20px;">View your booking, add it to your calendar, or reschedule anytime:</p>
           <div style="margin:0 0 16px;">
@@ -325,5 +345,162 @@ export async function sendOwnerNotification(params: {
     });
   } catch (err) {
     console.error("Failed to send owner notification", err);
+  }
+}
+
+// ── Pass the Torch (Trusted Pros) ─────────────────────────────────────────
+// Three transactional emails covering the request → accept → invite
+// fan-out. All three use EmailPurpose.BOOKING (hello@) per
+// src/lib/email-from.ts and reuse the existing OYRB email styling.
+
+const TRUSTED_PROS_DASHBOARD_URL = `${APP_URL}/dashboard/pass-the-torch`;
+
+/**
+ * Sent to the receiving pro when another OYRB pro requests to add
+ * them to their Trusted Pros list (requestReferral).
+ */
+export async function sendReferralRequestEmail(
+  toEmail: string,
+  requestingBusinessName: string,
+  vouchNote: string | null,
+) {
+  if (!resend) {
+    console.warn("Resend not configured — skipping referral request email");
+    return;
+  }
+  if (!toEmail) return;
+
+  const noteBlock = vouchNote
+    ? `
+        <div style="margin:20px 0;padding:14px 16px;border-radius:12px;background:#FAFAF9;border:1px solid #E7E5E4;">
+          <p style="margin:0;font-size:13px;color:#737373;text-transform:uppercase;letter-spacing:0.05em;">Their note</p>
+          <p style="margin:6px 0 0;font-size:14px;font-style:italic;color:#0A0A0A;line-height:1.5;">&ldquo;${vouchNote}&rdquo;</p>
+        </div>
+      `
+    : "";
+
+  try {
+    await resend.emails.send({
+      from: getFromAddress(EmailPurpose.BOOKING),
+      replyTo: DEFAULT_REPLY_TO,
+      to: toEmail,
+      subject: `[OYRB] ${requestingBusinessName} wants to add you to her Trusted Pros`,
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
+          <p style="color:#B8896B;font-size:13px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;margin:0 0 8px;">Pass the Torch ✦</p>
+          <h1 style="font-size:24px;font-weight:600;margin:0 0 12px;line-height:1.3;">${requestingBusinessName} wants to vouch for you.</h1>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 16px;">
+            On OYRB, pros build a small list of peers they trust. When ${requestingBusinessName} is fully booked or away, her clients see the pros she vouches for — and she&apos;d like you to be one of them.
+          </p>
+          ${noteBlock}
+          <p style="color:#525252;font-size:14px;line-height:1.55;margin:0 0 20px;">
+            Accept and your business will appear on her storefront when she&apos;s unavailable. Clients book directly with you — ${requestingBusinessName} takes nothing, OYRB takes nothing.
+          </p>
+          <a href="${TRUSTED_PROS_DASHBOARD_URL}" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:600;">Review in your dashboard</a>
+          <p style="color:#A3A3A3;font-size:11px;line-height:1.5;margin:28px 0 0;border-top:1px solid #E7E5E4;padding-top:16px;">
+            You can decline at any time from your Trusted Pros dashboard. Powered by OYRB — own your brand.
+          </p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error("Failed to send referral request email", err);
+  }
+}
+
+/**
+ * Sent to the original requester when the receiving pro accepts the
+ * referral (acceptReferral and tryAcceptPendingInvite).
+ */
+export async function sendReferralAcceptedEmail(
+  toEmail: string,
+  acceptingBusinessName: string,
+) {
+  if (!resend) {
+    console.warn("Resend not configured — skipping referral accepted email");
+    return;
+  }
+  if (!toEmail) return;
+
+  try {
+    await resend.emails.send({
+      from: getFromAddress(EmailPurpose.BOOKING),
+      replyTo: DEFAULT_REPLY_TO,
+      to: toEmail,
+      subject: `[OYRB] ${acceptingBusinessName} accepted your Trusted Pros request`,
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
+          <p style="color:#047857;font-size:13px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;margin:0 0 8px;">Accepted ✓</p>
+          <h1 style="font-size:24px;font-weight:600;margin:0 0 12px;line-height:1.3;">${acceptingBusinessName} accepted your invitation.</h1>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 20px;">
+            ${acceptingBusinessName} now appears on your storefront when you&apos;re fully booked or away — exactly when your clients need a great alternative.
+          </p>
+          <a href="${TRUSTED_PROS_DASHBOARD_URL}" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:600;">Open Trusted Pros</a>
+          <p style="color:#A3A3A3;font-size:11px;line-height:1.5;margin:28px 0 0;border-top:1px solid #E7E5E4;padding-top:16px;">
+            Drag to reorder, edit your vouch note, or remove anytime. Powered by OYRB — own your brand.
+          </p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error("Failed to send referral accepted email", err);
+  }
+}
+
+/**
+ * Sent to a non-OYRB pro who's been invited via inviteByEmail. Lands
+ * them on the personalized /invite/[token] landing page.
+ */
+export async function sendReferralInviteEmail(
+  toEmail: string,
+  requestingBusinessName: string,
+  vouchNote: string | null,
+  token: string,
+) {
+  if (!resend) {
+    console.warn("Resend not configured — skipping referral invite email");
+    return;
+  }
+  if (!toEmail || !token) return;
+
+  const inviteUrl = `${APP_URL}/invite/${token}`;
+  const noteBlock = vouchNote
+    ? `
+        <div style="margin:20px 0;padding:14px 16px;border-radius:12px;background:#FFF7ED;border:1px solid #FDBA74;">
+          <p style="margin:0;font-size:13px;color:#7C2D12;text-transform:uppercase;letter-spacing:0.05em;">${requestingBusinessName} says</p>
+          <p style="margin:6px 0 0;font-size:14px;font-style:italic;color:#7C2D12;line-height:1.5;">&ldquo;${vouchNote}&rdquo;</p>
+        </div>
+      `
+    : "";
+
+  try {
+    await resend.emails.send({
+      from: getFromAddress(EmailPurpose.BOOKING),
+      replyTo: DEFAULT_REPLY_TO,
+      to: toEmail,
+      subject: `[OYRB] You've been personally invited to OYRB`,
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
+          <p style="color:#B8896B;font-size:13px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;margin:0 0 8px;">You&apos;ve been personally invited ✦</p>
+          <h1 style="font-size:24px;font-weight:600;margin:0 0 12px;line-height:1.3;">${requestingBusinessName} wants you on her Trusted Pros.</h1>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 16px;">
+            OYRB is the booking site beauty pros build for themselves. ${requestingBusinessName} is asking you to join — and to be one of the pros she vouches for when she&apos;s booked or away.
+          </p>
+          ${noteBlock}
+          <p style="color:#525252;font-size:14px;line-height:1.55;margin:0 0 24px;">
+            Accept and your business will appear on her storefront when she&apos;s unavailable. Clients book directly with you — ${requestingBusinessName} takes nothing, OYRB takes nothing.
+          </p>
+          <a href="${inviteUrl}" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:14px 28px;border-radius:999px;font-size:14px;font-weight:600;">Accept your invitation</a>
+          <p style="color:#A3A3A3;font-size:12px;line-height:1.5;margin:24px 0 0;">
+            Or copy this link into your browser: <a href="${inviteUrl}" style="color:#737373;">${inviteUrl}</a>
+          </p>
+          <p style="color:#A3A3A3;font-size:11px;line-height:1.5;margin:24px 0 0;border-top:1px solid #E7E5E4;padding-top:16px;">
+            This invitation expires in 30 days. Powered by OYRB — own your brand.
+          </p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error("Failed to send referral invite email", err);
   }
 }

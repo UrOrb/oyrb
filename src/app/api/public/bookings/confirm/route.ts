@@ -255,6 +255,22 @@ export async function POST(request: NextRequest) {
   const dashboardUrl = `${origin}/dashboard/bookings`;
   const priceLabel = formatCents(service.price_cents);
 
+  // Pass the Torch attribution stashed in the deposit-checkout session
+  // metadata. Resolve the referrer's display name now so the
+  // confirmation email can include the Layer-2 disclosure.
+  let referrerName: string | null = null;
+  const referrerSlug = metadata.referrer_slug;
+  if (typeof referrerSlug === "string" && /^[a-z0-9-]{1,80}$/i.test(referrerSlug)) {
+    const { data: referrer } = await supabase
+      .from("businesses")
+      .select("business_name, is_published")
+      .eq("slug", referrerSlug)
+      .maybeSingle();
+    if (referrer && referrer.is_published) {
+      referrerName = referrer.business_name as string;
+    }
+  }
+
   // Fire emails
   const tasks: Promise<unknown>[] = [
     notifyBookingConfirmed({
@@ -271,6 +287,7 @@ export async function POST(request: NextRequest) {
       priceLabel,
       siteUrl,
       businessTier: business.subscription_tier,
+      referrerName,
     }).catch((err) => console.error("Confirm notify failed:", err)),
   ];
 

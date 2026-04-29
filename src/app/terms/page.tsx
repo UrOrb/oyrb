@@ -11,7 +11,7 @@ const EFFECTIVE_DATE = "April 22, 2026";
 const COMPANY_NAME = "OYRB LLC, a Georgia limited liability company (“OYRB”, “Own Your Brand”)";
 const CONTACT_EMAIL = "support@oyrb.space";
 const GOVERNING_STATE = "Georgia";
-const TOS_VERSION = "v1.1";
+const TOS_VERSION = "v1.2";
 
 export default function TermsPage() {
   return (
@@ -448,8 +448,23 @@ export default function TermsPage() {
             </p>
           </section>
 
+          {/*
+            PLACEHOLDER LANGUAGE — pending lawyer review per Priority 7
+            in the master OYRB context. TOS_VERSION above was bumped
+            v1.1 → v1.2 alongside this addition so existing users
+            re-accept on next sign-in (mirrored in
+            src/app/signup/actions.ts). If legal review materially
+            tightens the language, bump again in lockstep.
+          */}
           <section className="mt-8 space-y-4 text-[#2a2a2a]">
-            <h2 className="font-display text-2xl font-medium">26. Contact</h2>
+            <h2 className="font-display text-2xl font-medium">26. Pass the Torch (Trusted Pros)</h2>
+            <p>
+              OYRB enables professionals to recommend other professionals through a feature called Pass the Torch. These recommendations are pro-to-pro endorsements and do not constitute a guarantee of services. The referring professional and OYRB are not liable for the services, quality, conduct, or outcomes of any recommended professional. All bookings, payments, and services occur directly between the client and the recommended professional. By using this feature, both the referring and recommended professional acknowledge they are independent businesses and that OYRB is a platform, not a guarantor.
+            </p>
+          </section>
+
+          <section className="mt-8 space-y-4 text-[#2a2a2a]">
+            <h2 className="font-display text-2xl font-medium">27. Contact</h2>
             <p>
               Questions about these Terms? Email us at <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#B8896B] hover:underline">{CONTACT_EMAIL}</a>.
             </p>

@@ -6,9 +6,10 @@ import Image from "next/image";
 import type { TemplateTheme } from "@/lib/template-themes";
 import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
 import { PlatformCredit } from "@/components/templates/platform-credit";
+import { ProsITrust, type TrustedProsTemplateProps } from "@/components/storefront/pros-i-trust";
 import type { SampleService, SampleHour, SampleBusiness } from "@/lib/sample-data";
 
-interface OriginalTemplateProps {
+interface OriginalTemplateProps extends TrustedProsTemplateProps {
   theme: TemplateTheme;
   services?: SampleService[];
   hours?: SampleHour[];
@@ -611,7 +612,7 @@ function ServiceRow({ t, svc, last, bookHref }: { t: TemplateTheme; svc: SampleS
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
-export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS, business, content, isEditorPreview, statsStrip }: OriginalTemplateProps) {
+export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS, business, content, isEditorPreview, statsStrip, trustedPros, referrerSlug, showTrustedPros }: OriginalTemplateProps) {
   // Pick a user-edited override for `key` if it's a non-blank string, else
   // fall back to the theme/layout's built-in copy. Keeps every edit optional.
   const c = (key: string, fallback: string): string => {
@@ -786,6 +787,26 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
               ))}
             </div>
           </section>
+        )}
+
+        {/* ── Pros I Trust ── (Pass the Torch) */}
+        {showTrustedPros && trustedPros && trustedPros.length > 0 && referrerSlug && (
+          <ProsITrust
+            peers={trustedPros}
+            referrerSlug={referrerSlug}
+            theme={{
+              bg: t.bg,
+              surface: t.surface,
+              ink: t.ink,
+              muted: t.muted,
+              accent: t.accent,
+              border: t.border,
+              radius: t.radius,
+              displayFont: t.displayFont,
+              bodyFont: t.bodyFont,
+            }}
+            variant="default"
+          />
         )}
 
         {/* ── Reviews ── */}

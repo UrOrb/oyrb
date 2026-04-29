@@ -4,6 +4,7 @@ import { getCurrentBusiness, listMySites } from "@/lib/current-site";
 import { SiteSwitcher } from "./site-switcher";
 import { AvatarMenu } from "./avatar-menu";
 import { HelpPanel } from "./help-panel";
+import { PendingInviteAcceptor } from "./pending-invite-acceptor";
 
 export const metadata = {
   title: "Dashboard",
@@ -31,6 +32,19 @@ export default async function DashboardLayout({
   ]);
   const profileImageUrl = activeBusiness?.profile_image_url ?? null;
 
+  // Pending Trusted Pros count drives the sidebar badge. Counts incoming
+  // pro_referrals where the active site is the receiving party and the
+  // request is still pending. Cheap HEAD count — no rows pulled.
+  let pendingTrustedPros = 0;
+  if (activeBusiness) {
+    const { count } = await supabase
+      .from("pro_referrals")
+      .select("id", { count: "exact", head: true })
+      .eq("receiving_business_id", activeBusiness.id)
+      .eq("status", "pending");
+    pendingTrustedPros = count ?? 0;
+  }
+
   const fullName = (user?.user_metadata?.full_name as string | undefined) ?? null;
   const initial = initialFor(fullName, user?.email);
   const altLabel = fullName || user?.email || "Your profile";
@@ -45,7 +59,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar />
+      <Sidebar pendingTrustedPros={pendingTrustedPros} />
       <div className="flex flex-1 flex-col overflow-y-auto">
         <header className="flex h-14 shrink-0 items-center border-b border-[#E7E5E4] px-6">
           <div className="flex flex-1 items-center justify-between">
@@ -79,6 +93,12 @@ export default async function DashboardLayout({
           dispatches a window event that this panel listens for, so we
           don't need a Context provider just for an open/close boolean. */}
       <HelpPanel />
+
+      {/* Pass the Torch (Phase 1F) — auto-converts a pending invite
+          token from /signup or /login into an accepted referral as
+          soon as the user has a business. No-op when no token is
+          stashed. Idempotent. */}
+      <PendingInviteAcceptor />
     </div>
   );
 }
