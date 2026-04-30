@@ -30,6 +30,7 @@ export function Footer() {
               <a href="mailto:support@oyrb.space" className="text-[#737373] hover:text-[#0A0A0A] transition-colors">support@oyrb.space</a>
               <Link href="/terms" className="text-[#737373] hover:text-[#0A0A0A] transition-colors">Terms of Service</Link>
               <Link href="/privacy" className="text-[#737373] hover:text-[#0A0A0A] transition-colors">Privacy Policy</Link>
+              <Link href="/sms-policy" className="text-[#737373] hover:text-[#0A0A0A] transition-colors">SMS Policy</Link>
             </div>
           </div>
         </div>

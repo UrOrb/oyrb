@@ -1199,7 +1199,17 @@ export function BookingWidget({
                           className="mt-0.5 h-4 w-4 shrink-0"
                         />
                         <span className="text-[#525252]">
-                          <strong>Optional:</strong> Text me appointment reminders and last-minute slot alerts at {phone}. Msg &amp; data rates may apply. Reply STOP to opt out.
+                          <strong>Optional:</strong> I agree to receive SMS appointment reminders at {phone}. Message frequency varies. Message and data rates may apply. Reply STOP to unsubscribe.{" "}
+                          <a
+                            href="/sms-policy"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium underline"
+                            style={{ color: accent }}
+                          >
+                            View our SMS Policy
+                          </a>
+                          .
                         </span>
                       </label>
                     )}
