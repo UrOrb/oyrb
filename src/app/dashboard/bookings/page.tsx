@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { formatCents } from "@/lib/types";
 import { Calendar, Clock, Mail, Phone, MessageSquare, ExternalLink } from "lucide-react";
 import { CancelBookingButton } from "./cancel-button";
+import { NewBookingForm } from "./new-booking-form";
 import { getCurrentBusiness } from "@/lib/current-site";
 
 interface Props {
@@ -33,14 +34,26 @@ export default async function BookingsPage({ searchParams }: Props) {
     .order("start_at", { ascending: false })
     .limit(100);
 
+  const { data: services } = await supabase
+    .from("services")
+    .select("id, name, duration_minutes, price_cents")
+    .eq("business_id", business.id)
+    .eq("active", true)
+    .order("name", { ascending: true });
+
   const list = bookings ?? [];
   const upcoming = list.filter((b: any) => new Date(b.start_at) >= new Date());
   const past = list.filter((b: any) => new Date(b.start_at) < new Date());
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-medium tracking-tight">Bookings</h1>
-      <p className="mt-1 text-sm text-[#737373]">All appointments, newest first.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl font-medium tracking-tight">Bookings</h1>
+          <p className="mt-1 text-sm text-[#737373]">All appointments, newest first.</p>
+        </div>
+        <NewBookingForm services={services ?? []} />
+      </div>
 
       {/* OYRB doesn't process refunds — money never lands in our account
           (Connect direct charges go to the pro's Stripe). The pro issues
