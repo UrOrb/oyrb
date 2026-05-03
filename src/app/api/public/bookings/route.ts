@@ -4,6 +4,7 @@ import { sendOwnerNotification } from "@/lib/email";
 import { formatCents } from "@/lib/types";
 import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
 import { notifyBookingConfirmed } from "@/lib/booking-notify";
+import { checkBookingOverlap } from "@/lib/booking-overlap";
 
 type BookingPayload = {
   business_id: string;
@@ -131,20 +132,16 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Check for overlap — including the pro's break buffer on both sides
-  // so a slot that would violate the gap rule is rejected.
-  const breakMs = rulesBreak * 60_000;
-  const overlapStart = new Date(startAt.getTime() - breakMs);
-  const overlapEnd = new Date(endAt.getTime() + breakMs);
-  const { data: overlap } = await supabase
-    .from("bookings")
-    .select("id")
-    .eq("business_id", body.business_id)
-    .neq("status", "cancelled")
-    .lt("start_at", overlapEnd.toISOString())
-    .gt("end_at", overlapStart.toISOString())
-    .limit(1);
-  if (overlap && overlap.length > 0) {
+  // Overlap check (incl. pro's break buffer on both sides) — shared with
+  // the dashboard manual-entry action so the rule can't drift.
+  const overlapResult = await checkBookingOverlap(
+    supabase,
+    body.business_id,
+    startAt,
+    endAt,
+    rulesBreak,
+  );
+  if (!overlapResult.ok) {
     return NextResponse.json(
       { error: "That time conflicts with an existing booking or required break. Please pick another." },
       { status: 409 },
@@ -238,16 +235,15 @@ export async function POST(request: NextRequest) {
       const nextStart = new Date(startAt.getTime() + i * weeks * 7 * 24 * 60 * 60 * 1000);
       const nextEnd = new Date(nextStart.getTime() + service.duration_minutes * 60_000);
 
-      // Check overlap for this slot
-      const { data: conflict } = await supabase
-        .from("bookings")
-        .select("id")
-        .eq("business_id", body.business_id)
-        .neq("status", "cancelled")
-        .lt("start_at", nextEnd.toISOString())
-        .gt("end_at", nextStart.toISOString())
-        .limit(1);
-      if (conflict && conflict.length > 0) {
+      // Skip the slot if it overlaps anything (includes break buffer).
+      const seriesOverlap = await checkBookingOverlap(
+        supabase,
+        body.business_id,
+        nextStart,
+        nextEnd,
+        rulesBreak,
+      );
+      if (!seriesOverlap.ok) {
         seriesSkipped++;
         continue;
       }
