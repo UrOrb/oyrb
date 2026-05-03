@@ -23,6 +23,10 @@
     {
       "path": "/api/cron/webhook-cleanup",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/subscription-warnings",
+      "schedule": "0 10 * * *"
     }
   ]
 }

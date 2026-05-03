@@ -5,6 +5,7 @@ import { SiteSwitcher } from "./site-switcher";
 import { AvatarMenu } from "./avatar-menu";
 import { HelpPanel } from "./help-panel";
 import { PendingInviteAcceptor } from "./pending-invite-acceptor";
+import { BillingBanner } from "./billing-banner";
 
 export const metadata = {
   title: "Dashboard",
@@ -86,6 +87,11 @@ export default async function DashboardLayout({
             </div>
           </div>
         </header>
+        {/* Billing-pending banner (Phase 1.2). Renders only during the 2-day
+            grace window after a failed payment. After grace expires, the
+            proxy redirects to /dashboard/billing-pending and the banner no
+            longer mounts on this layout. */}
+        <BillingBanner />
         <main className="flex-1 p-6 md:p-8">{children}</main>
       </div>
 
