@@ -7,6 +7,7 @@ import type { TemplateTheme } from "@/lib/template-themes";
 import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
 import { PlatformCredit } from "@/components/templates/platform-credit";
 import { ProsITrust, type TrustedProsTemplateProps } from "@/components/storefront/pros-i-trust";
+import { VerifiedBadge } from "@/components/storefront/verified-badge";
 import type { SampleService, SampleHour, SampleBusiness } from "@/lib/sample-data";
 
 interface OriginalTemplateProps extends TrustedProsTemplateProps {
@@ -14,6 +15,10 @@ interface OriginalTemplateProps extends TrustedProsTemplateProps {
   services?: SampleService[];
   hours?: SampleHour[];
   business?: SampleBusiness;
+  /** Stripe Identity verified flag (Phase 1.4). Single placement on the
+   *  profile/about block — see {biz.name} render below — so all theme
+   *  branches in this file share one canonical badge spot. */
+  verified?: boolean;
   // Row-level text overrides keyed by template element id (see the
   // "Template copy" section in /dashboard/site). When an entry is blank or
   // missing the code-level fallback passed to c() wins.
@@ -612,7 +617,7 @@ function ServiceRow({ t, svc, last, bookHref }: { t: TemplateTheme; svc: SampleS
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
-export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS, business, content, isEditorPreview, statsStrip, trustedPros, referrerSlug, showTrustedPros }: OriginalTemplateProps) {
+export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS, business, content, isEditorPreview, statsStrip, trustedPros, referrerSlug, showTrustedPros, verified }: OriginalTemplateProps) {
   // Pick a user-edited override for `key` if it's a non-blank string, else
   // fall back to the theme/layout's built-in copy. Keeps every edit optional.
   const c = (key: string, fallback: string): string => {
@@ -753,7 +758,7 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
               <Image src={unsplash(biz.profileImageId, 200)} alt={biz.name} width={164} height={164} className="object-cover w-full" style={{ aspectRatio: "1/1" }} />
             </div>
             <div style={{ flex: 1 }}>
-              <h2 style={{ fontFamily: t.displayFont, fontWeight: t.displayWeight, fontSize: 20, color: t.ink, margin: 0, fontStyle: (t.id === "aura" || t.id === "luxe") ? "italic" : "normal", letterSpacing: t.displayTracking }}>{biz.name}</h2>
+              <h2 style={{ fontFamily: t.displayFont, fontWeight: t.displayWeight, fontSize: 20, color: t.ink, margin: 0, fontStyle: (t.id === "aura" || t.id === "luxe") ? "italic" : "normal", letterSpacing: t.displayTracking }}>{biz.name}{verified && <VerifiedBadge />}</h2>
               <p style={{ fontFamily: t.bodyFont, fontSize: 13, color: t.muted, marginTop: 8, lineHeight: 1.55 }}>{biz.bio}</p>
             </div>
           </div>

@@ -6,6 +6,7 @@ import type { TemplateTheme } from "@/lib/template-themes";
 import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
 import { PlatformCredit } from "@/components/templates/platform-credit";
 import { ProsITrust, type TrustedProsTemplateProps } from "@/components/storefront/pros-i-trust";
+import { VerifiedBadge } from "@/components/storefront/verified-badge";
 import type { SampleBusiness, SampleService, SampleHour } from "@/lib/sample-data";
 
 interface BoldTemplateProps extends TrustedProsTemplateProps {
@@ -16,6 +17,8 @@ interface BoldTemplateProps extends TrustedProsTemplateProps {
   content?: Record<string, string> | null;
   /** See Studio template for policy note. */
   isEditorPreview?: boolean;
+  /** Stripe Identity verified flag (Phase 1.4). */
+  verified?: boolean;
 }
 
 function formatPrice(cents: number) { return `$${(cents / 100).toFixed(0)}+`; }
@@ -29,7 +32,7 @@ function formatTime(t: string) {
   return `${h % 12 || 12}:${m.toString().padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
 
-export function BoldTemplate({ business, services, hours, theme, content, isEditorPreview, trustedPros, referrerSlug, showTrustedPros }: BoldTemplateProps) {
+export function BoldTemplate({ business, services, hours, theme, content, isEditorPreview, trustedPros, referrerSlug, showTrustedPros, verified }: BoldTemplateProps) {
   const c = (key: string, fallback: string): string => {
     const v = content?.[key];
     return typeof v === "string" && v.trim() ? v : fallback;
@@ -105,6 +108,7 @@ export function BoldTemplate({ business, services, hours, theme, content, isEdit
               </span>
               <h1 className="text-2xl font-bold text-white md:text-3xl" style={{ fontFamily: displayFont }}>
                 {bizName}
+                {verified && <VerifiedBadge />}
               </h1>
               <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-white/70">
                 <span className="flex items-center gap-1">

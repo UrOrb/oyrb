@@ -304,6 +304,12 @@ export default async function PublicSitePage({ params, searchParams }: Props) {
     trustedPros,
     referrerSlug: biz.slug,
     showTrustedPros: trustedProsContext !== null && trustedPros.length > 0,
+    // Stripe Identity (Phase 1.4) — drives the ✓ Verified badge that
+    // sits next to the business name. Never a gate; templates simply
+    // skip the badge when this is false.
+    verified:
+      (biz as { identity_verification_status?: string })
+        .identity_verification_status === "verified",
   } as any;
 
   // Legacy rows saved with `template_layout === "zip"` map to the renamed Original.

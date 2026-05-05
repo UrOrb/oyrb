@@ -7,6 +7,7 @@ import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
 import { PlatformCredit } from "@/components/templates/platform-credit";
 import { ReviewsCarousel, type CarouselReview } from "@/components/templates/reviews-carousel";
 import { ProsITrust, type TrustedProsTemplateProps } from "@/components/storefront/pros-i-trust";
+import { VerifiedBadge } from "@/components/storefront/verified-badge";
 import type { SampleBusiness, SampleService, SampleHour } from "@/lib/sample-data";
 
 interface StudioTemplateProps extends TrustedProsTemplateProps {
@@ -23,6 +24,9 @@ interface StudioTemplateProps extends TrustedProsTemplateProps {
   /** Real verified reviews. Rendered inline via <ReviewsCarousel> when
    *  present. Editor previews + template gallery pass an empty array. */
   reviews?: CarouselReview[];
+  /** Stripe Identity verified flag (Phase 1.4). Drives the ✓ Verified
+   *  badge next to the business name on the hero. Never a gate. */
+  verified?: boolean;
 }
 
 function formatPrice(cents: number) { return `$${(cents / 100).toFixed(0)}`; }
@@ -36,7 +40,7 @@ function formatTime(t: string) {
   return `${h % 12 || 12}:${m.toString().padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
 
-export function StudioTemplate({ business, services, hours, theme, content, isEditorPreview, reviews, trustedPros, referrerSlug, showTrustedPros }: StudioTemplateProps) {
+export function StudioTemplate({ business, services, hours, theme, content, isEditorPreview, reviews, trustedPros, referrerSlug, showTrustedPros, verified }: StudioTemplateProps) {
   const c = (key: string, fallback: string): string => {
     const v = content?.[key];
     return typeof v === "string" && v.trim() ? v : fallback;
@@ -126,7 +130,7 @@ export function StudioTemplate({ business, services, hours, theme, content, isEd
               <Image src={profileSrc || ""} alt={bizName} fill className="object-cover" sizes="96px" />
             </div>
             <div className="min-w-0 flex-1 basis-full md:basis-0">
-              <h2 className="text-xl font-semibold" style={{ fontFamily: displayFont }}>{bizName}</h2>
+              <h2 className="text-xl font-semibold" style={{ fontFamily: displayFont }}>{bizName}{verified && <VerifiedBadge />}</h2>
               <p className="mt-1 text-sm" style={{ color: surfaceMuted }}>{bizTagline}</p>
               <div data-oyrb-keep-color className="mt-2 flex flex-wrap gap-4 text-xs" style={{ color: accent }}>
                 <span data-oyrb-keep-color className="flex min-w-0 items-center gap-1"><MapPin size={12} className="shrink-0" /> <span data-oyrb-keep-color className="truncate">{bizLocation}</span></span>
