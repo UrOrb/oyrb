@@ -5,6 +5,7 @@ import { SettingsForm } from "./settings-form";
 import { PlanChangeForm } from "./plan-change-form";
 import { EndTrialButton } from "./end-trial-button";
 import { GoalForm } from "./goal-form";
+import { IdentityCard } from "./identity-card";
 import { getCurrentBusiness } from "@/lib/current-site";
 import { getAccountSummary } from "@/lib/account";
 import { ensureGoalSettings } from "@/lib/goal-tracking";
@@ -17,7 +18,7 @@ import {
 } from "@/lib/plans";
 
 interface Props {
-  searchParams: Promise<{ siteId?: string }>;
+  searchParams: Promise<{ siteId?: string; identity?: string }>;
 }
 
 export default async function SettingsPage({ searchParams }: Props) {
@@ -25,10 +26,27 @@ export default async function SettingsPage({ searchParams }: Props) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { siteId } = await searchParams;
+  const { siteId, identity: identityParam } = await searchParams;
   const business = await getCurrentBusiness(siteId);
   const account = await getAccountSummary();
   const goalSettings = await ensureGoalSettings(user.id);
+
+  // Fresh read for the identity columns — getCurrentBusiness's snapshot
+  // may not reflect the latest webhook-applied state.
+  const identityRow = business
+    ? await supabase
+        .from("businesses")
+        .select(
+          "identity_verification_status, identity_verified_at, identity_last_attempted_at",
+        )
+        .eq("id", business.id)
+        .maybeSingle()
+        .then((r) => r.data as {
+          identity_verification_status: string | null;
+          identity_verified_at: string | null;
+          identity_last_attempted_at: string | null;
+        } | null)
+    : null;
 
   if (!business) {
     return (
@@ -93,6 +111,17 @@ export default async function SettingsPage({ searchParams }: Props) {
           Manage listing →
         </Link>
       </div>
+
+      {/* Identity verification — optional Stripe-hosted ID check. The
+          ✓ Verified badge lights up on the storefront on success. Never
+          a gate; status display only. */}
+      <IdentityCard
+        status={(identityRow?.identity_verification_status ?? "none") as
+          | "none" | "pending" | "verified" | "requires_input" | "failed"}
+        verifiedAt={identityRow?.identity_verified_at ?? null}
+        lastAttemptedAt={identityRow?.identity_last_attempted_at ?? null}
+        showProcessingBanner={identityParam === "processing"}
+      />
 
       {/* Goal tracking — lives at anchor #goal so the dashboard's "Edit"
           link jumps straight here. */}

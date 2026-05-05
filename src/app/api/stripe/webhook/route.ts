@@ -316,6 +316,43 @@ export async function POST(request: Request) {
       }
       break;
     }
+
+    // ── Stripe Identity (Phase 1.4) ────────────────────────────────────
+    // Pros opt into identity verification from /dashboard/settings. The
+    // start route stamps identity_verification_session_id on the row;
+    // these three branches advance status when Stripe finishes
+    // processing. Identity is never a gate — these handlers only update
+    // the badge state. Idempotency is provided by the same
+    // processed_webhook_events ledger that wraps every other branch.
+    case "identity.verification_session.verified": {
+      const session = event.data.object as Stripe.Identity.VerificationSession;
+      await supabase
+        .from("businesses")
+        .update({
+          identity_verification_status: "verified",
+          identity_verified_at: new Date().toISOString(),
+        })
+        .eq("identity_verification_session_id", session.id);
+      break;
+    }
+
+    case "identity.verification_session.requires_input": {
+      const session = event.data.object as Stripe.Identity.VerificationSession;
+      await supabase
+        .from("businesses")
+        .update({ identity_verification_status: "requires_input" })
+        .eq("identity_verification_session_id", session.id);
+      break;
+    }
+
+    case "identity.verification_session.canceled": {
+      const session = event.data.object as Stripe.Identity.VerificationSession;
+      await supabase
+        .from("businesses")
+        .update({ identity_verification_status: "failed" })
+        .eq("identity_verification_session_id", session.id);
+      break;
+    }
     }
 
     await markEventCompleted(event.id, true);

@@ -7,6 +7,7 @@ import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
 import { PlatformCredit } from "@/components/templates/platform-credit";
 import { ReviewsCarousel, type CarouselReview } from "@/components/templates/reviews-carousel";
 import { ProsITrust, type TrustedProsTemplateProps } from "@/components/storefront/pros-i-trust";
+import { VerifiedBadge } from "@/components/storefront/verified-badge";
 import type { SampleBusiness, SampleService, SampleHour } from "@/lib/sample-data";
 
 interface LuxeTemplateProps extends TrustedProsTemplateProps {
@@ -18,6 +19,8 @@ interface LuxeTemplateProps extends TrustedProsTemplateProps {
   /** See Studio template for policy note. */
   isEditorPreview?: boolean;
   reviews?: CarouselReview[];
+  /** Stripe Identity verified flag (Phase 1.4). */
+  verified?: boolean;
 }
 
 function formatPrice(cents: number) { return `$${(cents / 100).toFixed(0)}`; }
@@ -31,7 +34,7 @@ function formatTime(t: string) {
   return `${h % 12 || 12}:${m.toString().padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
 
-export function LuxeTemplate({ business, services, hours, theme, content, isEditorPreview, reviews, trustedPros, referrerSlug, showTrustedPros }: LuxeTemplateProps) {
+export function LuxeTemplate({ business, services, hours, theme, content, isEditorPreview, reviews, trustedPros, referrerSlug, showTrustedPros, verified }: LuxeTemplateProps) {
   const c = (key: string, fallback: string): string => {
     const v = content?.[key];
     return typeof v === "string" && v.trim() ? v : fallback;
@@ -90,6 +93,7 @@ export function LuxeTemplate({ business, services, hours, theme, content, isEdit
             style={{ fontFamily: displayFont, fontWeight: displayWeight }}
           >
             {bizName}
+            {verified && <VerifiedBadge size="md" />}
           </h1>
           <p className="mt-3 text-lg italic text-white/80" style={{ fontFamily: displayFont }}>
             {bizTagline}

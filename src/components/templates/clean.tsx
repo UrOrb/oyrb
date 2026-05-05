@@ -7,6 +7,7 @@ import { unsplash, SAMPLE_HOURS, isStockImageUrl } from "@/lib/template-images";
 import { PlatformCredit } from "@/components/templates/platform-credit";
 import { ReviewsCarousel, type CarouselReview } from "@/components/templates/reviews-carousel";
 import { ProsITrust, type TrustedProsTemplateProps } from "@/components/storefront/pros-i-trust";
+import { VerifiedBadge } from "@/components/storefront/verified-badge";
 import type { SampleBusiness, SampleService, SampleHour } from "@/lib/sample-data";
 
 interface CleanTemplateProps extends TrustedProsTemplateProps {
@@ -18,6 +19,8 @@ interface CleanTemplateProps extends TrustedProsTemplateProps {
   /** See Studio template for policy note. */
   isEditorPreview?: boolean;
   reviews?: CarouselReview[];
+  /** Stripe Identity verified flag (Phase 1.4). */
+  verified?: boolean;
 }
 
 function formatPrice(cents: number) { return `$${(cents / 100).toFixed(0)}`; }
@@ -31,7 +34,7 @@ function formatTime(t: string) {
   return `${h % 12 || 12}:${m.toString().padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
 
-export function CleanTemplate({ business, services, hours, theme, content, isEditorPreview, reviews, trustedPros, referrerSlug, showTrustedPros }: CleanTemplateProps) {
+export function CleanTemplate({ business, services, hours, theme, content, isEditorPreview, reviews, trustedPros, referrerSlug, showTrustedPros, verified }: CleanTemplateProps) {
   const c = (key: string, fallback: string): string => {
     const v = content?.[key];
     return typeof v === "string" && v.trim() ? v : fallback;
@@ -88,7 +91,7 @@ export function CleanTemplate({ business, services, hours, theme, content, isEdi
               <Image src={profileSrc || ""} alt={bizName} fill className="object-cover" sizes="48px" />
             </div>
             <div>
-              <h1 className="text-base font-semibold leading-tight" style={{ fontFamily: displayFont }}>{bizName}</h1>
+              <h1 className="text-base font-semibold leading-tight" style={{ fontFamily: displayFont }}>{bizName}{verified && <VerifiedBadge />}</h1>
               <p className="text-xs" style={{ color: muted }}>{bizTagline}</p>
             </div>
           </div>
