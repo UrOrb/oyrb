@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { resolveToken } from "@/lib/booking-tokens";
-import { resend } from "@/lib/email";
+import { resend, logEmailSendResult } from "@/lib/email";
 import { getFromAddress, EmailPurpose, DEFAULT_REPLY_TO } from "@/lib/email-from";
 import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
 
@@ -179,25 +179,35 @@ export async function POST(request: NextRequest) {
   const bookingUrl = `${APP_URL}/booking/${resolved.token}`;
 
   if (resend) {
+    // Capture narrowed joins into locals so the inner async IIFEs below
+    // don't lose the non-null guarantee from line 84's check.
+    const services = booking.services;
+    const businesses = booking.businesses;
+    const clients = booking.clients;
+    const businessId = booking.business_id;
+    const bookingIdLocal = booking.id;
+
     // Resolve owner email for the pro notification
-    let ownerEmail = booking.businesses.contact_email;
+    let ownerEmail = businesses.contact_email;
     if (!ownerEmail) {
-      const { data: auth } = await supabase.auth.admin.getUserById(booking.businesses.owner_id);
+      const { data: auth } = await supabase.auth.admin.getUserById(businesses.owner_id);
       ownerEmail = auth?.user?.email ?? null;
     }
 
     const tasks: Promise<unknown>[] = [];
-    if (booking.clients.email) {
+    if (clients.email) {
+      const clientEmailAddr = clients.email;
       tasks.push(
-        resend.emails.send({
-          from: getFromAddress(EmailPurpose.BOOKING),
-          replyTo: DEFAULT_REPLY_TO,
-          to: booking.clients.email,
-          subject: `Rescheduled: ${booking.services.name} with ${booking.businesses.business_name}`,
+        (async () => {
+          const result = await resend.emails.send({
+            from: getFromAddress(EmailPurpose.BOOKING),
+            replyTo: DEFAULT_REPLY_TO,
+            to: clientEmailAddr,
+            subject: `Rescheduled: ${services.name} with ${businesses.business_name}`,
           html: `
             <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
               <p style="color:#B8896B;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Reschedule confirmed ✦</p>
-              <h1 style="font-size:24px;font-weight:600;margin:0 0 12px;">New time locked in, ${booking.clients.name}.</h1>
+              <h1 style="font-size:24px;font-weight:600;margin:0 0 12px;">New time locked in, ${clients.name}.</h1>
               <div style="background:#FAFAF9;border:1px solid #E7E5E4;border-radius:12px;padding:20px;margin:20px 0;">
                 <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">New time</p>
                 <p style="margin:0 0 14px;font-size:16px;font-weight:600;">${whenLabel}</p>
@@ -210,22 +220,37 @@ export async function POST(request: NextRequest) {
               </p>
             </div>
           `,
-        }).catch((e) => console.error("Reschedule client email failed:", e)),
+          }).catch((e) => {
+            console.error("Reschedule client email failed:", e);
+            return null;
+          });
+          if (result) {
+            await logEmailSendResult(result, {
+              businessId,
+              bookingId: bookingIdLocal,
+              recipientType: "client",
+              purpose: "booking_rescheduled",
+              recipientAddress: clientEmailAddr,
+            });
+          }
+        })(),
       );
     }
     if (ownerEmail) {
+      const proEmailAddr = ownerEmail;
       tasks.push(
-        resend.emails.send({
-          from: getFromAddress(EmailPurpose.BOOKING),
-          to: ownerEmail,
-          subject: `${booking.clients.name} rescheduled — ${booking.services.name}`,
+        (async () => {
+          const result = await resend.emails.send({
+            from: getFromAddress(EmailPurpose.BOOKING),
+            to: proEmailAddr,
+            subject: `${clients.name} rescheduled — ${services.name}`,
           html: `
             <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
               <p style="color:#B8896B;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Reschedule notice</p>
-              <h1 style="font-size:22px;font-weight:600;margin:0 0 12px;">${booking.clients.name} moved their booking.</h1>
+              <h1 style="font-size:22px;font-weight:600;margin:0 0 12px;">${clients.name} moved their booking.</h1>
               <div style="background:#FAFAF9;border:1px solid #E7E5E4;border-radius:12px;padding:20px;margin:20px 0;">
                 <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Service</p>
-                <p style="margin:0 0 14px;font-size:14px;font-weight:600;">${booking.services.name}</p>
+                <p style="margin:0 0 14px;font-size:14px;font-weight:600;">${services.name}</p>
                 <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">New time</p>
                 <p style="margin:0 0 14px;font-size:16px;font-weight:600;">${whenLabel}</p>
                 <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Previously</p>
@@ -234,7 +259,20 @@ export async function POST(request: NextRequest) {
               <a href="${APP_URL}/dashboard/bookings" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;">Open dashboard</a>
             </div>
           `,
-        }).catch((e) => console.error("Reschedule owner email failed:", e)),
+          }).catch((e) => {
+            console.error("Reschedule owner email failed:", e);
+            return null;
+          });
+          if (result) {
+            await logEmailSendResult(result, {
+              businessId,
+              bookingId: bookingIdLocal,
+              recipientType: "pro",
+              purpose: "owner_reschedule_alert",
+              recipientAddress: proEmailAddr,
+            });
+          }
+        })(),
       );
     }
     await Promise.all(tasks);

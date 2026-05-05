@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { resend } from "@/lib/email";
+import { resend, logEmailSendResult } from "@/lib/email";
 import { getFromAddress, EmailPurpose, DEFAULT_REPLY_TO } from "@/lib/email-from";
 import { sendSms, tierAllowsSms } from "@/lib/sms";
 import { issueBookingToken } from "@/lib/booking-tokens";
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       business_id,
       services(name, price_cents),
       clients(name, email, phone, sms_consent),
-      businesses(business_name, slug, phone, subscription_tier)
+      businesses(id, business_name, slug, phone, subscription_tier)
     `)
     .eq("status", "confirmed")
     .is("reminder_sent_at", null)
@@ -67,6 +67,7 @@ export async function GET(request: NextRequest) {
         sms_consent: boolean;
       } | null;
       businesses: {
+        id: string;
         business_name: string;
         slug: string;
         phone: string | null;
@@ -92,11 +93,12 @@ export async function GET(request: NextRequest) {
 
     // Email reminder — every tier
     if (client.email && resend) {
+      const reminderEmailAddr = client.email;
       try {
-        await resend.emails.send({
+        const result = await resend.emails.send({
           from: getFromAddress(EmailPurpose.BOOKING),
           replyTo: DEFAULT_REPLY_TO,
-          to: client.email,
+          to: reminderEmailAddr,
           subject: `Reminder: ${svc.name} tomorrow with ${biz.business_name}`,
           html: `
             <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
@@ -118,6 +120,13 @@ export async function GET(request: NextRequest) {
             </div>
           `,
         });
+        await logEmailSendResult(result, {
+          businessId: biz.id,
+          bookingId: booking.id,
+          recipientType: "client",
+          purpose: "booking_reminder_24h",
+          recipientAddress: reminderEmailAddr,
+        });
         emailed = true;
       } catch (err) {
         console.error("Email reminder failed:", err);
@@ -131,7 +140,14 @@ export async function GET(request: NextRequest) {
       tierAllowsSms(biz.subscription_tier)
     ) {
       const smsBody = `${biz.business_name}: Reminder — ${svc.name} tomorrow at ${whenLabel}. Reply to this text to reschedule.`;
-      const r = await sendSms({ to: client.phone, body: smsBody });
+      const r = await sendSms({
+        to: client.phone,
+        body: smsBody,
+        businessId: biz.id,
+        bookingId: booking.id,
+        purpose: "booking_reminder_24h",
+        recipientType: "client",
+      });
       if (r.ok) texted = true;
     }
 
@@ -188,11 +204,12 @@ export async function GET(request: NextRequest) {
 
     const reviewUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://www.oyrb.space"}/booking/${tk.token}/review`;
 
+    const reviewEmailAddr = b.clients.email;
     try {
-      await resend.emails.send({
+      const result = await resend.emails.send({
         from: getFromAddress(EmailPurpose.FEEDBACK),
         replyTo: DEFAULT_REPLY_TO,
-        to: b.clients.email,
+        to: reviewEmailAddr,
         subject: `How was your ${b.services.name} with ${b.businesses.business_name}?`,
         html: `
           <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
@@ -203,6 +220,13 @@ export async function GET(request: NextRequest) {
             <p style="color:#A3A3A3;font-size:12px;margin:24px 0 0;">Takes about 30 seconds. You&apos;ll be shown by first name + last initial. Reviews publish 24 hours after you submit.</p>
           </div>
         `,
+      });
+      await logEmailSendResult(result, {
+        businessId: b.business_id,
+        bookingId: b.id,
+        recipientType: "client",
+        purpose: "review_request",
+        recipientAddress: reviewEmailAddr,
       });
       await supabase
         .from("bookings")

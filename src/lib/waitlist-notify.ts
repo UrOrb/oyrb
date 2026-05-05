@@ -6,6 +6,7 @@ import { getFromAddress, EmailPurpose, DEFAULT_REPLY_TO } from "./email-from";
 import { sendSms, tierAllowsSms } from "./sms";
 
 type Biz = {
+  id: string;
   business_name: string;
   slug: string;
   subscription_tier: string;
@@ -28,7 +29,7 @@ export async function notifyWaitlistOnCancellation(params: {
 
   const { data: bizRaw } = await supabase
     .from("businesses")
-    .select("business_name, slug, subscription_tier")
+    .select("id, business_name, slug, subscription_tier")
     .eq("id", businessId)
     .maybeSingle();
   if (!bizRaw) return { notified: 0 };
@@ -97,6 +98,9 @@ export async function notifyWaitlistOnCancellation(params: {
       await sendSms({
         to: entry.client_phone,
         body: `${biz.business_name}: A spot just opened — ${whenLabel}. Book now: ${siteUrl}`,
+        businessId: biz.id,
+        purpose: "waitlist_alert",
+        recipientType: "client",
       });
     }
 
