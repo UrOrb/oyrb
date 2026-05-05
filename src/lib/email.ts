@@ -504,3 +504,175 @@ export async function sendReferralInviteEmail(
     console.error("Failed to send referral invite email", err);
   }
 }
+
+// ── Subscription billing lifecycle (Phase 1.2) ──────────────────────────
+//
+// Three reminders that escalate when a pro's recurring charge fails:
+//   1. T-3 pre-billing reminder (only for status='active'; trialing pros
+//      already get a separate ladder via sendTrialReminder).
+//   2. T+0 payment-failed (fired from the Stripe webhook — gives the pro
+//      ~2 days to update their card before the storefront unpublishes).
+//   3. T+1 grace-expiring (fired by the daily cron the day before the
+//      grace window ends).
+//
+// All three land at billing@oyrb.space (EmailPurpose.PAYMENT) and CTA to
+// /dashboard/billing-pending so the pro hits a single page with the live
+// status + the "Update payment method" button. Linking directly to
+// /api/stripe/portal from email would 401 unauthenticated clicks; the
+// dashboard page handles the auth flow gracefully and lands the user in
+// the same place after login.
+
+const fmtCents = (c: number) => `$${(c / 100).toFixed(c % 100 === 0 ? 0 : 2)}`;
+
+const fmtDay = (d: Date) =>
+  d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+
+const fmtDayTime = (d: Date) =>
+  d.toLocaleString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+function billingFooter(): string {
+  return `
+    <p style="color:#A3A3A3;font-size:11px;line-height:1.5;margin:24px 0 0;border-top:1px solid #E7E5E4;padding-top:16px;">
+      Need help? Reply to this email or write to <a href="mailto:support@oyrb.space" style="color:#737373;">support@oyrb.space</a>.
+      You&apos;re receiving this because your OYRB subscription requires attention.
+    </p>
+  `;
+}
+
+export async function sendPreBillingReminder(params: {
+  to: string;
+  /** Optional — cron path doesn't have the upcoming invoice in hand and
+   *  reading it from Stripe per-subscription would burn API quota. When
+   *  omitted the email reads "the card on file will be charged" without
+   *  a dollar figure. */
+  amountCents?: number | null;
+  chargeAt: Date;
+  tier: string;
+}) {
+  if (!resend) return;
+  const { to, amountCents, chargeAt, tier } = params;
+  const billingPendingUrl = `${APP_URL}/dashboard/billing-pending`;
+  const portalUrl = `${APP_URL}/api/stripe/portal`;
+  const amountSentence =
+    amountCents != null && amountCents > 0
+      ? `We&apos;ll charge ${fmtCents(amountCents)} to the card on file.`
+      : `The card on file will be charged automatically.`;
+
+  try {
+    await resend.emails.send({
+      from: getFromAddress(EmailPurpose.PAYMENT),
+      replyTo: DEFAULT_REPLY_TO,
+      to,
+      subject: `Heads-up — your OYRB ${tier} renews ${fmtDay(chargeAt)}`,
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
+          <p style="color:#737373;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Upcoming charge</p>
+          <h1 style="font-size:24px;font-weight:600;margin:0 0 12px;">A friendly heads-up.</h1>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 16px;">
+            Your OYRB ${tier} subscription renews on ${fmtDay(chargeAt)}. ${amountSentence}
+          </p>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 20px;">
+            If your card is current, no action needed — this is just a heads-up. If you need to update it, do that anytime before the renewal:
+          </p>
+          <a href="${portalUrl}" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:600;">Update payment method</a>
+          <p style="color:#A3A3A3;font-size:12px;margin:18px 0 0;">
+            Or check your billing status anytime at <a href="${billingPendingUrl}" style="color:#737373;">${billingPendingUrl.replace(/^https?:\/\//, "")}</a>.
+          </p>
+          ${billingFooter()}
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error("Failed to send pre-billing reminder", err);
+  }
+}
+
+export async function sendPaymentFailed(params: {
+  to: string;
+  amountCents: number;
+  attemptedAt: Date;
+  graceEndsAt: Date;
+  tier: string;
+}) {
+  if (!resend) return;
+  const { to, amountCents, attemptedAt, graceEndsAt, tier } = params;
+  const billingPendingUrl = `${APP_URL}/dashboard/billing-pending`;
+
+  try {
+    await resend.emails.send({
+      from: getFromAddress(EmailPurpose.PAYMENT),
+      replyTo: DEFAULT_REPLY_TO,
+      to,
+      subject: `Payment didn&apos;t go through — please update your card`,
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
+          <p style="color:#B45309;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Payment failed</p>
+          <h1 style="font-size:24px;font-weight:600;margin:0 0 12px;">Your card was declined.</h1>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 16px;">
+            We tried to charge ${fmtCents(amountCents)} for your OYRB ${tier} subscription on ${fmtDay(attemptedAt)} and the card was declined.
+          </p>
+          <div style="background:#FFFBEB;border:1px solid #FCD34D;border-radius:12px;padding:16px 18px;margin:20px 0;">
+            <p style="margin:0 0 6px;color:#78350F;font-size:13px;font-weight:600;">Your storefront is still live.</p>
+            <p style="margin:0;color:#78350F;font-size:13px;line-height:1.5;">
+              You have until <strong>${fmtDayTime(graceEndsAt)}</strong> to update your payment method. After that, your booking site will be unpublished until billing is current. Your data is safe either way — nothing gets deleted.
+            </p>
+          </div>
+          <a href="${billingPendingUrl}" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:600;">Update payment method</a>
+          ${billingFooter()}
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error("Failed to send payment-failed email", err);
+  }
+}
+
+export async function sendGraceExpiring(params: {
+  to: string;
+  /** Optional — cron doesn't load the original failed invoice. Email reads
+   *  "your card was declined" without an amount when omitted. */
+  amountCents?: number | null;
+  graceEndsAt: Date;
+  tier: string;
+}) {
+  if (!resend) return;
+  const { to, amountCents, graceEndsAt, tier } = params;
+  const billingPendingUrl = `${APP_URL}/dashboard/billing-pending`;
+  const amountSentence =
+    amountCents != null && amountCents > 0
+      ? `We tried to charge ${fmtCents(amountCents)} and the card was declined.`
+      : `Your card was declined.`;
+
+  try {
+    await resend.emails.send({
+      from: getFromAddress(EmailPurpose.PAYMENT),
+      replyTo: DEFAULT_REPLY_TO,
+      to,
+      subject: `Last day — your OYRB site will be unpublished tomorrow`,
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
+          <p style="color:#B91C1C;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Final notice</p>
+          <h1 style="font-size:24px;font-weight:600;margin:0 0 12px;">Your storefront unpublishes ${fmtDay(graceEndsAt)}.</h1>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 16px;">
+            Your OYRB ${tier} subscription is still past due. ${amountSentence} Your grace window ends ${fmtDayTime(graceEndsAt)}.
+          </p>
+          <div style="background:#FEF2F2;border:1px solid #FCA5A5;border-radius:12px;padding:16px 18px;margin:20px 0;">
+            <p style="margin:0;color:#7F1D1D;font-size:13px;line-height:1.5;">
+              After that, your booking site at oyrb.space will be unpublished and clients won&apos;t be able to book new appointments. Existing bookings are preserved. Update your card any time and your storefront re-publishes automatically — nothing manual to do.
+            </p>
+          </div>
+          <a href="${billingPendingUrl}" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:600;">Update payment method now</a>
+          ${billingFooter()}
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error("Failed to send grace-expiring email", err);
+  }
+}

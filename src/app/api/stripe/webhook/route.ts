@@ -7,8 +7,12 @@ import { sendTrialReminder } from "@/lib/trial-emails";
 import { handlePayInFullCompleted } from "@/lib/pay-in-full";
 import { handleGiftCardCompleted } from "@/lib/gift-cards";
 import { checkAndReserveEvent, markEventCompleted } from "@/lib/webhook-idempotency";
+import { sendPaymentFailed } from "@/lib/email";
 import type { Tier, BillingCycle } from "@/lib/plans";
 import type Stripe from "stripe";
+
+const GRACE_PERIOD_MS = 2 * 24 * 60 * 60 * 1000;
+const tierLabel = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
 /**
  * Stripe webhook → account_subscriptions sync. The handler is idempotent:
@@ -188,6 +192,15 @@ export async function POST(request: Request) {
       if (!userId) break;
       const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer?.id ?? "";
       await syncSubscriptionRow(supabase, userId, customerId, sub);
+
+      // Past-due transition: NULL-guarded clock start. Idempotent — runs
+      // alongside invoice.payment_failed without double-setting timestamps.
+      // The email is fired from invoice.payment_failed (which carries the
+      // failed amount); this branch just guarantees the grace clock starts
+      // even if Stripe drops or reorders the invoice event.
+      if (sub.status === "past_due") {
+        await markSubscriptionPastDue(supabase, sub.id);
+      }
       break;
     }
 
@@ -261,14 +274,17 @@ export async function POST(request: Request) {
       const subscriptionId = (inv as unknown as { subscription?: string | null }).subscription;
       if (!subscriptionId) break;
       const periodEnd = inv.lines.data[0]?.period?.end;
-      await supabase
-        .from("account_subscriptions")
-        .update({
-          status: "active",
-          current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("stripe_subscription_id", subscriptionId);
+
+      // Recovery path. Clears the past-due/grace columns AND re-publishes
+      // any business that the cron unpublished due to expired grace. We
+      // only re-publish rows the cron itself paused (unpublished_for_billing_at
+      // IS NOT NULL) so we don't accidentally re-flip a storefront the pro
+      // unpublished by hand.
+      await clearPastDueAndRepublish(
+        supabase,
+        subscriptionId,
+        periodEnd ? new Date(periodEnd * 1000) : null,
+      );
       break;
     }
 
@@ -276,10 +292,28 @@ export async function POST(request: Request) {
       const inv = event.data.object as Stripe.Invoice;
       const subscriptionId = (inv as unknown as { subscription?: string | null }).subscription;
       if (!subscriptionId) break;
-      await supabase
-        .from("account_subscriptions")
-        .update({ status: "past_due", updated_at: new Date().toISOString() })
-        .eq("stripe_subscription_id", subscriptionId);
+
+      const transition = await markSubscriptionPastDue(supabase, subscriptionId);
+      // Fire the customer-facing email exactly once per failure cycle —
+      // the NULL guard inside markSubscriptionPastDue ensures Stripe's
+      // smart-retry storms (multiple invoice.payment_failed events per
+      // invoice) don't double-send.
+      if (transition?.firstFailure && transition.userId) {
+        const { data: { user } } = await supabase.auth.admin.getUserById(transition.userId);
+        if (user?.email) {
+          try {
+            await sendPaymentFailed({
+              to: user.email,
+              amountCents: inv.amount_due ?? 0,
+              attemptedAt: new Date(),
+              graceEndsAt: transition.graceEndsAt,
+              tier: tierLabel(transition.tier),
+            });
+          } catch (err) {
+            console.error("payment-failed email failed:", err);
+          }
+        }
+      }
       break;
     }
     }
@@ -397,6 +431,100 @@ function mapStatus(s: Stripe.Subscription.Status):
   if (s === "past_due") return "past_due";
   if (s === "canceled" || s === "unpaid") return "cancelled";
   return "incomplete";
+}
+
+/**
+ * NULL-guarded past-due transition. Sets past_due_since + grace_period_ends_at
+ * the first time the subscription enters a failure cycle and leaves them
+ * untouched on subsequent invoice.payment_failed retries (Stripe smart retry
+ * fires the event multiple times per invoice). Returns enough context for
+ * the caller to send the failure email.
+ *
+ * Idempotency model: the column-level NULL check makes this safe to call
+ * from BOTH invoice.payment_failed and customer.subscription.updated; the
+ * second caller's update no-ops on the timestamp columns.
+ */
+async function markSubscriptionPastDue(
+  supabase: ReturnType<typeof createAdminClient>,
+  subscriptionId: string,
+): Promise<{
+  firstFailure: boolean;
+  userId: string;
+  graceEndsAt: Date;
+  tier: string;
+} | null> {
+  const { data: row } = await supabase
+    .from("account_subscriptions")
+    .select("user_id, tier, past_due_since, grace_period_ends_at")
+    .eq("stripe_subscription_id", subscriptionId)
+    .maybeSingle();
+  if (!row) return null;
+
+  const now = new Date();
+  const firstFailure = row.past_due_since == null;
+  const graceEndsAt = firstFailure
+    ? new Date(now.getTime() + GRACE_PERIOD_MS)
+    : new Date(row.grace_period_ends_at as string);
+
+  const update: Record<string, unknown> = {
+    status: "past_due",
+    updated_at: now.toISOString(),
+  };
+  if (firstFailure) {
+    update.past_due_since = now.toISOString();
+    update.grace_period_ends_at = graceEndsAt.toISOString();
+  }
+  await supabase
+    .from("account_subscriptions")
+    .update(update)
+    .eq("stripe_subscription_id", subscriptionId);
+
+  return {
+    firstFailure,
+    userId: row.user_id as string,
+    graceEndsAt,
+    tier: row.tier as string,
+  };
+}
+
+/**
+ * Recovery path on invoice.payment_succeeded. Clears all past-due tracking
+ * columns and re-publishes any business that the cron auto-paused. We
+ * only flip is_published=true for rows where unpublished_for_billing_at
+ * IS NOT NULL — this protects storefronts the pro deliberately unpublished
+ * by hand from getting silently re-flipped.
+ */
+async function clearPastDueAndRepublish(
+  supabase: ReturnType<typeof createAdminClient>,
+  subscriptionId: string,
+  newPeriodEnd: Date | null,
+): Promise<void> {
+  const nowIso = new Date().toISOString();
+
+  const { data: row } = await supabase
+    .from("account_subscriptions")
+    .select("user_id")
+    .eq("stripe_subscription_id", subscriptionId)
+    .maybeSingle();
+
+  await supabase
+    .from("account_subscriptions")
+    .update({
+      status: "active",
+      current_period_end: newPeriodEnd ? newPeriodEnd.toISOString() : null,
+      past_due_since: null,
+      grace_period_ends_at: null,
+      last_warning_sent_at: null,
+      updated_at: nowIso,
+    })
+    .eq("stripe_subscription_id", subscriptionId);
+
+  if (!row?.user_id) return;
+  await supabase
+    .from("businesses")
+    .update({ is_published: true, unpublished_for_billing_at: null })
+    .eq("owner_id", row.user_id)
+    .not("unpublished_for_billing_at", "is", null);
 }
 
 async function ensureFirstBusiness(

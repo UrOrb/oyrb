@@ -39,6 +39,29 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
+  // Subscription gate (Phase 1.2). Past-due pros keep full dashboard access
+  // during the 2-day grace window — only AFTER grace expires do we redirect
+  // them to /dashboard/billing-pending. The billing-pending page itself is
+  // exempt so the redirect target is reachable.
+  if (user && request.nextUrl.pathname.startsWith("/dashboard")) {
+    const isBillingPending = request.nextUrl.pathname.startsWith("/dashboard/billing-pending");
+    if (!isBillingPending) {
+      const { data: sub } = await supabase
+        .from("account_subscriptions")
+        .select("status, grace_period_ends_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (
+        sub?.status === "past_due" &&
+        sub.grace_period_ends_at &&
+        new Date(sub.grace_period_ends_at) < new Date()
+      ) {
+        return NextResponse.redirect(new URL("/dashboard/billing-pending", request.url));
+      }
+    }
+  }
+
   return supabaseResponse;
 }
 
