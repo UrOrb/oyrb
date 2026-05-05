@@ -105,6 +105,8 @@ export async function notifyBookingConfirmed(args: NotifyBookingArgs): Promise<{
 
   await sendBookingConfirmation({
     to: args.customerEmail,
+    businessId: args.businessId,
+    bookingId: args.bookingId,
     customerName: args.customerName,
     businessName: args.businessName,
     serviceName: args.serviceName,
@@ -134,7 +136,14 @@ export async function notifyBookingConfirmed(args: NotifyBookingArgs): Promise<{
     });
     const linkBit = primaryToken ? ` Details: ${shortLink(primaryToken)}` : "";
     const body = `${args.businessName}: Booking confirmed — ${args.serviceName} on ${whenLabel}.${linkBit} Reply STOP to opt out.`;
-    await sendSms({ to: args.customerPhone, body }).catch((err) => {
+    await sendSms({
+      to: args.customerPhone,
+      body,
+      businessId: args.businessId,
+      bookingId: args.bookingId,
+      purpose: "booking_confirmation",
+      recipientType: "client",
+    }).catch((err) => {
       console.error("Confirmation SMS failed:", err);
     });
   }

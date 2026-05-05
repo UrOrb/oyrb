@@ -84,7 +84,7 @@ export async function handlePayInFullCompleted(
   const { data: bookingData } = await supabase
     .from("bookings")
     .select(`
-      id, start_at, deposit_paid,
+      id, business_id, start_at, deposit_paid,
       services(name, price_cents, deposit_cents),
       clients(name, email),
       businesses(business_name, slug, contact_email, owner_id)
@@ -93,6 +93,7 @@ export async function handlePayInFullCompleted(
     .maybeSingle();
   const booking = bookingData as unknown as {
     id: string;
+    business_id: string;
     start_at: string;
     deposit_paid: boolean | null;
     services: { name: string; price_cents: number; deposit_cents: number | null } | null;
@@ -113,6 +114,8 @@ export async function handlePayInFullCompleted(
   if (booking.clients.email) {
     await sendPaymentReceived({
       to: booking.clients.email,
+      businessId: booking.business_id,
+      bookingId: booking.id,
       customerName: booking.clients.name,
       businessName: booking.businesses.business_name,
       serviceName: booking.services.name,

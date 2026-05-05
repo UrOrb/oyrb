@@ -1,11 +1,54 @@
 import { Resend } from "resend";
 import { getFromAddress, EmailPurpose, DEFAULT_REPLY_TO } from "@/lib/email-from";
+import { logNotification, type LogRecipientType } from "@/lib/notification-log";
 
 export const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.oyrb.space";
+
+/**
+ * After every resend.emails.send() call, log the outcome to notification_log
+ * so the booking timeline (and any future ops view) sees exactly what
+ * went out and how it landed at Resend's edge.
+ *
+ * Resend SDK returns { data: { id }, error } — successful sends carry the
+ * id (used by the Resend Svix webhook to update delivery status later).
+ * Failures land here with status='failed' + the error name/message in
+ * status_detail. The log call is failure-tolerant — a transient supabase
+ * blip never blocks the surrounding send.
+ */
+export async function logEmailSendResult(
+  result:
+    | { data: { id: string } | null; error: { name?: string; message?: string } | null }
+    | null
+    | undefined,
+  logArgs: {
+    businessId?: string | null;
+    bookingId?: string | null;
+    recipientType: LogRecipientType;
+    purpose: string;
+    recipientAddress: string;
+  },
+) {
+  if (!result) return;
+  if (result.error) {
+    await logNotification({
+      ...logArgs,
+      channel: "email",
+      status: "failed",
+      statusDetail: `resend_${result.error.name ?? "error"}: ${(result.error.message ?? "").slice(0, 240)}`,
+    });
+    return;
+  }
+  await logNotification({
+    ...logArgs,
+    channel: "email",
+    providerMessageId: result.data?.id ?? null,
+    status: "sent",
+  });
+}
 
 export type HistoryItem = {
   token: string;        // magic link token for that booking
@@ -15,6 +58,8 @@ export type HistoryItem = {
 
 export async function sendBookingConfirmation(params: {
   to: string;
+  businessId?: string | null;
+  bookingId?: string | null;
   customerName: string;
   businessName: string;
   serviceName: string;
@@ -78,7 +123,7 @@ export async function sendBookingConfirmation(params: {
     : "";
 
   try {
-    await resend.emails.send({
+    const __sendResult = await resend.emails.send({
       from: getFromAddress(EmailPurpose.BOOKING),
       replyTo: DEFAULT_REPLY_TO,
       to,
@@ -122,6 +167,13 @@ export async function sendBookingConfirmation(params: {
         </div>
       `,
     });
+    await logEmailSendResult(__sendResult, {
+      businessId: params.businessId ?? null,
+      bookingId: params.bookingId ?? null,
+      recipientType: "client",
+      purpose: "booking_confirmation",
+      recipientAddress: to,
+    });
   } catch (err) {
     console.error("Failed to send booking confirmation", err);
   }
@@ -129,6 +181,8 @@ export async function sendBookingConfirmation(params: {
 
 export async function sendPaymentReceived(params: {
   to: string;
+  businessId?: string | null;
+  bookingId?: string | null;
   customerName: string;
   businessName: string;
   serviceName: string;
@@ -163,7 +217,7 @@ export async function sendPaymentReceived(params: {
     : `Paid ${fmt(paidAmountCents)} in full. No balance due at your appointment.`;
 
   try {
-    await resend.emails.send({
+    const __sendResult = await resend.emails.send({
       from: getFromAddress(EmailPurpose.PAYMENT),
       replyTo: DEFAULT_REPLY_TO,
       to,
@@ -188,6 +242,13 @@ export async function sendPaymentReceived(params: {
         </div>
       `,
     });
+    await logEmailSendResult(__sendResult, {
+      businessId: params.businessId ?? null,
+      bookingId: params.bookingId ?? null,
+      recipientType: "client",
+      purpose: "payment_received",
+      recipientAddress: to,
+    });
   } catch (err) {
     console.error("Failed to send payment-received email", err);
   }
@@ -195,6 +256,8 @@ export async function sendPaymentReceived(params: {
 
 export async function sendBookingCancellation(params: {
   to: string;
+  businessId?: string | null;
+  bookingId?: string | null;
   customerName: string;
   businessName: string;
   serviceName: string;
@@ -228,7 +291,7 @@ export async function sendBookingCancellation(params: {
     : "";
 
   try {
-    await resend.emails.send({
+    const __sendResult = await resend.emails.send({
       from: getFromAddress(EmailPurpose.BOOKING),
       replyTo: DEFAULT_REPLY_TO,
       to,
@@ -251,6 +314,13 @@ export async function sendBookingCancellation(params: {
         </div>
       `,
     });
+    await logEmailSendResult(__sendResult, {
+      businessId: params.businessId ?? null,
+      bookingId: params.bookingId ?? null,
+      recipientType: "client",
+      purpose: "booking_cancelled",
+      recipientAddress: to,
+    });
   } catch (err) {
     console.error("Failed to send cancellation email", err);
   }
@@ -258,6 +328,8 @@ export async function sendBookingCancellation(params: {
 
 export async function sendRebookReminder(params: {
   to: string;
+  businessId?: string | null;
+  bookingId?: string | null;
   customerName: string;
   businessName: string;
   serviceName: string;
@@ -271,7 +343,7 @@ export async function sendRebookReminder(params: {
   const unsubOneClick = `${APP_URL}/api/public/preferences/unsubscribe?token=${encodeURIComponent(preferencesToken)}&scope=rebook`;
 
   try {
-    await resend.emails.send({
+    const __sendResult = await resend.emails.send({
       from: getFromAddress(EmailPurpose.BOOKING),
       replyTo: DEFAULT_REPLY_TO,
       to,
@@ -295,6 +367,13 @@ export async function sendRebookReminder(params: {
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
       },
     });
+    await logEmailSendResult(__sendResult, {
+      businessId: params.businessId ?? null,
+      bookingId: params.bookingId ?? null,
+      recipientType: "client",
+      purpose: "rebook_reminder",
+      recipientAddress: to,
+    });
   } catch (err) {
     console.error("Failed to send rebook reminder", err);
   }
@@ -302,6 +381,8 @@ export async function sendRebookReminder(params: {
 
 export async function sendOwnerNotification(params: {
   to: string;
+  businessId?: string | null;
+  bookingId?: string | null;
   businessName: string;
   customerName: string;
   customerEmail: string;
@@ -324,7 +405,7 @@ export async function sendOwnerNotification(params: {
   });
 
   try {
-    await resend.emails.send({
+    const __sendResult = await resend.emails.send({
       from: getFromAddress(EmailPurpose.BOOKING),
       to,
       subject: `New booking: ${customerName} — ${serviceName}`,
@@ -342,6 +423,13 @@ export async function sendOwnerNotification(params: {
           <a href="${dashboardUrl}" style="display:inline-block;margin-top:20px;background:#0A0A0A;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;">View in dashboard</a>
         </div>
       `,
+    });
+    await logEmailSendResult(__sendResult, {
+      businessId: params.businessId ?? null,
+      bookingId: params.bookingId ?? null,
+      recipientType: "pro",
+      purpose: "owner_booking_alert",
+      recipientAddress: to,
     });
   } catch (err) {
     console.error("Failed to send owner notification", err);
@@ -380,7 +468,7 @@ export async function sendReferralRequestEmail(
     : "";
 
   try {
-    await resend.emails.send({
+    const __sendResult = await resend.emails.send({
       from: getFromAddress(EmailPurpose.BOOKING),
       replyTo: DEFAULT_REPLY_TO,
       to: toEmail,
@@ -403,6 +491,13 @@ export async function sendReferralRequestEmail(
         </div>
       `,
     });
+    await logEmailSendResult(__sendResult, {
+      businessId: null,
+      bookingId: null,
+      recipientType: "pro",
+      purpose: "referral_request",
+      recipientAddress: toEmail,
+    });
   } catch (err) {
     console.error("Failed to send referral request email", err);
   }
@@ -423,7 +518,7 @@ export async function sendReferralAcceptedEmail(
   if (!toEmail) return;
 
   try {
-    await resend.emails.send({
+    const __sendResult = await resend.emails.send({
       from: getFromAddress(EmailPurpose.BOOKING),
       replyTo: DEFAULT_REPLY_TO,
       to: toEmail,
@@ -441,6 +536,13 @@ export async function sendReferralAcceptedEmail(
           </p>
         </div>
       `,
+    });
+    await logEmailSendResult(__sendResult, {
+      businessId: null,
+      bookingId: null,
+      recipientType: "pro",
+      purpose: "referral_accepted",
+      recipientAddress: toEmail,
     });
   } catch (err) {
     console.error("Failed to send referral accepted email", err);
@@ -474,7 +576,7 @@ export async function sendReferralInviteEmail(
     : "";
 
   try {
-    await resend.emails.send({
+    const __sendResult = await resend.emails.send({
       from: getFromAddress(EmailPurpose.BOOKING),
       replyTo: DEFAULT_REPLY_TO,
       to: toEmail,
@@ -499,6 +601,13 @@ export async function sendReferralInviteEmail(
           </p>
         </div>
       `,
+    });
+    await logEmailSendResult(__sendResult, {
+      businessId: null,
+      bookingId: null,
+      recipientType: "pro",
+      purpose: "referral_invite",
+      recipientAddress: toEmail,
     });
   } catch (err) {
     console.error("Failed to send referral invite email", err);
@@ -547,6 +656,8 @@ function billingFooter(): string {
 
 export async function sendPreBillingReminder(params: {
   to: string;
+  businessId?: string | null;
+  bookingId?: string | null;
   /** Optional — cron path doesn't have the upcoming invoice in hand and
    *  reading it from Stripe per-subscription would burn API quota. When
    *  omitted the email reads "the card on file will be charged" without
@@ -565,7 +676,7 @@ export async function sendPreBillingReminder(params: {
       : `The card on file will be charged automatically.`;
 
   try {
-    await resend.emails.send({
+    const __sendResult = await resend.emails.send({
       from: getFromAddress(EmailPurpose.PAYMENT),
       replyTo: DEFAULT_REPLY_TO,
       to,
@@ -588,6 +699,13 @@ export async function sendPreBillingReminder(params: {
         </div>
       `,
     });
+    await logEmailSendResult(__sendResult, {
+      businessId: params.businessId ?? null,
+      bookingId: params.bookingId ?? null,
+      recipientType: "pro",
+      purpose: "pre_billing_reminder",
+      recipientAddress: to,
+    });
   } catch (err) {
     console.error("Failed to send pre-billing reminder", err);
   }
@@ -595,6 +713,8 @@ export async function sendPreBillingReminder(params: {
 
 export async function sendPaymentFailed(params: {
   to: string;
+  businessId?: string | null;
+  bookingId?: string | null;
   amountCents: number;
   attemptedAt: Date;
   graceEndsAt: Date;
@@ -605,7 +725,7 @@ export async function sendPaymentFailed(params: {
   const billingPendingUrl = `${APP_URL}/dashboard/billing-pending`;
 
   try {
-    await resend.emails.send({
+    const __sendResult = await resend.emails.send({
       from: getFromAddress(EmailPurpose.PAYMENT),
       replyTo: DEFAULT_REPLY_TO,
       to,
@@ -628,6 +748,13 @@ export async function sendPaymentFailed(params: {
         </div>
       `,
     });
+    await logEmailSendResult(__sendResult, {
+      businessId: params.businessId ?? null,
+      bookingId: params.bookingId ?? null,
+      recipientType: "pro",
+      purpose: "payment_failed",
+      recipientAddress: to,
+    });
   } catch (err) {
     console.error("Failed to send payment-failed email", err);
   }
@@ -635,6 +762,8 @@ export async function sendPaymentFailed(params: {
 
 export async function sendGraceExpiring(params: {
   to: string;
+  businessId?: string | null;
+  bookingId?: string | null;
   /** Optional — cron doesn't load the original failed invoice. Email reads
    *  "your card was declined" without an amount when omitted. */
   amountCents?: number | null;
@@ -650,7 +779,7 @@ export async function sendGraceExpiring(params: {
       : `Your card was declined.`;
 
   try {
-    await resend.emails.send({
+    const __sendResult = await resend.emails.send({
       from: getFromAddress(EmailPurpose.PAYMENT),
       replyTo: DEFAULT_REPLY_TO,
       to,
@@ -671,6 +800,13 @@ export async function sendGraceExpiring(params: {
           ${billingFooter()}
         </div>
       `,
+    });
+    await logEmailSendResult(__sendResult, {
+      businessId: params.businessId ?? null,
+      bookingId: params.bookingId ?? null,
+      recipientType: "pro",
+      purpose: "grace_expiring",
+      recipientAddress: to,
     });
   } catch (err) {
     console.error("Failed to send grace-expiring email", err);

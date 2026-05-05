@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { resolveToken } from "@/lib/booking-tokens";
 import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
-import { sendBookingCancellation, resend } from "@/lib/email";
+import { sendBookingCancellation, resend, logEmailSendResult } from "@/lib/email";
 import { getFromAddress, EmailPurpose } from "@/lib/email-from";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.oyrb.space";
@@ -92,6 +92,8 @@ export async function POST(request: NextRequest) {
       tasks.push(
         sendBookingCancellation({
           to: bookingRow.clients.email,
+          businessId: bookingRow.business_id,
+          bookingId: resolved.bookingId,
           customerName: bookingRow.clients.name,
           businessName: bookingRow.businesses.business_name,
           serviceName: bookingRow.services.name,
@@ -121,26 +123,42 @@ export async function POST(request: NextRequest) {
           minute: "2-digit",
         });
         const customerName = bookingRow.clients?.name ?? "A client";
+        const proEmailAddr = ownerEmail;
+        const serviceName = bookingRow.services.name;
         tasks.push(
-          resend.emails.send({
-            from: getFromAddress(EmailPurpose.BOOKING),
-            to: ownerEmail,
-            subject: `${customerName} cancelled — ${bookingRow.services.name}`,
-            html: `
-              <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
-                <p style="color:#B8896B;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Cancellation notice</p>
-                <h1 style="font-size:22px;font-weight:600;margin:0 0 12px;">${customerName} cancelled their booking.</h1>
-                <div style="background:#FAFAF9;border:1px solid #E7E5E4;border-radius:12px;padding:20px;margin:20px 0;">
-                  <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Service</p>
-                  <p style="margin:0 0 14px;font-size:15px;font-weight:600;">${bookingRow.services.name}</p>
-                  <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Was scheduled for</p>
-                  <p style="margin:0;font-size:15px;font-weight:600;text-decoration:line-through;color:#A3A3A3;">${whenLabel}</p>
+          (async () => {
+            const result = await resend.emails.send({
+              from: getFromAddress(EmailPurpose.BOOKING),
+              to: proEmailAddr,
+              subject: `${customerName} cancelled — ${serviceName}`,
+              html: `
+                <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
+                  <p style="color:#B8896B;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Cancellation notice</p>
+                  <h1 style="font-size:22px;font-weight:600;margin:0 0 12px;">${customerName} cancelled their booking.</h1>
+                  <div style="background:#FAFAF9;border:1px solid #E7E5E4;border-radius:12px;padding:20px;margin:20px 0;">
+                    <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Service</p>
+                    <p style="margin:0 0 14px;font-size:15px;font-weight:600;">${serviceName}</p>
+                    <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Was scheduled for</p>
+                    <p style="margin:0;font-size:15px;font-weight:600;text-decoration:line-through;color:#A3A3A3;">${whenLabel}</p>
+                  </div>
+                  ${reason ? `<p style="color:#525252;font-size:13px;margin:0 0 16px;"><strong>Reason:</strong> ${reason}</p>` : ""}
+                  <a href="${APP_URL}/dashboard/bookings" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;">Open dashboard</a>
                 </div>
-                ${reason ? `<p style="color:#525252;font-size:13px;margin:0 0 16px;"><strong>Reason:</strong> ${reason}</p>` : ""}
-                <a href="${APP_URL}/dashboard/bookings" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;">Open dashboard</a>
-              </div>
-            `,
-          }).catch((e) => console.error("Owner cancel notice failed:", e)),
+              `,
+            }).catch((e) => {
+              console.error("Owner cancel notice failed:", e);
+              return null;
+            });
+            if (result) {
+              await logEmailSendResult(result, {
+                businessId: bookingRow.business_id,
+                bookingId: resolved.bookingId,
+                recipientType: "pro",
+                purpose: "owner_cancellation_alert",
+                recipientAddress: proEmailAddr,
+              });
+            }
+          })(),
         );
       }
     }
