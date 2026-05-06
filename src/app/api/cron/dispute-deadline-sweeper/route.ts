@@ -6,15 +6,25 @@ import {
 } from "@/lib/email";
 
 /**
- * Hourly cron — Dispute Inquiry deadline sweeper.
+ * Daily cron — Dispute Inquiry deadline sweeper. Runs at 08:00 UTC.
+ *
+ * Daily cadence is a Vercel Hobby-plan constraint, not a design
+ * choice — Hobby only allows one run per day per cron. Worst-case
+ * delay between counter_deadline expiration and the status flip to
+ * under_review is therefore ~24 hours (vs. ~1 hour on an hourly
+ * schedule). Acceptable for current scale; revisit when upgrading
+ * to Vercel Pro and switching back to hourly (`30 * * * *`).
  *
  * Three independent passes per run:
  *
  *   1. T+24h reminder. Disputes filed 23–26h ago and still in
  *      awaiting_counter get a "24 hours left" email to the respondent.
- *      Wider window than 1h covers cron skips.
+ *      With a daily cron this 3-hour window only catches filings whose
+ *      T+24 falls within today's run; misses are tolerable since the
+ *      enforcement pass still fires.
  *   2. T+44h reminder. Disputes filed 43–46h ago and still in
- *      awaiting_counter get a "4 hours left" email.
+ *      awaiting_counter get a "4 hours left" email. Same caveat as
+ *      above — 3-hour window, daily cron means partial coverage.
  *   3. Enforcement. Disputes whose counter_deadline is past flip to
  *      under_review and both sides receive a "moved to OYRB review"
  *      email. The cron NEVER writes status='expired' — that's an

@@ -34,7 +34,7 @@
     },
     {
       "path": "/api/cron/dispute-deadline-sweeper",
-      "schedule": "30 * * * *"
+      "schedule": "0 8 * * *"
     }
   ]
 }
