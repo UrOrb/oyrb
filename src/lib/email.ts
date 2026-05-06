@@ -1096,3 +1096,176 @@ export async function sendDisputeResolved(params: {
     console.error("Failed to send dispute-resolved email", err);
   }
 }
+
+// ── Phase 2.2 — strike consequence emails ────────────────────────────
+//
+// These layer on top of `sendDisputeResolved` (which always fires on a
+// resolution and communicates the outcome). The consequence emails
+// communicate the resulting STANDING — where the pro is now, what
+// happens next.
+//
+// Exactly one of these three fires per resolved-strike event, picked by
+// the post-strike standing:
+//   - meetsThreshold + just-paused  → sendStorefrontAutoPaused
+//   - approachingThreshold          → sendStrikeApproachingThreshold
+//   - otherwise                     → sendStrikeIssued
+//
+// All route via SUPPORT (support@oyrb.space) and write to
+// notification_log for audit / pro-side timeline visibility.
+
+export async function sendStrikeIssued(params: {
+  to: string;
+  businessId: string;
+  count: number;
+  weightedTotal: number;
+  thresholdCount: number;
+  thresholdWeighted: number;
+  windowDays: number;
+}) {
+  if (!resend) return;
+  const { to, count, weightedTotal, thresholdCount, thresholdWeighted, windowDays } = params;
+  try {
+    const sendResult = await resend.emails.send({
+      from: getFromAddress(EmailPurpose.SUPPORT),
+      replyTo: DEFAULT_REPLY_TO,
+      to,
+      subject: "A strike was added to your OYRB account standing",
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
+          <p style="color:#B8896B;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Account standing</p>
+          <h1 style="font-size:22px;font-weight:600;margin:0 0 12px;">A strike was added to your account.</h1>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 16px;">
+            OYRB resolved a Dispute Inquiry against your business with a strike. Where you stand now:
+          </p>
+          <div style="background:#FAFAF9;border:1px solid #E7E5E4;border-radius:12px;padding:16px;margin:0 0 20px;">
+            <p style="margin:0 0 6px;color:#0A0A0A;font-size:14px;font-weight:600;">${count} active strike${count === 1 ? "" : "s"} · weighted total ${weightedTotal}</p>
+            <p style="margin:0;color:#737373;font-size:12px;line-height:1.5;">Auto-pause threshold: ${thresholdCount} strikes or weighted total ${thresholdWeighted}, within a rolling ${windowDays}-day window.</p>
+          </div>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 16px;">
+            Strikes age out after ${windowDays} days of no new resolved inquiries — keep delivering and your standing recovers naturally.
+          </p>
+          <p style="color:#A3A3A3;font-size:11px;line-height:1.5;margin:24px 0 0;border-top:1px solid #E7E5E4;padding-top:16px;">
+            See Terms of Service §29 for the full strike-system rules. Questions? Reply to this email.
+          </p>
+        </div>
+      `,
+    });
+    await logEmailSendResult(sendResult, {
+      businessId: params.businessId,
+      bookingId: null,
+      recipientType: "pro",
+      purpose: "strike_issued",
+      recipientAddress: to,
+    });
+  } catch (err) {
+    console.error("Failed to send strike-issued email", err);
+  }
+}
+
+export async function sendStrikeApproachingThreshold(params: {
+  to: string;
+  businessId: string;
+  count: number;
+  weightedTotal: number;
+  thresholdCount: number;
+  thresholdWeighted: number;
+  windowDays: number;
+}) {
+  if (!resend) return;
+  const { to, count, weightedTotal, thresholdCount, thresholdWeighted, windowDays } = params;
+  try {
+    const sendResult = await resend.emails.send({
+      from: getFromAddress(EmailPurpose.SUPPORT),
+      replyTo: DEFAULT_REPLY_TO,
+      to,
+      subject: "Heads-up about your OYRB account standing",
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
+          <p style="color:#B45309;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Heads-up</p>
+          <h1 style="font-size:22px;font-weight:600;margin:0 0 12px;">You're one strike away from an automatic storefront pause.</h1>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 16px;">
+            OYRB just resolved a Dispute Inquiry against your business with a strike. We want to give you a clear picture of where you stand before anything else changes.
+          </p>
+          <div style="background:#FFFBEB;border:1px solid #FCD34D;border-radius:12px;padding:16px;margin:0 0 20px;">
+            <p style="margin:0 0 6px;color:#0A0A0A;font-size:14px;font-weight:600;">${count} active strike${count === 1 ? "" : "s"} · weighted total ${weightedTotal}</p>
+            <p style="margin:0;color:#525252;font-size:12px;line-height:1.5;">Auto-pause threshold: ${thresholdCount} strikes or weighted total ${thresholdWeighted}, within a rolling ${windowDays}-day window.</p>
+          </div>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 12px;">
+            <strong style="color:#0A0A0A;">What happens if another strike lands:</strong> your storefront automatically unpublishes pending an OYRB review. Existing bookings are unaffected — clients with confirmed appointments keep their bookings, can still reschedule or cancel, and you can still see and manage them in your dashboard. Subscription billing also continues as usual; a pause is a reputation matter, not a billing one.
+          </p>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 12px;">
+            <strong style="color:#0A0A0A;">If a pause does happen:</strong> email <a href="mailto:support@oyrb.space" style="color:#B8896B;">support@oyrb.space</a> and we'll review your case. Pauses are lifted manually after review.
+          </p>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 16px;">
+            <strong style="color:#0A0A0A;">Recovery:</strong> strikes age out after ${windowDays} days with no new resolved inquiries. Stay clean for two weeks and your standing returns to zero.
+          </p>
+          <p style="color:#A3A3A3;font-size:11px;line-height:1.5;margin:24px 0 0;border-top:1px solid #E7E5E4;padding-top:16px;">
+            See Terms of Service §29 for the full strike-system rules. Questions about a specific resolution? Reply to this email — OYRB Support reads every reply.
+          </p>
+          <p style="color:#737373;font-size:12px;line-height:1.5;margin:12px 0 0;">— OYRB Support</p>
+        </div>
+      `,
+    });
+    await logEmailSendResult(sendResult, {
+      businessId: params.businessId,
+      bookingId: null,
+      recipientType: "pro",
+      purpose: "strike_approaching_threshold",
+      recipientAddress: to,
+    });
+  } catch (err) {
+    console.error("Failed to send strike-approaching-threshold email", err);
+  }
+}
+
+export async function sendStorefrontAutoPaused(params: {
+  to: string;
+  businessId: string;
+  count: number;
+  weightedTotal: number;
+  thresholdCount: number;
+  thresholdWeighted: number;
+}) {
+  if (!resend) return;
+  const { to, count, weightedTotal, thresholdCount, thresholdWeighted } = params;
+  try {
+    const sendResult = await resend.emails.send({
+      from: getFromAddress(EmailPurpose.SUPPORT),
+      replyTo: DEFAULT_REPLY_TO,
+      to,
+      subject: "Your OYRB storefront has been paused — pending review",
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
+          <p style="color:#B91C1C;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Storefront paused</p>
+          <h1 style="font-size:22px;font-weight:600;margin:0 0 12px;">Your storefront is now paused pending OYRB review.</h1>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 16px;">
+            A Dispute Inquiry was just resolved as a strike, bringing your standing to the auto-pause threshold described in Terms of Service §29.
+          </p>
+          <div style="background:#FEF2F2;border:1px solid #FCA5A5;border-radius:12px;padding:16px;margin:0 0 20px;">
+            <p style="margin:0 0 6px;color:#0A0A0A;font-size:14px;font-weight:600;">${count} active strike${count === 1 ? "" : "s"} · weighted total ${weightedTotal}</p>
+            <p style="margin:0;color:#525252;font-size:12px;line-height:1.5;">Threshold: ${thresholdCount} strikes or weighted total ${thresholdWeighted} (whichever fires first).</p>
+          </div>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 12px;">
+            <strong style="color:#0A0A0A;">What this means:</strong> your public storefront returns 404 to new visitors. Clients with confirmed bookings keep their appointments, can still reschedule or cancel via their booking link, and you can still see and manage every booking in your dashboard. Subscription billing continues — this is a reputation pause, not a billing pause.
+          </p>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 12px;">
+            <strong style="color:#0A0A0A;">Next step:</strong> reply to this email or write to <a href="mailto:support@oyrb.space" style="color:#B8896B;">support@oyrb.space</a> to request a review. We'll look at the resolved Dispute Inquiries together and decide whether to lift the pause. Auto-recovery does not happen — pauses lift only after manual review.
+          </p>
+          <p style="color:#A3A3A3;font-size:11px;line-height:1.5;margin:24px 0 0;border-top:1px solid #E7E5E4;padding-top:16px;">
+            See Terms of Service §29 for the full strike-system rules.
+          </p>
+          <p style="color:#737373;font-size:12px;line-height:1.5;margin:12px 0 0;">— OYRB Support</p>
+        </div>
+      `,
+    });
+    await logEmailSendResult(sendResult, {
+      businessId: params.businessId,
+      bookingId: null,
+      recipientType: "pro",
+      purpose: "storefront_auto_paused",
+      recipientAddress: to,
+    });
+  } catch (err) {
+    console.error("Failed to send storefront-auto-paused email", err);
+  }
+}
