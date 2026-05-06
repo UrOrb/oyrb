@@ -36,6 +36,13 @@ export const KNOWN_PURPOSES = [
   "trial_reminder_7d",
   "trial_reminder_3d",
   "trial_reminder_1d",
+
+  // Dispute Inquiry (Phase 2.1)
+  "dispute_filed",
+  "dispute_filed_confirmation",
+  "dispute_counter_window_expiring",
+  "dispute_moved_to_review",
+  "dispute_resolved",
 ] as const;
 
 export type KnownPurpose = (typeof KNOWN_PURPOSES)[number];
@@ -80,6 +87,13 @@ const PURPOSE_LABELS: Record<string, string> = {
   trial_reminder_7d: "Trial reminder (7d)",
   trial_reminder_3d: "Trial reminder (3d)",
   trial_reminder_1d: "Trial reminder (1d)",
+
+  // Dispute Inquiry
+  dispute_filed: "Dispute Inquiry filed",
+  dispute_filed_confirmation: "Inquiry confirmation",
+  dispute_counter_window_expiring: "Counter-evidence reminder",
+  dispute_moved_to_review: "Moved to OYRB review",
+  dispute_resolved: "Dispute resolved",
 };
 
 export function displayLabel(purpose: string): string {
