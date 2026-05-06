@@ -43,6 +43,11 @@ export const KNOWN_PURPOSES = [
   "dispute_counter_window_expiring",
   "dispute_moved_to_review",
   "dispute_resolved",
+
+  // Strike consequences (Phase 2.2)
+  "strike_issued",
+  "strike_approaching_threshold",
+  "storefront_auto_paused",
 ] as const;
 
 export type KnownPurpose = (typeof KNOWN_PURPOSES)[number];
@@ -94,6 +99,11 @@ const PURPOSE_LABELS: Record<string, string> = {
   dispute_counter_window_expiring: "Counter-evidence reminder",
   dispute_moved_to_review: "Moved to OYRB review",
   dispute_resolved: "Dispute resolved",
+
+  // Strike consequences
+  strike_issued: "Strike applied",
+  strike_approaching_threshold: "Account standing — heads-up",
+  storefront_auto_paused: "Storefront auto-paused",
 };
 
 export function displayLabel(purpose: string): string {

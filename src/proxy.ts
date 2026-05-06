@@ -39,13 +39,25 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // Subscription gate (Phase 1.2). Past-due pros keep full dashboard access
-  // during the 2-day grace window — only AFTER grace expires do we redirect
-  // them to /dashboard/billing-pending. The billing-pending page itself is
-  // exempt so the redirect target is reachable.
+  // Dashboard access gates. Two redirects, in order:
+  //   1. Phase 1.2 — past-due subscription, grace window expired → /dashboard/billing-pending
+  //   2. Phase 2.2 — any owned business strike-paused → /dashboard/strike-paused
+  //
+  // Each gate exempts its own redirect target so the destination is
+  // reachable. Billing wins ties (if a pro is both past-due and
+  // strike-paused, billing-pending fires first — they need to fix
+  // payment before reputation review can happen).
+  //
+  // Strike-pause is per-business (a pro can own multiple sites and have
+  // one paused, the others active) but the proxy is per-user. We
+  // redirect on the OR ("any owned business is strike-paused") and let
+  // the /strike-paused page show which sites are affected. Matches the
+  // billing redirect's per-user shape.
   if (user && request.nextUrl.pathname.startsWith("/dashboard")) {
     const isBillingPending = request.nextUrl.pathname.startsWith("/dashboard/billing-pending");
-    if (!isBillingPending) {
+    const isStrikePaused = request.nextUrl.pathname.startsWith("/dashboard/strike-paused");
+
+    if (!isBillingPending && !isStrikePaused) {
       const { data: sub } = await supabase
         .from("account_subscriptions")
         .select("status, grace_period_ends_at")
@@ -58,6 +70,19 @@ export async function proxy(request: NextRequest) {
         new Date(sub.grace_period_ends_at) < new Date()
       ) {
         return NextResponse.redirect(new URL("/dashboard/billing-pending", request.url));
+      }
+
+      // Only run the strike query when billing didn't redirect. Cheap
+      // index-only scan over idx_businesses_owner_strike_paused.
+      const { data: strikePaused } = await supabase
+        .from("businesses")
+        .select("id")
+        .eq("owner_id", user.id)
+        .not("strike_paused_at", "is", null)
+        .limit(1);
+
+      if (strikePaused && strikePaused.length > 0) {
+        return NextResponse.redirect(new URL("/dashboard/strike-paused", request.url));
       }
     }
   }

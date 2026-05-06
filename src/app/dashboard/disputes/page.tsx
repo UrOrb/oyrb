@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusiness } from "@/lib/current-site";
 import { REASON_LABELS, STATUS_LABELS, type DisputeStatus, type ReasonCode } from "@/lib/disputes";
+import { getStrikeStanding } from "@/lib/strikes";
 
 export const metadata = { title: "Dispute Inquiries — OYRB" };
 export const dynamic = "force-dynamic";
@@ -55,6 +56,11 @@ export default async function ProDisputesListPage({ searchParams }: Props) {
     (r) => r.status === "resolved_strike" || r.status === "resolved_dismissed" || r.status === "expired",
   );
 
+  // Phase 2.2 — current strike standing for this business. Sourced from
+  // dispute_inquiries (rolling 14-day window) so this is always the
+  // value the threshold check uses.
+  const standing = await getStrikeStanding(business.id);
+
   return (
     <div>
       <h1 className="font-display text-2xl font-medium tracking-tight">Dispute Inquiries</h1>
@@ -62,6 +68,16 @@ export default async function ProDisputesListPage({ searchParams }: Props) {
         Inquiries filed about (or by) your business. OYRB does not process refunds — these affect
         ratings only.
       </p>
+
+      <StrikeStandingCard
+        count={standing.count}
+        weightedTotal={standing.weightedTotal}
+        thresholdCount={standing.thresholdCount}
+        thresholdWeighted={standing.thresholdWeighted}
+        windowDays={standing.windowDays}
+        isPaused={standing.isPaused}
+        approachingThreshold={standing.approachingThreshold}
+      />
 
       <section className="mt-8">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-[#525252]">
@@ -133,5 +149,70 @@ function DisputeCard({ row }: { row: DisputeRow }) {
         </span>
       </div>
     </Link>
+  );
+}
+
+function StrikeStandingCard(props: {
+  count: number;
+  weightedTotal: number;
+  thresholdCount: number;
+  thresholdWeighted: number;
+  windowDays: number;
+  isPaused: boolean;
+  approachingThreshold: boolean;
+}) {
+  const { count, weightedTotal, thresholdCount, thresholdWeighted, windowDays, isPaused, approachingThreshold } = props;
+
+  // Three visual tiers, same data:
+  //   - paused → red
+  //   - approaching → amber
+  //   - clean → muted neutral (still visible so pros know the system exists)
+  const tone = isPaused
+    ? { border: "border-red-200", bg: "bg-red-50", accent: "text-red-700", label: "Paused" }
+    : approachingThreshold
+      ? { border: "border-amber-200", bg: "bg-amber-50", accent: "text-amber-800", label: "Approaching threshold" }
+      : { border: "border-[#E7E5E4]", bg: "bg-white", accent: "text-[#525252]", label: "Clean" };
+
+  const headline = isPaused
+    ? "Your storefront is paused pending OYRB review."
+    : approachingThreshold
+      ? "You're close to the auto-pause threshold."
+      : count === 0
+        ? "No active strikes."
+        : `${count} active strike${count === 1 ? "" : "s"} on file.`;
+
+  return (
+    <section className={`mt-6 rounded-2xl border ${tone.border} ${tone.bg} p-5`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className={`text-[10px] font-semibold uppercase tracking-wider ${tone.accent}`}>
+            Account standing
+          </p>
+          <p className="mt-1 text-base font-semibold text-[#0A0A0A]">{headline}</p>
+        </div>
+        <span className={`rounded-full bg-white/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider ${tone.accent}`}>
+          {tone.label}
+        </span>
+      </div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+        <Stat label="Active strikes" value={`${count} / ${thresholdCount}`} />
+        <Stat label="Weighted total" value={`${weightedTotal} / ${thresholdWeighted}`} />
+        <Stat label="Window" value={`Rolling ${windowDays} days`} />
+      </div>
+      <p className="mt-3 text-[11px] text-[#737373]">
+        Auto-pause triggers at {thresholdCount} strikes or weighted total {thresholdWeighted}, whichever comes first.
+        Strikes age out after {windowDays} days of no new resolved inquiries. OYRB does not process refunds —
+        these mechanics affect reputation only.
+      </p>
+    </section>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-[#A3A3A3]">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-[#0A0A0A]">{value}</p>
+    </div>
   );
 }

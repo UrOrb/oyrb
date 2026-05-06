@@ -3,7 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/server";
-import { sendDisputeResolved } from "@/lib/email";
+import {
+  sendDisputeResolved,
+  sendStrikeIssued,
+  sendStrikeApproachingThreshold,
+  sendStorefrontAutoPaused,
+} from "@/lib/email";
+import { recordStrike } from "@/lib/strikes";
 
 type Outcome = "strike" | "dismissed";
 type ActionResult = { success: true } | { error: string };
@@ -91,6 +97,27 @@ export async function resolveDispute(
     return { error: "Couldn't save the resolution." };
   }
 
+  // ── Phase 2.2 strike accumulation ────────────────────────────────
+  // Only client-filed disputes resolved as 'strike' accumulate against
+  // the pro. Pro-filed disputes resolved as 'strike' are the admin's
+  // way of agreeing the pro's complaint was credible — there's no
+  // client-strike system yet (Phase 2.3 may surface this), so they're
+  // a no-op for the pause logic.
+  //
+  // recordStrike() is fire-and-monitor: if it throws, we log but don't
+  // fail the resolve action — the dispute outcome is already saved and
+  // the pro/client emails should still go out. The strike accumulation
+  // can be retried by re-running resolve (idempotent under the hood
+  // because strike_paused_at filter prevents double-pauses).
+  let strikeStanding: Awaited<ReturnType<typeof recordStrike>> | null = null;
+  if (outcome === "strike" && row.reporter_type === "client") {
+    try {
+      strikeStanding = await recordStrike(row.business_id);
+    } catch (err) {
+      console.error("recordStrike failed (continuing with resolution):", err);
+    }
+  }
+
   // Resolve pro email — prefer business.contact_email, fall back to auth.
   let proEmail = row.businesses.contact_email;
   if (!proEmail) {
@@ -128,6 +155,37 @@ export async function resolveDispute(
       outcome,
       adminNotes: trimmedNotes || null,
     }).catch((err) => console.error("dispute resolved pro email failed:", err));
+  }
+
+  // Strike-consequence email — exactly one of three based on the
+  // post-strike standing. sendDisputeResolved (above) communicated the
+  // OUTCOME; this communicates the STANDING. Skipped entirely for
+  // dismissed resolutions and for pro-filed strikes (which don't
+  // accumulate against the pro).
+  if (strikeStanding && proEmail) {
+    const { standing, triggeredPause } = strikeStanding;
+    const baseParams = {
+      to: proEmail,
+      businessId: row.business_id,
+      count: standing.count,
+      weightedTotal: standing.weightedTotal,
+      thresholdCount: standing.thresholdCount,
+      thresholdWeighted: standing.thresholdWeighted,
+      windowDays: standing.windowDays,
+    };
+    if (triggeredPause) {
+      await sendStorefrontAutoPaused(baseParams).catch((err) =>
+        console.error("storefront-auto-paused email failed:", err),
+      );
+    } else if (standing.approachingThreshold) {
+      await sendStrikeApproachingThreshold(baseParams).catch((err) =>
+        console.error("strike-approaching-threshold email failed:", err),
+      );
+    } else {
+      await sendStrikeIssued(baseParams).catch((err) =>
+        console.error("strike-issued email failed:", err),
+      );
+    }
   }
 
   revalidatePath(`/dashboard/admin/disputes/${disputeId}`);
