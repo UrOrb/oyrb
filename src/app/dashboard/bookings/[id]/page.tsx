@@ -105,8 +105,12 @@ export default async function BookingDetailPage({ params }: Props) {
   const startAt = new Date(booking.start_at);
   const endAt = new Date(booking.end_at);
   const now = new Date();
+  // showCancel and showReschedule share the same gate today (confirmed
+  // + future). Kept as separate props on the actions panel so the
+  // rules can diverge later without restructuring.
   const showCancel =
     booking.status === "confirmed" && startAt > now;
+  const showReschedule = showCancel;
 
   return (
     <div className="mx-auto max-w-3xl pb-12">
@@ -150,6 +154,7 @@ export default async function BookingDetailPage({ params }: Props) {
           businessName={booking.businesses.business_name}
           businessSlug={booking.businesses.slug}
           showCancel={showCancel}
+          showReschedule={showReschedule}
         />
 
         <NotificationTimeline bookingId={booking.id} />

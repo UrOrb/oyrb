@@ -1,5 +1,6 @@
 import { Calendar } from "lucide-react";
 import { CancelBookingButton } from "./cancel-button";
+import { RescheduleBookingButton } from "./reschedule-button";
 import { googleCalendarUrl } from "@/lib/ics";
 
 type Props = {
@@ -15,21 +16,30 @@ type Props = {
    *  bookings (already cancelled — nothing to cancel) and for bookings
    *  whose start time is in the past. */
   showCancel: boolean;
+  /** When true, the reschedule control renders. Same gate as
+   *  showCancel today (confirmed + future) — kept as a separate prop
+   *  so the rules can diverge without restructuring (e.g., if pros
+   *  ever ask to reschedule past appointments for back-dated booking
+   *  fixes). */
+  showReschedule: boolean;
 };
 
 /**
- * Actions panel — the only mutable surface on the detail page in v1.
+ * Actions panel — the only mutable surface on the detail page.
  *
- * Existing pro-side actions today:
- *   - Cancel (existing CancelBookingButton via /api/bookings/[id]/cancel)
+ * Pro-side actions:
+ *   - Reschedule (RescheduleBookingButton via /api/bookings/[id]/reschedule, this PR)
+ *   - Cancel (CancelBookingButton via /api/bookings/[id]/cancel)
  *
  * Passive affordances (not state-mutating, no new code paths):
  *   - Add to Calendar — Google Calendar URL via the existing helper
  *   - Refund deep-link lives on the service/payment card so the pro
  *     finds it next to the payment data
  *
- * Future actions plug in here as additional rows in the same flex
- * container. Coming up: pro-side reschedule (PR #22).
+ * Layout note: when the reschedule button is expanded into its inline
+ * form (full-width), the `flex-wrap` container drops it onto its own
+ * row beneath the chip-row. Cancel + Add-to-Calendar chips stay above
+ * untouched.
  */
 export function BookingActionsPanel({
   bookingId,
@@ -41,6 +51,7 @@ export function BookingActionsPanel({
   businessName,
   businessSlug,
   showCancel,
+  showReschedule,
 }: Props) {
   const gcalUrl = googleCalendarUrl({
     uid: bookingId,
@@ -68,6 +79,9 @@ export function BookingActionsPanel({
         >
           <Calendar size={12} /> Add to calendar
         </a>
+        {showReschedule && status === "confirmed" && (
+          <RescheduleBookingButton bookingId={bookingId} />
+        )}
         {showCancel && status === "confirmed" && (
           <CancelBookingButton bookingId={bookingId} />
         )}
