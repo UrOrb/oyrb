@@ -5,6 +5,7 @@ import { BookingClientCard } from "../booking-client-card";
 import { BookingServiceCard } from "../booking-service-card";
 import { BookingActionsPanel } from "../booking-actions-panel";
 import { NotificationTimeline } from "../notification-timeline";
+import { DisputeInquiryPanel } from "./dispute-inquiry-panel";
 
 export const metadata = {
   title: "Booking — OYRB",
@@ -157,11 +158,16 @@ export default async function BookingDetailPage({ params }: Props) {
           showReschedule={showReschedule}
         />
 
+        <DisputeInquiryPanel
+          bookingId={booking.id}
+          bookingStatus={booking.status}
+          clientName={booking.clients.name}
+        />
+
         <NotificationTimeline bookingId={booking.id} />
 
         {/*
           Future panels render here in this same vertical stack:
-            • Phase 2.1 — <DisputeInquiryPanel bookingId={booking.id} />
             • Phase 3.1 — <ServiceTimingPanel bookingId={booking.id} />
           See the file-level "Forward-extension map" comment at the top.
         */}

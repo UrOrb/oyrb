@@ -31,6 +31,10 @@
     {
       "path": "/api/cron/auto-complete-bookings",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/dispute-deadline-sweeper",
+      "schedule": "0 8 * * *"
     }
   ]
 }

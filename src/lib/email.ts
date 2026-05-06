@@ -812,3 +812,287 @@ export async function sendGraceExpiring(params: {
     console.error("Failed to send grace-expiring email", err);
   }
 }
+
+// ── Dispute Inquiries (Phase 2.1) ──────────────────────────────────────
+//
+// All five helpers route through getFromAddress(EmailPurpose.SUPPORT) →
+// support@oyrb.space and surface the "OYRB does not process refunds"
+// framing prominently per Section 28 of TOS v1.3 (PR #18). Copy is
+// deliberately operational + neutral — no marketing varnish on legal
+// notices.
+
+export async function sendDisputeFiledToPro(params: {
+  to: string;
+  businessId?: string | null;
+  bookingId?: string | null;
+  reporterDisplay: string;
+  reasonLabel: string;
+  counterDeadline: Date;
+  dashboardUrl: string;
+}) {
+  if (!resend) return;
+  const { to, reporterDisplay, reasonLabel, counterDeadline, dashboardUrl } = params;
+  const deadlineLabel = counterDeadline.toLocaleString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  try {
+    const sendResult = await resend.emails.send({
+      from: getFromAddress(EmailPurpose.SUPPORT),
+      replyTo: DEFAULT_REPLY_TO,
+      to,
+      subject: `Action required: Dispute Inquiry filed`,
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
+          <p style="color:#B45309;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Dispute Inquiry</p>
+          <h1 style="font-size:22px;font-weight:600;margin:0 0 12px;">A Dispute Inquiry was filed about a recent booking.</h1>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 16px;">
+            ${reporterDisplay} filed a Dispute Inquiry. Reason: <strong>${reasonLabel}</strong>.
+          </p>
+          <div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:12px;padding:16px;margin:20px 0;">
+            <p style="margin:0;color:#78350F;font-size:13px;line-height:1.5;">
+              <strong>You have 48 hours to upload counter-evidence.</strong> Deadline: ${deadlineLabel}. After that, the inquiry moves to OYRB review.
+            </p>
+          </div>
+          <a href="${dashboardUrl}" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:600;">Respond to inquiry</a>
+          <p style="color:#A3A3A3;font-size:11px;line-height:1.5;margin:24px 0 0;border-top:1px solid #E7E5E4;padding-top:16px;">
+            OYRB does not process refunds. The Dispute Inquiry system affects ratings only — it isn't a refund or arbitration tool. See our Terms of Service §28 for full detail.
+          </p>
+        </div>
+      `,
+    });
+    await logEmailSendResult(sendResult, {
+      businessId: params.businessId ?? null,
+      bookingId: params.bookingId ?? null,
+      recipientType: "pro",
+      purpose: "dispute_filed",
+      recipientAddress: to,
+    });
+  } catch (err) {
+    console.error("Failed to send dispute-filed email", err);
+  }
+}
+
+export async function sendDisputeFiledConfirmation(params: {
+  to: string;
+  businessId?: string | null;
+  bookingId?: string | null;
+  reasonLabel: string;
+  proName: string;
+  counterDeadline: Date;
+}) {
+  if (!resend) return;
+  const { to, reasonLabel, proName, counterDeadline } = params;
+  const deadlineLabel = counterDeadline.toLocaleString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+  try {
+    const sendResult = await resend.emails.send({
+      from: getFromAddress(EmailPurpose.SUPPORT),
+      replyTo: DEFAULT_REPLY_TO,
+      to,
+      subject: `Your Dispute Inquiry has been filed`,
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
+          <p style="color:#B8896B;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Dispute Inquiry filed</p>
+          <h1 style="font-size:22px;font-weight:600;margin:0 0 12px;">We've received your inquiry.</h1>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 16px;">
+            Reason: <strong>${reasonLabel}</strong>. ${proName} has 48 hours (until ${deadlineLabel}) to upload counter-evidence.
+          </p>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 16px;">
+            After that window, OYRB will review the documentation submitted by both sides and apply a rating adjustment based on what's there. We'll email you when a resolution is reached.
+          </p>
+          <div style="background:#FAFAF9;border:1px solid #E7E5E4;border-radius:12px;padding:16px;margin:20px 0;">
+            <p style="margin:0;color:#525252;font-size:13px;line-height:1.5;">
+              <strong>Important:</strong> OYRB does not process refunds. Filing this inquiry affects ${proName}'s rating only. For refunds, please contact ${proName} directly or your bank/Stripe.
+            </p>
+          </div>
+          <p style="color:#A3A3A3;font-size:11px;line-height:1.5;margin:24px 0 0;border-top:1px solid #E7E5E4;padding-top:16px;">
+            See our Terms of Service §28 (Dispute Inquiry Process) for the full process.
+          </p>
+        </div>
+      `,
+    });
+    await logEmailSendResult(sendResult, {
+      businessId: params.businessId ?? null,
+      bookingId: params.bookingId ?? null,
+      recipientType: "client",
+      purpose: "dispute_filed_confirmation",
+      recipientAddress: to,
+    });
+  } catch (err) {
+    console.error("Failed to send dispute-filed-confirmation email", err);
+  }
+}
+
+export async function sendDisputeCounterWindowExpiring(params: {
+  to: string;
+  businessId?: string | null;
+  bookingId?: string | null;
+  hoursRemaining: number;
+  counterDeadline: Date;
+  dashboardUrl: string;
+}) {
+  if (!resend) return;
+  const { to, hoursRemaining, counterDeadline, dashboardUrl } = params;
+  const deadlineLabel = counterDeadline.toLocaleString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  try {
+    const sendResult = await resend.emails.send({
+      from: getFromAddress(EmailPurpose.SUPPORT),
+      replyTo: DEFAULT_REPLY_TO,
+      to,
+      subject: `Reminder: counter-evidence window closes in ${hoursRemaining}h`,
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
+          <p style="color:#B91C1C;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Counter-evidence reminder</p>
+          <h1 style="font-size:22px;font-weight:600;margin:0 0 12px;">${hoursRemaining} hours left to respond.</h1>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 16px;">
+            The counter-evidence window for the open Dispute Inquiry against your business closes ${deadlineLabel}. After that, OYRB reviews the inquiry with whatever documentation has been submitted.
+          </p>
+          <a href="${dashboardUrl}" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:600;">Upload counter-evidence</a>
+          <p style="color:#A3A3A3;font-size:11px;line-height:1.5;margin:24px 0 0;border-top:1px solid #E7E5E4;padding-top:16px;">
+            OYRB does not process refunds. The Dispute Inquiry system affects ratings only.
+          </p>
+        </div>
+      `,
+    });
+    await logEmailSendResult(sendResult, {
+      businessId: params.businessId ?? null,
+      bookingId: params.bookingId ?? null,
+      recipientType: "pro",
+      purpose: "dispute_counter_window_expiring",
+      recipientAddress: to,
+    });
+  } catch (err) {
+    console.error("Failed to send dispute-counter-window-expiring email", err);
+  }
+}
+
+export async function sendDisputeMovedToReview(params: {
+  to: string;
+  recipientType: "client" | "pro";
+  businessId?: string | null;
+  bookingId?: string | null;
+}) {
+  if (!resend) return;
+  const { to, recipientType } = params;
+  const subject =
+    recipientType === "client"
+      ? "Your Dispute Inquiry is now under OYRB review"
+      : "A Dispute Inquiry against you is now under OYRB review";
+  const headline =
+    recipientType === "client"
+      ? "Your inquiry moved to OYRB review."
+      : "The Dispute Inquiry has moved to OYRB review.";
+  const body =
+    recipientType === "client"
+      ? `The 48-hour counter-evidence window has closed. OYRB will now review the documentation from both sides and apply a rating adjustment. We'll email you when the resolution is final.`
+      : `The 48-hour counter-evidence window has closed. OYRB will review the documentation from both sides. If counter-evidence is sufficient, the inquiry is dismissed. Otherwise, a strike is applied to your business rating.`;
+  try {
+    const sendResult = await resend.emails.send({
+      from: getFromAddress(EmailPurpose.SUPPORT),
+      replyTo: DEFAULT_REPLY_TO,
+      to,
+      subject,
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
+          <p style="color:#B8896B;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Status update</p>
+          <h1 style="font-size:22px;font-weight:600;margin:0 0 12px;">${headline}</h1>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 16px;">${body}</p>
+          <p style="color:#A3A3A3;font-size:11px;line-height:1.5;margin:24px 0 0;border-top:1px solid #E7E5E4;padding-top:16px;">
+            OYRB does not process refunds. The Dispute Inquiry system affects ratings only. See Terms of Service §28.
+          </p>
+        </div>
+      `,
+    });
+    await logEmailSendResult(sendResult, {
+      businessId: params.businessId ?? null,
+      bookingId: params.bookingId ?? null,
+      recipientType,
+      purpose: "dispute_moved_to_review",
+      recipientAddress: to,
+    });
+  } catch (err) {
+    console.error("Failed to send dispute-moved-to-review email", err);
+  }
+}
+
+export async function sendDisputeResolved(params: {
+  to: string;
+  recipientType: "client" | "pro";
+  businessId?: string | null;
+  bookingId?: string | null;
+  outcome: "strike" | "dismissed";
+  adminNotes: string | null;
+}) {
+  if (!resend) return;
+  const { to, recipientType, outcome, adminNotes } = params;
+  const isStrike = outcome === "strike";
+  const subject = isStrike
+    ? recipientType === "pro"
+      ? "Dispute Inquiry resolved: strike applied"
+      : "Dispute Inquiry resolved: in your favor"
+    : recipientType === "pro"
+      ? "Dispute Inquiry resolved: in your favor"
+      : "Dispute Inquiry resolved: dismissed";
+  const headline = isStrike
+    ? recipientType === "pro"
+      ? "OYRB applied a strike to your business rating."
+      : "OYRB resolved your inquiry in your favor."
+    : recipientType === "pro"
+      ? "OYRB dismissed the inquiry — no strike applied."
+      : "OYRB dismissed your inquiry.";
+  const body = isStrike
+    ? recipientType === "pro"
+      ? `Counter-evidence was insufficient. A strike has been added to your business rating. Strike consequences (storefront pause at three strikes or weighted total ≥ 5) are described in Terms of Service §29.`
+      : `OYRB found the documentation supported your inquiry. A strike has been applied to the professional's rating. OYRB does not process refunds — for refunds, contact the professional directly or your bank.`
+    : recipientType === "pro"
+      ? `OYRB found the documentation supported your account or that the inquiry didn't meet the credibility bar. No strike was applied.`
+      : `OYRB reviewed the documentation and could not substantiate the inquiry. No strike was applied to the professional's rating.`;
+  try {
+    const sendResult = await resend.emails.send({
+      from: getFromAddress(EmailPurpose.SUPPORT),
+      replyTo: DEFAULT_REPLY_TO,
+      to,
+      subject,
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
+          <p style="color:#B8896B;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Resolution</p>
+          <h1 style="font-size:22px;font-weight:600;margin:0 0 12px;">${headline}</h1>
+          <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 16px;">${body}</p>
+          ${
+            adminNotes
+              ? `<div style="background:#FAFAF9;border:1px solid #E7E5E4;border-radius:12px;padding:16px;margin:20px 0;">
+                   <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Admin notes</p>
+                   <p style="margin:0;color:#525252;font-size:13px;line-height:1.5;white-space:pre-wrap;">${adminNotes.replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c] ?? c)}</p>
+                 </div>`
+              : ""
+          }
+          <p style="color:#A3A3A3;font-size:11px;line-height:1.5;margin:24px 0 0;border-top:1px solid #E7E5E4;padding-top:16px;">
+            OYRB does not process refunds. The Dispute Inquiry system affects ratings only. See Terms of Service §28.
+          </p>
+        </div>
+      `,
+    });
+    await logEmailSendResult(sendResult, {
+      businessId: params.businessId ?? null,
+      bookingId: params.bookingId ?? null,
+      recipientType,
+      purpose: "dispute_resolved",
+      recipientAddress: to,
+    });
+  } catch (err) {
+    console.error("Failed to send dispute-resolved email", err);
+  }
+}

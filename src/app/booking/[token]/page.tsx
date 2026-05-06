@@ -163,6 +163,27 @@ export default async function BookingTokenPage({ params }: Props) {
           />
         )}
 
+        {/* Dispute Inquiry filing entry (Phase 2.1). Low-prominence by
+            design — disputes should be available but not solicited.
+            Shown for any booking eligible to file (confirmed,
+            completed, cancelled). The /dispute page itself enforces
+            uniqueness (one client-filed per booking) and shows an
+            "already filed" state on repeat visits. */}
+        <div className="mt-6 rounded-2xl border border-[#E7E5E4] bg-white p-5 text-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#737373]">
+            Need to dispute this booking?
+          </p>
+          <p className="mt-1.5 text-xs text-[#737373]">
+            File a Dispute Inquiry if something went wrong. Affects {booking.businesses.business_name}&apos;s rating only — OYRB does not process refunds.
+          </p>
+          <Link
+            href={`/booking/${token}/dispute`}
+            className="mt-2 inline-block text-xs text-[#B8896B] underline hover:text-[#0A0A0A]"
+          >
+            File a Dispute Inquiry →
+          </Link>
+        </div>
+
         <div className="mt-6 rounded-2xl border border-[#E7E5E4] bg-white p-6 text-sm">
           <p className="font-medium">More from {booking.businesses.business_name}</p>
           <Link href={siteUrl} className="mt-2 inline-block text-sm text-[#B8896B] underline">
