@@ -121,10 +121,37 @@ export async function notifyBookingConfirmed(args: NotifyBookingArgs): Promise<{
     console.error("Confirmation email failed:", err);
   });
 
-  // SMS — only if phone, consented, and tier allows
+  // SMS — only if phone, consented, and tier allows.
+  //
+  // Phase 1.6: clients.sms_consent is the source of truth (persistent
+  // across bookings with the same pro, set either via the public
+  // booking widget on first booking or via the magic-link page later).
+  // args.smsConsent reflects the per-booking checkbox state from THIS
+  // request; the booking creation routes only update clients.sms_consent
+  // when that flag is true, so a returning client with standing consent
+  // who didn't re-tick the box has args.smsConsent=false but
+  // clients.sms_consent=true. Honor either signal.
+  let standingConsent = false;
+  try {
+    const supabase = createAdminClient();
+    const { data: clientRow } = await supabase
+      .from("clients")
+      .select("sms_consent")
+      .eq("business_id", args.businessId)
+      .ilike("email", args.customerEmail)
+      .maybeSingle();
+    standingConsent = !!(clientRow as { sms_consent?: boolean } | null)?.sms_consent;
+  } catch (err) {
+    // Read failure → fall back to the per-booking flag. Worst case we
+    // miss a confirmation SMS for a returning client; we never send
+    // without consent because the OR below stays false in the failure
+    // case where args.smsConsent is also false.
+    console.warn("standing-consent lookup failed; falling back to args:", err);
+  }
+
   if (
     args.customerPhone &&
-    args.smsConsent &&
+    (standingConsent || args.smsConsent) &&
     tierAllowsSms(args.businessTier ?? undefined)
   ) {
     const whenLabel = args.startAt.toLocaleString("en-US", {

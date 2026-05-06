@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { formatCents } from "@/lib/types";
 import { googleCalendarUrl } from "@/lib/ics";
 import { BookingActions } from "./booking-actions";
+import { SmsPreferencesCard } from "./sms-preferences-card";
 
 // Magic-link pages must not be indexable. The metadata below plus robots.ts
 // entries ensure search crawlers skip them.
@@ -26,7 +27,12 @@ type BookingRow = {
   deposit_paid: boolean | null;
   cancelled_at: string | null;
   services: { name: string; price_cents: number; description: string | null } | null;
-  clients: { name: string; email: string | null; phone: string | null } | null;
+  clients: {
+    name: string;
+    email: string | null;
+    phone: string | null;
+    sms_consent: boolean | null;
+  } | null;
   businesses: {
     business_name: string;
     slug: string;
@@ -53,7 +59,7 @@ export default async function BookingTokenPage({ params }: Props) {
     .select(`
       id, business_id, start_at, end_at, status, deposit_paid, cancelled_at,
       services(name, price_cents, description),
-      clients(name, email, phone),
+      clients(name, email, phone, sms_consent),
       businesses(business_name, slug, contact_email, phone)
     `)
     .eq("id", resolved.bookingId)
@@ -142,6 +148,20 @@ export default async function BookingTokenPage({ params }: Props) {
             />
           )}
         </div>
+
+        {/* SMS reminders preferences (Phase 1.6). Renders for active
+            bookings only — cancelled bookings hide it since the client
+            won't receive future reminders for this booking anyway.
+            Per-pro consent persists across future bookings via the
+            clients.sms_consent column. */}
+        {!cancelled && (
+          <SmsPreferencesCard
+            token={token}
+            businessName={booking.businesses.business_name}
+            initialConsent={!!booking.clients.sms_consent}
+            initialPhone={booking.clients.phone}
+          />
+        )}
 
         <div className="mt-6 rounded-2xl border border-[#E7E5E4] bg-white p-6 text-sm">
           <p className="font-medium">More from {booking.businesses.business_name}</p>
