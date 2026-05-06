@@ -39,6 +39,58 @@ export const KNOWN_PURPOSES = [
 
 export type KnownPurpose = (typeof KNOWN_PURPOSES)[number];
 
+// Human-readable labels for the booking detail page's notification
+// timeline (and any future surface that renders notification_log rows).
+// Single source of truth — when a new template ships, add its purpose
+// to KNOWN_PURPOSES above AND its label here.
+//
+// Unknown values (e.g. an experimental template that bypassed the
+// canonical list) fall through to a snake_case → Title Case humanizer
+// so the UI never renders an empty cell.
+const PURPOSE_LABELS: Record<string, string> = {
+  // Booking lifecycle (client-facing)
+  booking_confirmation: "Booking confirmation",
+  booking_reminder_24h: "24h reminder",
+  booking_reminder_2h: "2h reminder",
+  booking_cancelled: "Cancellation notice",
+  booking_rescheduled: "Reschedule notice",
+  rebook_reminder: "Rebook reminder",
+  payment_received: "Payment receipt",
+  review_request: "Review request",
+  waitlist_alert: "Waitlist alert",
+
+  // Booking lifecycle (pro-facing)
+  owner_booking_alert: "New booking alert",
+  owner_cancellation_alert: "Cancellation alert",
+  owner_reschedule_alert: "Reschedule alert",
+
+  // Referrals (Pass the Torch)
+  referral_request: "Trusted Pros request",
+  referral_accepted: "Trusted Pros accepted",
+  referral_invite: "Trusted Pros invite",
+
+  // Subscription billing (pro-facing)
+  pre_billing_reminder: "Renewal reminder",
+  payment_failed: "Payment failed",
+  grace_expiring: "Grace expiring",
+
+  // Trials (pro-facing)
+  trial_reminder_7d: "Trial reminder (7d)",
+  trial_reminder_3d: "Trial reminder (3d)",
+  trial_reminder_1d: "Trial reminder (1d)",
+};
+
+export function displayLabel(purpose: string): string {
+  if (PURPOSE_LABELS[purpose]) return PURPOSE_LABELS[purpose];
+  // Fallback humanizer: snake_case → Title Case. Keeps the UI graceful
+  // for purposes that haven't been added to the canonical map yet.
+  return purpose
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
 export type NotificationStatus =
   | "sent"
   | "delivered"

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { formatCents } from "@/lib/types";
@@ -99,8 +100,15 @@ function BookingRow({ b }: { b: any }) {
     " – " +
     end.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
+  // Phase 1.7: rows are now navigable to the per-booking detail page.
+  // We use the absolute-link overlay pattern so the existing inline
+  // contact anchors (mailto/tel/sms), the Refund deep-link, and the
+  // Cancel button stay interactive — they sit in a `relative z-10`
+  // stacking context above the absolute Link, so clicks on them never
+  // trigger row navigation. Empty space anywhere on the card hits the
+  // Link below and routes to /dashboard/bookings/{id}.
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-[#E7E5E4] bg-white p-4 md:flex-row md:items-center md:gap-6">
+    <div className="relative flex flex-col gap-2 rounded-lg border border-[#E7E5E4] bg-white p-4 transition-colors hover:border-[#B8896B] md:flex-row md:items-center md:gap-6">
       <div className="flex-shrink-0 md:w-40">
         <p className="flex items-center gap-1.5 text-xs text-[#737373]">
           <Calendar size={11} /> {dateLabel}
@@ -116,7 +124,7 @@ function BookingRow({ b }: { b: any }) {
           {b.services?.price_cents != null && ` · ${formatCents(b.services.price_cents)}`}
         </p>
       </div>
-      <div className="flex items-center gap-3 text-xs text-[#525252]">
+      <div className="relative z-10 flex items-center gap-3 text-xs text-[#525252]">
         {b.clients?.email && (
           <a href={`mailto:${b.clients.email}`} className="flex items-center gap-1 hover:text-[#B8896B]">
             <Mail size={11} /> {b.clients.email}
@@ -142,7 +150,7 @@ function BookingRow({ b }: { b: any }) {
           </div>
         )}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="relative z-10 flex items-center gap-2">
         {b.paid_in_full_at && (
           <span
             className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-700"
@@ -180,6 +188,16 @@ function BookingRow({ b }: { b: any }) {
           <CancelBookingButton bookingId={b.id} />
         )}
       </div>
+      {/* Row-level navigation overlay (Phase 1.7). Absolute-positioned
+          link sits above the non-interactive text but below the
+          relative-z-10 action containers above, so clicks on contact
+          anchors / refund link / cancel button hit those targets while
+          clicks on empty space route to the detail page. */}
+      <Link
+        href={`/dashboard/bookings/${b.id}`}
+        aria-label={`View booking · ${b.services?.name ?? "service"} with ${b.clients?.name ?? "client"}`}
+        className="absolute inset-0 rounded-lg"
+      />
     </div>
   );
 }
