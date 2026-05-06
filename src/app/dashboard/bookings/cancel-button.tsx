@@ -9,7 +9,14 @@ export function CancelBookingButton({ bookingId }: { bookingId: string }) {
   const [pending, start] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
 
-  function handleCancel() {
+  function handleCancel(e: React.MouseEvent) {
+    // Phase 1.7: rows on /dashboard/bookings now navigate to the
+    // per-booking detail page via an absolute-link overlay. The
+    // overlay is z-stacked beneath this button so it shouldn't fire,
+    // but stopping propagation defensively means future structural
+    // changes (e.g. dropping the parent's relative z-10 wrapper)
+    // can't accidentally route the user away mid-cancel.
+    e.stopPropagation();
     if (!confirm("Cancel this booking? The customer will receive a notification and any waitlisters will be alerted.")) {
       return;
     }

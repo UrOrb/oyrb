@@ -75,6 +75,48 @@ export async function logNotification(params: LogParams): Promise<string | null>
 }
 
 /**
+ * Loads every notification_log row for a booking, ordered oldest-first
+ * so the booking detail page can render them as a chronological
+ * timeline. Read uses the admin client because the booking detail page
+ * already does its own owner check before invoking; the helper itself
+ * is non-discriminating.
+ */
+export type BookingNotification = {
+  id: string;
+  channel: "sms" | "email";
+  recipient_type: "client" | "pro";
+  purpose: string;
+  status: "sent" | "delivered" | "failed" | "undelivered" | "bounced";
+  status_detail: string | null;
+  recipient_address_redacted: string | null;
+  sent_at: string;
+  status_updated_at: string | null;
+};
+
+export async function loadNotificationsForBooking(
+  bookingId: string,
+): Promise<BookingNotification[]> {
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("notification_log")
+      .select(
+        "id, channel, recipient_type, purpose, status, status_detail, recipient_address_redacted, sent_at, status_updated_at",
+      )
+      .eq("booking_id", bookingId)
+      .order("sent_at", { ascending: true });
+    if (error) {
+      console.error("loadNotificationsForBooking failed:", error.message);
+      return [];
+    }
+    return (data ?? []) as BookingNotification[];
+  } catch (err) {
+    console.error("loadNotificationsForBooking threw:", err);
+    return [];
+  }
+}
+
+/**
  * Webhook entry point. Looks up the row by provider_message_id and
  * advances its status only when the incoming status is at-or-beyond the
  * current rank. Idempotent — duplicate or out-of-order callbacks are
