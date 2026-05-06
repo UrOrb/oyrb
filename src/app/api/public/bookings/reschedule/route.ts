@@ -145,11 +145,18 @@ export async function POST(request: NextRequest) {
   }
 
   // Apply the reschedule.
+  // previous_start_at + rescheduled_at audit columns added in
+  // migration 039 (Phase 1 closer). Populated from BOTH reschedule
+  // paths (here + the new pro-side route at /api/bookings/[id]/reschedule)
+  // so the analytics surface stays consistent regardless of who
+  // initiated the change.
   const { error: updErr } = await supabase
     .from("bookings")
     .update({
       start_at: newStart.toISOString(),
       end_at: newEnd.toISOString(),
+      previous_start_at: booking.start_at,
+      rescheduled_at: new Date().toISOString(),
       // Reset the reminder so the 24-hour cron re-sends for the new time.
       reminder_sent_at: null,
       sms_reminder_sent_at: null,
