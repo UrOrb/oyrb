@@ -1,17 +1,17 @@
 import { Nav } from "@/components/marketing/nav";
 import { Footer } from "@/components/marketing/footer";
+import { TOS_VERSION } from "@/lib/tos-version";
 
 export const metadata = {
   title: "Terms of Service — OYRB",
   description: "Legal terms governing the use of OYRB.",
 };
 
-const LAST_UPDATED = "April 22, 2026";
-const EFFECTIVE_DATE = "April 22, 2026";
+const LAST_UPDATED = "May 5, 2026";
+const EFFECTIVE_DATE = "May 5, 2026";
 const COMPANY_NAME = "OYRB LLC, a Georgia limited liability company (“OYRB”, “Own Your Brand”)";
 const CONTACT_EMAIL = "support@oyrb.space";
 const GOVERNING_STATE = "Georgia";
-const TOS_VERSION = "v1.2";
 
 export default function TermsPage() {
   return (
@@ -449,12 +449,10 @@ export default function TermsPage() {
           </section>
 
           {/*
-            PLACEHOLDER LANGUAGE — pending lawyer review per Priority 7
-            in the master OYRB context. TOS_VERSION above was bumped
-            v1.1 → v1.2 alongside this addition so existing users
-            re-accept on next sign-in (mirrored in
-            src/app/signup/actions.ts). If legal review materially
-            tightens the language, bump again in lockstep.
+            Sections 26–30 are draft language pending lawyer review.
+            TOS_VERSION above was bumped v1.2 → v1.3 alongside the v1.3
+            additions; existing users re-accept on next dashboard
+            navigation via the in-app modal.
           */}
           <section className="mt-8 space-y-4 text-[#2a2a2a]">
             <h2 className="font-display text-2xl font-medium">26. Pass the Torch (Trusted Pros)</h2>
@@ -464,7 +462,41 @@ export default function TermsPage() {
           </section>
 
           <section className="mt-8 space-y-4 text-[#2a2a2a]">
-            <h2 className="font-display text-2xl font-medium">27. Contact</h2>
+            <h2 className="font-display text-2xl font-medium">27. Honesty Clause</h2>
+            <p>
+              By using OYRB, both clients and beauty professionals agree to act with honesty in all interactions, bookings, communications, and reporting. This includes accurate representation of services offered, accurate identity, and good-faith use of the Dispute Inquiry system. Violations may result in account suspension at OYRB&apos;s sole discretion.
+            </p>
+          </section>
+
+          <section className="mt-8 space-y-4 text-[#2a2a2a]">
+            <h2 className="font-display text-2xl font-medium">28. Dispute Inquiry Process</h2>
+            <p>
+              OYRB provides a Dispute Inquiry system for documenting disagreements between clients and beauty professionals. Filing a Dispute Inquiry affects the professional&apos;s rating only. OYRB does not process refunds. For refund requests, clients must contact the beauty professional directly or initiate a chargeback through their bank or Stripe.
+            </p>
+            <p>
+              Both parties have forty-eight (48) hours to submit evidence after a Dispute Inquiry is filed. OYRB reviews submitted evidence and applies rating adjustments based on documented behavior. OYRB is not a small claims court, arbitrator, or judge of disputes; the Dispute Inquiry system is a reputation tool, not a legal remedy.
+            </p>
+          </section>
+
+          <section className="mt-8 space-y-4 text-[#2a2a2a]">
+            <h2 className="font-display text-2xl font-medium">29. Strike System</h2>
+            <p>
+              Beauty professionals receiving multiple Dispute Inquiries with insufficient counter-evidence accumulate strikes weighted by the severity of the underlying issue. Three strikes (or a weighted total of five or greater) result in a storefront pause pending OYRB review.
+            </p>
+            <p>
+              A storefront pause does not affect subscription billing — beauty professionals can either resolve their account standing or cancel their subscription separately through the standard billing portal.
+            </p>
+          </section>
+
+          <section className="mt-8 space-y-4 text-[#2a2a2a]">
+            <h2 className="font-display text-2xl font-medium">30. No Payment Guarantee</h2>
+            <p>
+              OYRB is a software platform connecting clients with beauty professionals. OYRB does not hold client funds, does not process refunds, and does not guarantee service delivery. Payment disputes must be resolved between the client, the beauty professional, and Stripe (the payment processor). OYRB makes no warranties regarding the quality of services rendered, the reliability of beauty professionals, or the satisfaction of clients with services received through the platform.
+            </p>
+          </section>
+
+          <section className="mt-8 space-y-4 text-[#2a2a2a]">
+            <h2 className="font-display text-2xl font-medium">31. Contact</h2>
             <p>
               Questions about these Terms? Email us at <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#B8896B] hover:underline">{CONTACT_EMAIL}</a>.
             </p>

@@ -2,13 +2,7 @@
 
 import { headers } from "next/headers";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-
-// Versioned consent strings — bump when the corresponding document materially
-// changes so a fresh acceptance is required. The same constants live on the
-// /terms and /privacy pages (TOS_VERSION / PRIVACY_VERSION); keep them in
-// sync if the legal docs change.
-const TOS_VERSION = "v1.2";
-const PRIVACY_VERSION = "v1.1";
+import { TOS_VERSION, PRIVACY_VERSION } from "@/lib/tos-version";
 
 /**
  * Records the current user's acceptance of the Terms of Service and Privacy

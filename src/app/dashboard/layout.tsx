@@ -6,6 +6,8 @@ import { AvatarMenu } from "./avatar-menu";
 import { HelpPanel } from "./help-panel";
 import { PendingInviteAcceptor } from "./pending-invite-acceptor";
 import { BillingBanner } from "./billing-banner";
+import { ToSReacceptanceModal } from "@/components/dashboard/tos-reacceptance-modal";
+import { TOS_VERSION, meetsTosVersion } from "@/lib/tos-version";
 
 export const metadata = {
   title: "Dashboard",
@@ -44,6 +46,27 @@ export default async function DashboardLayout({
       .eq("receiving_business_id", activeBusiness.id)
       .eq("status", "pending");
     pendingTrustedPros = count ?? 0;
+  }
+
+  // TOS re-acceptance gate (Phase 1.5). When TOS_VERSION bumps, every
+  // logged-in user has to click through the new version before the
+  // dashboard becomes interactive. We read the latest 'tos' row from
+  // user_consents — index user_consents_user_idx is (user_id,
+  // consent_type, accepted_at desc) so this is an O(1) lookup.
+  let needsTosReacceptance = false;
+  if (user) {
+    const { data: latestTos } = await supabase
+      .from("user_consents")
+      .select("version")
+      .eq("user_id", user.id)
+      .eq("consent_type", "tos")
+      .order("accepted_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    needsTosReacceptance = !meetsTosVersion(
+      latestTos?.version as string | undefined,
+      TOS_VERSION,
+    );
   }
 
   const fullName = (user?.user_metadata?.full_name as string | undefined) ?? null;
@@ -105,6 +128,13 @@ export default async function DashboardLayout({
           soon as the user has a business. No-op when no token is
           stashed. Idempotent. */}
       <PendingInviteAcceptor />
+
+      {/* TOS re-acceptance gate (Phase 1.5). Renders only when the
+          current user's latest 'tos' user_consents row is below
+          TOS_VERSION. Blocks all dashboard interaction (modal traps
+          focus, locks body scroll, swallows Escape) until the user
+          clicks "I accept and continue." */}
+      {needsTosReacceptance && <ToSReacceptanceModal tosVersion={TOS_VERSION} />}
     </div>
   );
 }
