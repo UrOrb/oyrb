@@ -17,12 +17,13 @@ type ActionResult = { success: true } | { error: string };
 /**
  * Admin resolves a dispute. Flips status to resolved_strike or
  * resolved_dismissed, stamps resolved_at + admin_notes, sends
- * resolution emails to both sides.
+ * resolution emails to both sides, and (for client-filed strikes)
+ * accumulates a strike against the business via recordStrike() —
+ * which may auto-pause the storefront if the threshold is crossed.
  *
- * Auth-gated by ADMIN_EMAILS env var via requireAdmin(). Strike
- * consequences (auto-pause storefronts on N strikes) are NOT
- * implemented in this PR — that's PR 2.2. This action just records
- * the outcome.
+ * Auth-gated by ADMIN_EMAILS env var via requireAdmin(). See
+ * src/lib/strikes.ts for the threshold rules and rolling-window
+ * logic, and TOS §29 for the user-facing policy.
  */
 export async function resolveDispute(
   disputeId: string,
