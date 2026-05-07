@@ -130,6 +130,10 @@ export async function createManualBooking(formData: FormData): Promise<ActionRes
       start_at: startAt.toISOString(),
       end_at: endAt.toISOString(),
       status: "confirmed",
+      // Phase 4.5 — pro is manually entering this booking from the
+      // dashboard. Drives the Booking Origin card on Where They Come
+      // From.
+      booking_source: "manual",
     })
     .select("id")
     .single();
