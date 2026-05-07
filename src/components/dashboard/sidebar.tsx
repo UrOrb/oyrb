@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
+  LineChart,
   Globe,
   Scissors,
   CalendarDays,
@@ -28,6 +29,7 @@ type NavItem = {
 
 const NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Business Brain", href: "/dashboard/business-brain", icon: LineChart },
   { label: "Site", href: "/dashboard/site", icon: Globe },
   { label: "Services", href: "/dashboard/services", icon: Scissors },
   { label: "Bookings", href: "/dashboard/bookings", icon: CalendarDays },
@@ -60,7 +62,16 @@ export function Sidebar({ pendingTrustedPros = 0 }: Props) {
 
       <nav className="flex flex-col gap-0.5 p-3 flex-1">
         {NAV.map(({ label, href, icon: Icon, badgeKey }) => {
-          const active = pathname === href;
+          // The Dashboard root needs an exact match (otherwise every
+          // /dashboard/* sub-route would also highlight it). All other
+          // items highlight on their route OR any sub-route — this is
+          // what makes Business Brain's Money / Time / Clients tabs
+          // keep the sidebar entry highlighted, and is a UX
+          // improvement for /dashboard/settings/booking-rules etc.
+          const active =
+            href === "/dashboard"
+              ? pathname === "/dashboard"
+              : pathname === href || pathname.startsWith(`${href}/`);
           const badge = badgeKey ? badges[badgeKey] : 0;
           return (
             <Link
