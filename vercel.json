@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/dispute-deadline-sweeper",
-      "schedule": "0 8 * * *"
+      "schedule": "5 8 * * *"
     },
     {
       "path": "/api/cron/reminders",
