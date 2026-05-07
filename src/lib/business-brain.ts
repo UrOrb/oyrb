@@ -44,17 +44,54 @@ export type TodayService = {
   progressLabel: "scheduled" | "in_progress" | "complete" | "cancelled" | "past";
 };
 
+/**
+ * Four mutually-exclusive payment patterns. Per booking, exactly one of
+ * these applies. Reused by the This Week tab's Money card and the
+ * Phase 4.2 Money tab's Deposit-vs-Pay-in-Full card so pros see a
+ * consistent payment-pattern model across both surfaces.
+ *
+ *   - fullyUpfront        : deposit_paid=false AND paid_in_full_at NOT NULL
+ *                           (client paid full price via the pay-in-full
+ *                           flow). paid_amount_cents holds the full price.
+ *   - depositThenBalance  : deposit_paid=true AND paid_in_full_at NOT NULL
+ *                           (client paid deposit at booking, then balance
+ *                           via the pay-in-full flow).
+ *                           paid_amount_cents holds ONLY the balance —
+ *                           total collected = deposit_cents + paid_amount_cents.
+ *   - depositOnly         : deposit_paid=true AND paid_in_full_at NULL
+ *                           (deposit collected; balance owed in person
+ *                           or never collected through OYRB).
+ *   - noOyrbPayment       : both NULL/false (paid in person, free
+ *                           service, or pending). Counted but $0
+ *                           collected — there's nothing for OYRB to sum.
+ */
+export type PaymentMix = {
+  fullyUpfrontCount: number;
+  fullyUpfrontCents: number;
+  depositThenBalanceCount: number;
+  depositThenBalanceCents: number;
+  depositOnlyCount: number;
+  depositOnlyCents: number;
+  noOyrbPaymentCount: number;
+  totalBookings: number;
+  totalCollectedCents: number;
+};
+
+/**
+ * The canonical money summary. Same shape used by both This Week's
+ * Money card and the 90-day window in the Money tab. Replaces the
+ * deposits/payInFull split from PR #29 — that framing under-counted
+ * revenue when a deposit + balance were both paid (paid_amount_cents
+ * holds only the balance, not the full price). The new shape sums
+ * each booking's collected revenue once.
+ */
 export type MoneyThisWeek = {
-  /** Sum of services.price_cents for confirmed+completed bookings starting this week. Excludes cancelled. */
+  /** Sum of services.price_cents for non-cancelled bookings in window. "Money on the calendar" — what appointments are worth, not what was actually collected. */
   grossCents: number;
-  /** Count of bookings this week with deposit_paid=true. */
-  depositsCount: number;
-  /** Sum of services.deposit_cents for those bookings. */
-  depositsTotalCents: number;
-  /** Count of bookings this week with paid_in_full_at IS NOT NULL. */
-  payInFullCount: number;
-  /** Sum of paid_amount_cents for those bookings. */
-  payInFullTotalCents: number;
+  /** Sum of OYRB-captured revenue for non-cancelled bookings in window. Per booking: (deposit_cents if deposit_paid) + (paid_amount_cents if paid_in_full_at). Equals 0 for pros not using Stripe Connect / pay-in-full — they collect outside OYRB. */
+  revenueCollectedCents: number;
+  /** 4-category payment-pattern breakdown for the same set of bookings. */
+  paymentMix: PaymentMix;
 };
 
 export type TrendCompare = {
@@ -326,30 +363,14 @@ async function computeThisWeekData(
   });
 
   // ── Money this week ────────────────────────────────────────────────
-  const money: MoneyThisWeek = thisWeekRows.reduce<MoneyThisWeek>(
-    (acc, r) => {
-      const isCancelled = r.status === "cancelled";
-      const svc = pickFirst(r.services);
-      const price = svc?.price_cents ?? 0;
-      const dep = svc?.deposit_cents ?? 0;
-      if (!isCancelled) acc.grossCents += price;
-      if (!isCancelled && r.deposit_paid) {
-        acc.depositsCount += 1;
-        acc.depositsTotalCents += dep;
-      }
-      if (!isCancelled && r.paid_in_full_at) {
-        acc.payInFullCount += 1;
-        acc.payInFullTotalCents += r.paid_amount_cents ?? 0;
-      }
-      return acc;
-    },
-    {
-      grossCents: 0,
-      depositsCount: 0,
-      depositsTotalCents: 0,
-      payInFullCount: 0,
-      payInFullTotalCents: 0,
-    },
+  const money: MoneyThisWeek = aggregateMoney(
+    thisWeekRows.filter((r) => r.status !== "cancelled").map((r) => ({
+      depositPaid: !!r.deposit_paid,
+      paidInFullAt: r.paid_in_full_at,
+      paidAmountCents: r.paid_amount_cents ?? 0,
+      priceCents: pickFirst(r.services)?.price_cents ?? 0,
+      depositCents: pickFirst(r.services)?.deposit_cents ?? 0,
+    })),
   );
 
   // ── Trend compare ──────────────────────────────────────────────────
@@ -690,4 +711,441 @@ async function computeAnomalies(
 
 function formatAvg(n: number): string {
   return n >= 10 ? Math.round(n).toString() : n.toFixed(1);
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Phase 4.2 — Money tab
+// ────────────────────────────────────────────────────────────────────
+
+const MONEY_WINDOW_LAST_30 = 30;
+const MONEY_WINDOW_LAST_90 = 90;
+const MONEY_TREND_TARGET_WEEKS = 12;
+const MONEY_TREND_MIN_WEEKS = 4;
+const TOP_SERVICES_REQUIRED_DISTINCT = 3;
+const TOP_SERVICES_LIMIT = 5;
+const PROFIT_PER_MINUTE_MIN_BOOKINGS = 5;
+const MS_DAY = 24 * 60 * 60 * 1000;
+
+export type RevenueWindow = {
+  /** "This week" / "This month" / "Last 30 days" / "Last 90 days". */
+  label: string;
+  /** Window in absolute time (UTC instants). */
+  start: Date;
+  end: Date;
+  prevStart: Date;
+  prevEnd: Date;
+  bookingCount: number;
+  prevBookingCount: number;
+  grossCents: number;
+  prevGrossCents: number;
+  /** Optional descriptive note, e.g., "Compared at same day-of-month." Used on the This Month tile only. */
+  comparisonNote?: string;
+};
+
+export type TopService = {
+  serviceId: string;
+  name: string;
+  totalRevenueCents: number;
+  bookingCount: number;
+  avgPriceCents: number;
+};
+
+export type WeeklyRevenuePoint = {
+  /** Monday in pro tz. */
+  weekStart: Date;
+  /** Short label e.g. "May 5". */
+  label: string;
+  grossCents: number;
+};
+
+export type MoneyTrend = {
+  /** True when ≥ MONEY_TREND_MIN_WEEKS of data is available; controls empty state. */
+  hasEnoughData: boolean;
+  points: WeeklyRevenuePoint[];
+};
+
+export type ProfitPerMinute = {
+  /** True when ≥ PROFIT_PER_MINUTE_MIN_BOOKINGS qualifying bookings; controls empty state. */
+  hasEnoughData: boolean;
+  qualifyingBookings: number;
+  totalRevenueCents: number;
+  totalMinutes: number;
+  /** Cents per minute. 0 when totalMinutes is 0 (defensive — shouldn't happen when hasEnoughData is true). */
+  centsPerMinute: number;
+};
+
+export type MoneyData = {
+  timeZone: string;
+  /** [thisWeek, thisMonth, last30, last90]. */
+  windows: RevenueWindow[];
+  topServices: TopService[];
+  topServicesHasEnoughData: boolean;
+  /** 90-day payment-pattern breakdown. */
+  paymentMix: PaymentMix;
+  trend: MoneyTrend;
+  profitPerMinute: ProfitPerMinute;
+};
+
+export async function getMoneyData(
+  businessId: string,
+  timeZone: string,
+): Promise<MoneyData> {
+  return unstable_cache(
+    async () => computeMoneyData(businessId, timeZone),
+    ["business-brain-money", businessId, timeZone],
+    { revalidate: 3600 },
+  )();
+}
+
+/**
+ * Shared aggregator. Takes a flat array of bookings (already filtered
+ * to the relevant window and to non-cancelled status) and returns the
+ * canonical money summary used by both This Week's Money card and the
+ * Money tab's 90-day breakdown.
+ *
+ * Per-booking collected revenue:
+ *   (deposit_cents if deposit_paid) + (paid_amount_cents if paid_in_full_at)
+ *
+ * This sums each booking's actual flow-of-funds exactly once. A
+ * deposit-then-balance booking contributes deposit_cents +
+ * paid_amount_cents (which equals the full price). A deposit-only
+ * booking contributes only deposit_cents. A no-OYRB-payment booking
+ * contributes 0.
+ */
+type MoneyInput = {
+  depositPaid: boolean;
+  paidInFullAt: string | null;
+  paidAmountCents: number;
+  priceCents: number;
+  depositCents: number;
+};
+
+function aggregateMoney(rows: MoneyInput[]): MoneyThisWeek {
+  let grossCents = 0;
+  let revenueCollectedCents = 0;
+  const mix: PaymentMix = {
+    fullyUpfrontCount: 0,
+    fullyUpfrontCents: 0,
+    depositThenBalanceCount: 0,
+    depositThenBalanceCents: 0,
+    depositOnlyCount: 0,
+    depositOnlyCents: 0,
+    noOyrbPaymentCount: 0,
+    totalBookings: 0,
+    totalCollectedCents: 0,
+  };
+
+  for (const r of rows) {
+    grossCents += r.priceCents;
+    mix.totalBookings += 1;
+
+    const collected =
+      (r.depositPaid ? r.depositCents : 0) +
+      (r.paidInFullAt ? r.paidAmountCents : 0);
+    revenueCollectedCents += collected;
+
+    if (!r.depositPaid && r.paidInFullAt) {
+      mix.fullyUpfrontCount += 1;
+      mix.fullyUpfrontCents += collected;
+    } else if (r.depositPaid && r.paidInFullAt) {
+      mix.depositThenBalanceCount += 1;
+      mix.depositThenBalanceCents += collected;
+    } else if (r.depositPaid && !r.paidInFullAt) {
+      mix.depositOnlyCount += 1;
+      mix.depositOnlyCents += collected;
+    } else {
+      mix.noOyrbPaymentCount += 1;
+    }
+  }
+
+  mix.totalCollectedCents = revenueCollectedCents;
+  return { grossCents, revenueCollectedCents, paymentMix: mix };
+}
+
+/**
+ * Calendar-month boundaries in the pro's tz. Returns:
+ *   - monthStart       : 1st of this month, 00:00 in tz, as UTC instant
+ *   - monthSoFarEnd    : start of tomorrow in tz, as UTC instant (so today
+ *                        is fully included in the "this month so far" range)
+ *   - lastMonthStart   : 1st of last month, 00:00 in tz
+ *   - lastMonthMatchEnd: last month's start + (monthSoFarEnd - monthStart),
+ *                        i.e., the same number of days into last month —
+ *                        gives a fair partial-month comparison.
+ */
+function getMonthRanges(timeZone: string): {
+  monthStart: Date;
+  monthSoFarEnd: Date;
+  lastMonthStart: Date;
+  lastMonthMatchEnd: Date;
+} {
+  const now = new Date();
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour12: false,
+  });
+  const parts = Object.fromEntries(
+    fmt.formatToParts(now).map((p) => [p.type, p.value]),
+  ) as Record<string, string>;
+  const y = Number(parts.year);
+  const m = Number(parts.month); // 1-12
+  const d = Number(parts.day);
+
+  // Use noon-on-the-1st as the DST-stable probe point.
+  const probeMonth = new Date(Date.UTC(y, m - 1, 1, 12));
+  const offsetMin = getTzOffsetMinutes(probeMonth, timeZone);
+  const probeLastMonth = new Date(
+    Date.UTC(y, m - 2, 1, 12),
+  );
+  const offsetLastMin = getTzOffsetMinutes(probeLastMonth, timeZone);
+
+  const monthStart = new Date(
+    Date.UTC(y, m - 1, 1, 0) - offsetMin * 60_000,
+  );
+  // "today + 1" in tz. Spring-forward weeks: the end is at most 1h off,
+  // matching the spring-forward concession in getWeekRange.
+  const monthSoFarEnd = new Date(
+    Date.UTC(y, m - 1, d + 1, 0) - offsetMin * 60_000,
+  );
+
+  const lastMonthStart = new Date(
+    Date.UTC(y, m - 2, 1, 0) - offsetLastMin * 60_000,
+  );
+  // Same number of days into last month.
+  const daysIntoMonth = Math.round(
+    (monthSoFarEnd.getTime() - monthStart.getTime()) / MS_DAY,
+  );
+  const lastMonthMatchEnd = new Date(
+    Date.UTC(y, m - 2, 1 + daysIntoMonth, 0) - offsetLastMin * 60_000,
+  );
+
+  return { monthStart, monthSoFarEnd, lastMonthStart, lastMonthMatchEnd };
+}
+
+type MoneyRow = {
+  id: string;
+  start_at: string;
+  status: string;
+  deposit_paid: boolean | null;
+  paid_in_full_at: string | null;
+  paid_amount_cents: number | null;
+  service_started_at: string | null;
+  service_ended_at: string | null;
+  service_id: string | null;
+  services:
+    | { id: string; name: string; price_cents: number; deposit_cents: number }
+    | { id: string; name: string; price_cents: number; deposit_cents: number }[]
+    | null;
+};
+
+async function computeMoneyData(
+  businessId: string,
+  timeZone: string,
+): Promise<MoneyData> {
+  const admin = createAdminClient();
+  const now = new Date();
+  const { weekStart, weekEnd } = getWeekRange(timeZone);
+  const { monthStart, monthSoFarEnd, lastMonthStart, lastMonthMatchEnd } =
+    getMonthRanges(timeZone);
+
+  const last30Start = new Date(now.getTime() - MONEY_WINDOW_LAST_30 * MS_DAY);
+  const prev30Start = new Date(now.getTime() - 2 * MONEY_WINDOW_LAST_30 * MS_DAY);
+  const last90Start = new Date(now.getTime() - MONEY_WINDOW_LAST_90 * MS_DAY);
+  const prev90Start = new Date(now.getTime() - 2 * MONEY_WINDOW_LAST_90 * MS_DAY);
+
+  // Trend chart needs up to 12 weeks back from the start of THIS week.
+  const trendStart = new Date(
+    weekStart.getTime() - MONEY_TREND_TARGET_WEEKS * 7 * MS_DAY,
+  );
+
+  // Widest range we need: max of (prev90Start, lastMonthStart, trendStart)
+  // through weekEnd.
+  const widestStart = new Date(
+    Math.min(prev90Start.getTime(), lastMonthStart.getTime(), trendStart.getTime()),
+  );
+
+  const { data } = await admin
+    .from("bookings")
+    .select(
+      "id, start_at, status, deposit_paid, paid_in_full_at, paid_amount_cents, service_started_at, service_ended_at, service_id, services(id, name, price_cents, deposit_cents)",
+    )
+    .eq("business_id", businessId)
+    .gte("start_at", widestStart.toISOString())
+    .lt("start_at", weekEnd.toISOString());
+
+  const allRows = ((data ?? []) as MoneyRow[]).filter(
+    (r) => r.status !== "cancelled",
+  );
+
+  const inWindow = (
+    rows: MoneyRow[],
+    start: Date,
+    end: Date,
+  ): MoneyRow[] => {
+    const startMs = start.getTime();
+    const endMs = end.getTime();
+    return rows.filter((r) => {
+      const t = new Date(r.start_at).getTime();
+      return t >= startMs && t < endMs;
+    });
+  };
+
+  const toMoneyInputs = (rows: MoneyRow[]): MoneyInput[] =>
+    rows.map((r) => {
+      const svc = pickFirst(r.services);
+      return {
+        depositPaid: !!r.deposit_paid,
+        paidInFullAt: r.paid_in_full_at,
+        paidAmountCents: r.paid_amount_cents ?? 0,
+        priceCents: svc?.price_cents ?? 0,
+        depositCents: svc?.deposit_cents ?? 0,
+      };
+    });
+
+  const buildWindow = (
+    label: string,
+    start: Date,
+    end: Date,
+    prevStart: Date,
+    prevEnd: Date,
+    comparisonNote?: string,
+  ): RevenueWindow => {
+    const cur = inWindow(allRows, start, end);
+    const prev = inWindow(allRows, prevStart, prevEnd);
+    const curMoney = aggregateMoney(toMoneyInputs(cur));
+    const prevMoney = aggregateMoney(toMoneyInputs(prev));
+    return {
+      label,
+      start,
+      end,
+      prevStart,
+      prevEnd,
+      bookingCount: cur.length,
+      prevBookingCount: prev.length,
+      grossCents: curMoney.grossCents,
+      prevGrossCents: prevMoney.grossCents,
+      comparisonNote,
+    };
+  };
+
+  // Last week boundaries for the This Week tile's prev period.
+  const lastWeekStart = new Date(weekStart.getTime() - 7 * MS_DAY);
+  const lastWeekEnd = weekStart;
+
+  const windows: RevenueWindow[] = [
+    buildWindow("This week", weekStart, weekEnd, lastWeekStart, lastWeekEnd),
+    buildWindow(
+      "This month",
+      monthStart,
+      monthSoFarEnd,
+      lastMonthStart,
+      lastMonthMatchEnd,
+      "Compared at same day-of-month",
+    ),
+    buildWindow("Last 30 days", last30Start, now, prev30Start, last30Start),
+    buildWindow("Last 90 days", last90Start, now, prev90Start, last90Start),
+  ];
+
+  // ── Top services (90 days) ──────────────────────────────────────────
+  const last90Rows = inWindow(allRows, last90Start, now);
+  const byService = new Map<
+    string,
+    { name: string; total: number; count: number }
+  >();
+  for (const r of last90Rows) {
+    if (!r.service_id) continue;
+    const svc = pickFirst(r.services);
+    if (!svc) continue;
+    const existing = byService.get(r.service_id);
+    if (existing) {
+      existing.total += svc.price_cents;
+      existing.count += 1;
+    } else {
+      byService.set(r.service_id, {
+        name: svc.name,
+        total: svc.price_cents,
+        count: 1,
+      });
+    }
+  }
+  const topServices: TopService[] = Array.from(byService.entries())
+    .map(([serviceId, v]) => ({
+      serviceId,
+      name: v.name,
+      totalRevenueCents: v.total,
+      bookingCount: v.count,
+      avgPriceCents: v.count > 0 ? Math.round(v.total / v.count) : 0,
+    }))
+    .sort((a, b) => b.totalRevenueCents - a.totalRevenueCents)
+    .slice(0, TOP_SERVICES_LIMIT);
+  const topServicesHasEnoughData = byService.size >= TOP_SERVICES_REQUIRED_DISTINCT;
+
+  // ── Payment mix (90 days) ──────────────────────────────────────────
+  const paymentMix = aggregateMoney(toMoneyInputs(last90Rows)).paymentMix;
+
+  // ── Money trend chart ──────────────────────────────────────────────
+  // Compute the past N weeks (up to 12) including this week. Earliest
+  // first. A pro with < 4 weeks of data shows the empty state.
+  const trendPoints: WeeklyRevenuePoint[] = [];
+  for (let i = MONEY_TREND_TARGET_WEEKS - 1; i >= 0; i -= 1) {
+    const wkStart = new Date(weekStart.getTime() - i * 7 * MS_DAY);
+    const wkEnd = new Date(wkStart.getTime() + 7 * MS_DAY);
+    const rows = inWindow(allRows, wkStart, wkEnd);
+    const wkMoney = aggregateMoney(toMoneyInputs(rows));
+    trendPoints.push({
+      weekStart: wkStart,
+      label: new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        month: "short",
+        day: "numeric",
+      }).format(wkStart),
+      grossCents: wkMoney.grossCents,
+    });
+  }
+  // Trim leading zero-revenue weeks beyond the first non-zero — keeps
+  // the chart honest for newer pros (don't show 8 empty bars). Always
+  // keep at least 4 weeks if we have them.
+  let firstNonZero = trendPoints.findIndex((p) => p.grossCents > 0);
+  if (firstNonZero === -1) firstNonZero = trendPoints.length;
+  const keepFrom = Math.min(
+    firstNonZero,
+    trendPoints.length - MONEY_TREND_MIN_WEEKS,
+  );
+  const trimmedTrend = trendPoints.slice(Math.max(0, keepFrom));
+  const trendHasEnoughData = trimmedTrend.length >= MONEY_TREND_MIN_WEEKS;
+
+  // ── Profit per minute (90 days) ────────────────────────────────────
+  const qualifying = last90Rows.filter(
+    (r) => r.service_started_at && r.service_ended_at,
+  );
+  let totalRevenueCents = 0;
+  let totalMinutes = 0;
+  for (const r of qualifying) {
+    const startMs = new Date(r.service_started_at!).getTime();
+    const endMs = new Date(r.service_ended_at!).getTime();
+    const minutes = Math.max(0, (endMs - startMs) / 60_000);
+    if (minutes <= 0) continue;
+    const svc = pickFirst(r.services);
+    totalRevenueCents += svc?.price_cents ?? 0;
+    totalMinutes += minutes;
+  }
+  const profitPerMinute: ProfitPerMinute = {
+    hasEnoughData: qualifying.length >= PROFIT_PER_MINUTE_MIN_BOOKINGS && totalMinutes > 0,
+    qualifyingBookings: qualifying.length,
+    totalRevenueCents,
+    totalMinutes,
+    centsPerMinute: totalMinutes > 0 ? totalRevenueCents / totalMinutes : 0,
+  };
+
+  return {
+    timeZone,
+    windows,
+    topServices,
+    topServicesHasEnoughData,
+    paymentMix,
+    trend: { hasEnoughData: trendHasEnoughData, points: trimmedTrend },
+    profitPerMinute,
+  };
 }

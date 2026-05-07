@@ -1,13 +1,59 @@
-import { ComingSoonCard } from "../_components/coming-soon-card";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentBusiness } from "@/lib/current-site";
+import { getMoneyData } from "@/lib/business-brain";
+import { RevenueOverviewCard } from "../_components/revenue-overview-card";
+import { TopEarningServicesCard } from "../_components/top-earning-services-card";
+import { ProfitPerMinuteCard } from "../_components/profit-per-minute-card";
+import { DepositVsPayInFullCard } from "../_components/deposit-vs-pay-in-full-card";
+import { MoneyTrendCard } from "../_components/money-trend-card";
 
 export const metadata = { title: "Money — Business Brain" };
+export const dynamic = "force-dynamic";
 
-export default function MoneyTabPage() {
+interface Props {
+  searchParams: Promise<{ siteId?: string }>;
+}
+
+/**
+ * Phase 4.2 — Money tab. Five cards in a vertical stack, all driven
+ * by getMoneyData() which caches for 1 hour per businessId.
+ *
+ * Each card handles its own zero-data / sample-size empty state, so
+ * new pros (no bookings) and pros without Phase 3 timing data see
+ * graceful empty messages, not broken UIs.
+ *
+ * Auth: standard pattern via getCurrentBusiness — only the pro who
+ * owns the site gets data here.
+ */
+export default async function MoneyTabPage({ searchParams }: Props) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { siteId } = await searchParams;
+  const business = await getCurrentBusiness(siteId);
+  if (!business) {
+    return (
+      <div className="rounded-2xl border border-dashed border-[#E7E5E4] bg-white p-8 text-center text-sm text-[#737373]">
+        No business yet. Once you complete checkout, your money tab will appear here.
+      </div>
+    );
+  }
+
+  const timeZone = business.timezone ?? "UTC";
+  const data = await getMoneyData(business.id, timeZone);
+
   return (
-    <ComingSoonCard
-      title="Money"
-      phase="Phase 4.2"
-      description="Revenue, payments, and money flow over time. Charts of monthly gross, deposits collected, pay-in-full transactions, and refund history."
-    />
+    <div className="space-y-4">
+      <RevenueOverviewCard windows={data.windows} />
+      <TopEarningServicesCard
+        services={data.topServices}
+        hasEnoughData={data.topServicesHasEnoughData}
+      />
+      <ProfitPerMinuteCard data={data.profitPerMinute} />
+      <DepositVsPayInFullCard mix={data.paymentMix} />
+      <MoneyTrendCard trend={data.trend} />
+    </div>
   );
 }
