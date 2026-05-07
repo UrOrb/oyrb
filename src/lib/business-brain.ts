@@ -1515,3 +1515,444 @@ async function computeTimeData(
     stuck,
   };
 }
+
+// ────────────────────────────────────────────────────────────────────
+// Phase 4.4 — Clients tab
+// ────────────────────────────────────────────────────────────────────
+//
+// Five cards. One all-time fetch (with services + clients joins) feeds
+// every computation via in-memory bucketing. Cancelled bookings excluded
+// across the board (status NOT IN ('cancelled')).
+//
+// Privacy framing: cards display client NAMES only. Email/phone live
+// on /dashboard/clients (the operational client surface). Business
+// Brain Clients is read-only analytics; the Drifting Clients card
+// includes a footer link to /dashboard/clients so pros can pivot to
+// contact details when they want to act.
+//
+// LTV reuses aggregateMoney for consistency with Phase 4.2's
+// "revenue collected through OYRB" framing. Pros without Stripe
+// Connect see $0 collected revenue across all clients — that's
+// honest. The Top Clients card auto-falls-back to ranking by booking
+// volume in that case (rankedByBookingVolume=true).
+
+const CLIENTS_OVERVIEW_WINDOW_DAYS = 90;
+const CLIENTS_OVERVIEW_MIN_UNIQUE = 10;
+const TOP_CLIENTS_MIN_QUALIFYING = 5;
+const TOP_CLIENTS_MIN_BOOKINGS_EACH = 2;
+const TOP_CLIENTS_DISPLAY_LIMIT = 5;
+const DRIFTING_MIN_BOOKINGS = 3;
+const DRIFTING_GAP_LOWER_DAYS = 60;
+const DRIFTING_GAP_UPPER_DAYS = 180;
+const DRIFTING_DISPLAY_LIMIT = 5;
+const NEW_CLIENTS_TREND_MONTHS = 6;
+const RETENTION_COHORT_MIN = 10;
+const RETENTION_COHORT_OLDER_DAYS = 180;
+const RETENTION_COHORT_NEWER_DAYS = 90;
+
+export type RepeatClientOverview = {
+  hasEnoughData: boolean;
+  uniqueClientsLast90: number;
+  repeatClientsLast90: number;
+  /** repeatClientsLast90 / uniqueClientsLast90, in [0, 1]. */
+  repeatRate: number;
+  totalBookingsLast90: number;
+  /** totalBookingsLast90 / uniqueClientsLast90. */
+  avgBookingsPerClient: number;
+};
+
+export type TopClientByLTV = {
+  clientId: string;
+  name: string;
+  bookingCount: number;
+  /** Via aggregateMoney — revenue actually captured by OYRB. */
+  revenueCollectedCents: number;
+  lastBookingAt: Date;
+};
+
+export type TopClientsLTVResult = {
+  /** True when ≥ TOP_CLIENTS_MIN_QUALIFYING clients have ≥ TOP_CLIENTS_MIN_BOOKINGS_EACH bookings. */
+  hasEnoughData: boolean;
+  rows: TopClientByLTV[];
+  /**
+   * True when none of the top-5 candidates have positive
+   * revenueCollectedCents — typically a pro who collects payments
+   * outside OYRB. The card switches to ranking-by-booking-volume
+   * with an explainer footer.
+   */
+  rankedByBookingVolume: boolean;
+};
+
+export type DriftingClient = {
+  clientId: string;
+  name: string;
+  historicalBookingCount: number;
+  historicalRevenueCents: number;
+  lastBookingAt: Date;
+  daysSinceLastBooking: number;
+};
+
+export type DriftingClients = {
+  /** Top by historicalRevenueCents desc, capped at DRIFTING_DISPLAY_LIMIT. */
+  rows: DriftingClient[];
+  /** Total drifting clients matching the rule (visible + beyond). */
+  totalCount: number;
+};
+
+export type NewClientsMonthBucket = {
+  /** YYYY-MM key in pro tz, used internally. */
+  monthKey: string;
+  /** Display label e.g. "May" for current year, "Apr 2025" for prior year. */
+  label: string;
+  count: number;
+};
+
+export type NewClientsTrend = {
+  /** True when at least one bucket has ≥1 new client. */
+  hasEnoughData: boolean;
+  /** Exactly NEW_CLIENTS_TREND_MONTHS buckets, oldest first. */
+  buckets: NewClientsMonthBucket[];
+  totalNew: number;
+};
+
+export type ClientRetention = {
+  /** True when ≥ RETENTION_COHORT_MIN clients in the cohort window. */
+  hasEnoughData: boolean;
+  cohortSize: number;
+  retainedCount: number;
+  /** retainedCount / cohortSize, in [0, 1]. */
+  retentionRate: number;
+};
+
+export type ClientsData = {
+  timeZone: string;
+  repeatOverview: RepeatClientOverview;
+  topByLTV: TopClientsLTVResult;
+  drifting: DriftingClients;
+  newClientsTrend: NewClientsTrend;
+  retention: ClientRetention;
+};
+
+export async function getClientsData(
+  businessId: string,
+  timeZone: string,
+): Promise<ClientsData> {
+  return unstable_cache(
+    async () => computeClientsData(businessId, timeZone),
+    ["business-brain-clients", businessId, timeZone],
+    { revalidate: 3600 },
+  )();
+}
+
+type ClientRow = {
+  id: string;
+  start_at: string;
+  status: string;
+  client_id: string | null;
+  deposit_paid: boolean | null;
+  paid_in_full_at: string | null;
+  paid_amount_cents: number | null;
+  services:
+    | { price_cents: number; deposit_cents: number }
+    | { price_cents: number; deposit_cents: number }[]
+    | null;
+  clients:
+    | { id: string; name: string }
+    | { id: string; name: string }[]
+    | null;
+};
+
+async function computeClientsData(
+  businessId: string,
+  timeZone: string,
+): Promise<ClientsData> {
+  const admin = createAdminClient();
+  const now = new Date();
+
+  // All-time fetch. LTV requires it; the 90-day-window cards filter
+  // in-memory off the same array. At OYRB scale this is small and
+  // cheap — a pro with 5 years of bookings is still in the low
+  // thousands of rows.
+  const { data } = await admin
+    .from("bookings")
+    .select(
+      "id, start_at, status, client_id, deposit_paid, paid_in_full_at, paid_amount_cents, services(price_cents, deposit_cents), clients(id, name)",
+    )
+    .eq("business_id", businessId)
+    .neq("status", "cancelled")
+    // Defensive cap. Even an outlier pro with 5+ years of high volume
+    // shouldn't exceed this; if they do, we'd notice and revisit.
+    .order("start_at", { ascending: false })
+    .limit(20000);
+
+  const allRows = ((data ?? []) as ClientRow[]).filter((r) => !!r.client_id);
+
+  // Group all-time bookings by client_id. Used by every card except
+  // new-clients-trend (which uses first-booking) and retention
+  // (which uses cohort math).
+  type PerClient = {
+    clientId: string;
+    name: string;
+    bookings: ClientRow[];
+    firstBookingAt: Date;
+    lastBookingAt: Date;
+    bookingCount: number;
+  };
+  const byClient = new Map<string, PerClient>();
+  for (const r of allRows) {
+    const cid = r.client_id!;
+    const cliJoin = pickFirst(r.clients);
+    const startAt = new Date(r.start_at);
+    const cur =
+      byClient.get(cid) ??
+      ({
+        clientId: cid,
+        name: cliJoin?.name ?? "Client",
+        bookings: [] as ClientRow[],
+        firstBookingAt: startAt,
+        lastBookingAt: startAt,
+        bookingCount: 0,
+      } as PerClient);
+    cur.bookings.push(r);
+    cur.bookingCount += 1;
+    if (startAt < cur.firstBookingAt) cur.firstBookingAt = startAt;
+    if (startAt > cur.lastBookingAt) cur.lastBookingAt = startAt;
+    byClient.set(cid, cur);
+  }
+
+  // ── Repeat client overview (last 90 days) ──────────────────────────
+  const overviewStart = new Date(
+    now.getTime() - CLIENTS_OVERVIEW_WINDOW_DAYS * MS_DAY,
+  );
+  const overviewClients = new Set<string>();
+  const overviewBookingsByClient = new Map<string, number>();
+  let totalBookingsLast90 = 0;
+  for (const r of allRows) {
+    if (new Date(r.start_at).getTime() < overviewStart.getTime()) continue;
+    overviewClients.add(r.client_id!);
+    overviewBookingsByClient.set(
+      r.client_id!,
+      (overviewBookingsByClient.get(r.client_id!) ?? 0) + 1,
+    );
+    totalBookingsLast90 += 1;
+  }
+  const uniqueClientsLast90 = overviewClients.size;
+  const repeatClientsLast90 = Array.from(
+    overviewBookingsByClient.values(),
+  ).filter((n) => n >= 2).length;
+  const repeatOverview: RepeatClientOverview = {
+    hasEnoughData: uniqueClientsLast90 >= CLIENTS_OVERVIEW_MIN_UNIQUE,
+    uniqueClientsLast90,
+    repeatClientsLast90,
+    repeatRate:
+      uniqueClientsLast90 > 0 ? repeatClientsLast90 / uniqueClientsLast90 : 0,
+    totalBookingsLast90,
+    avgBookingsPerClient:
+      uniqueClientsLast90 > 0 ? totalBookingsLast90 / uniqueClientsLast90 : 0,
+  };
+
+  // ── Top clients by LTV (all-time) ──────────────────────────────────
+  // Compute revenueCollectedCents per client via aggregateMoney for
+  // consistency with Phase 4.2. Filter to clients with ≥
+  // TOP_CLIENTS_MIN_BOOKINGS_EACH bookings before sorting.
+  const eligibleForLTV = Array.from(byClient.values()).filter(
+    (c) => c.bookingCount >= TOP_CLIENTS_MIN_BOOKINGS_EACH,
+  );
+  const ltvCandidates = eligibleForLTV.map((c) => {
+    const moneyInputs: MoneyInput[] = c.bookings.map((b) => {
+      const svc = pickFirst(b.services);
+      return {
+        depositPaid: !!b.deposit_paid,
+        paidInFullAt: b.paid_in_full_at,
+        paidAmountCents: b.paid_amount_cents ?? 0,
+        priceCents: svc?.price_cents ?? 0,
+        depositCents: svc?.deposit_cents ?? 0,
+      };
+    });
+    const m = aggregateMoney(moneyInputs);
+    return {
+      clientId: c.clientId,
+      name: c.name,
+      bookingCount: c.bookingCount,
+      revenueCollectedCents: m.revenueCollectedCents,
+      lastBookingAt: c.lastBookingAt,
+    } as TopClientByLTV;
+  });
+
+  const sortedByRevenue = [...ltvCandidates].sort(
+    (a, b) => b.revenueCollectedCents - a.revenueCollectedCents,
+  );
+  const topRevenueSlice = sortedByRevenue.slice(0, TOP_CLIENTS_DISPLAY_LIMIT);
+  const allZero = topRevenueSlice.every((r) => r.revenueCollectedCents === 0);
+  const topByLTV: TopClientsLTVResult = {
+    hasEnoughData: ltvCandidates.length >= TOP_CLIENTS_MIN_QUALIFYING,
+    rows: allZero
+      ? [...ltvCandidates]
+          .sort((a, b) => b.bookingCount - a.bookingCount)
+          .slice(0, TOP_CLIENTS_DISPLAY_LIMIT)
+      : topRevenueSlice,
+    rankedByBookingVolume: allZero,
+  };
+
+  // ── Drifting clients (60-180 day gap) ──────────────────────────────
+  // 3+ historical bookings AND last booking 60-180 days ago. Sorted
+  // by historicalRevenueCents desc. "Completed" in the spec text is
+  // interpreted as "non-cancelled past bookings" — at 60+ days out,
+  // the auto-complete cron has long since flipped them to status=
+  // 'completed', so the practical result is the same.
+  const driftingLowerMs = now.getTime() - DRIFTING_GAP_LOWER_DAYS * MS_DAY;
+  const driftingUpperMs = now.getTime() - DRIFTING_GAP_UPPER_DAYS * MS_DAY;
+  const driftingCandidates: DriftingClient[] = [];
+  for (const c of byClient.values()) {
+    if (c.bookingCount < DRIFTING_MIN_BOOKINGS) continue;
+    const lastMs = c.lastBookingAt.getTime();
+    if (lastMs > driftingLowerMs || lastMs < driftingUpperMs) continue;
+    const moneyInputs: MoneyInput[] = c.bookings.map((b) => {
+      const svc = pickFirst(b.services);
+      return {
+        depositPaid: !!b.deposit_paid,
+        paidInFullAt: b.paid_in_full_at,
+        paidAmountCents: b.paid_amount_cents ?? 0,
+        priceCents: svc?.price_cents ?? 0,
+        depositCents: svc?.deposit_cents ?? 0,
+      };
+    });
+    const m = aggregateMoney(moneyInputs);
+    driftingCandidates.push({
+      clientId: c.clientId,
+      name: c.name,
+      historicalBookingCount: c.bookingCount,
+      historicalRevenueCents: m.revenueCollectedCents,
+      lastBookingAt: c.lastBookingAt,
+      daysSinceLastBooking: Math.floor(
+        (now.getTime() - lastMs) / MS_DAY,
+      ),
+    });
+  }
+  driftingCandidates.sort(
+    (a, b) => b.historicalRevenueCents - a.historicalRevenueCents,
+  );
+  const drifting: DriftingClients = {
+    rows: driftingCandidates.slice(0, DRIFTING_DISPLAY_LIMIT),
+    totalCount: driftingCandidates.length,
+  };
+
+  // ── New clients trend (6 months, monthly buckets in pro tz) ────────
+  // First-booking date = min(start_at) per client_id. We deliberately
+  // do NOT use clients.created_at, because pros can pre-create client
+  // records via manual booking entry (PR #14) without a booking
+  // immediately following. min(start_at) is the truthful "first
+  // booking happened" timestamp.
+  const monthFmt = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "short",
+  });
+  const monthKeyFmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+  });
+
+  // Build the 6 month buckets in chronological order. Use the 1st of
+  // each month at noon-UTC as the probe instant for label formatting
+  // (DST-stable).
+  const monthBuckets: NewClientsMonthBucket[] = [];
+  const monthStartMsList: Array<{ key: string; startMs: number; endMs: number }> = [];
+  const nowParts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour12: false,
+    })
+      .formatToParts(now)
+      .map((p) => [p.type, p.value]),
+  ) as Record<string, string>;
+  const thisMonthYear = Number(nowParts.year);
+  const thisMonthIdx = Number(nowParts.month) - 1; // 0-11
+  const thisYear = new Date().getUTCFullYear();
+  for (let i = NEW_CLIENTS_TREND_MONTHS - 1; i >= 0; i -= 1) {
+    const targetMonthIdx = thisMonthIdx - i;
+    const targetYear =
+      thisMonthYear + Math.floor(targetMonthIdx / 12);
+    const normalizedIdx = ((targetMonthIdx % 12) + 12) % 12;
+    const probe = new Date(Date.UTC(targetYear, normalizedIdx, 1, 12));
+    const key = monthKeyFmt.format(probe); // "YYYY-MM"
+    const labelMonth = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      month: "short",
+    }).format(probe);
+    const includeYear = targetYear !== thisYear;
+    const label = includeYear ? `${labelMonth} ${targetYear}` : labelMonth;
+    monthBuckets.push({ monthKey: key, label, count: 0 });
+    // Bucket boundaries in ISO for filtering.
+    const offsetMin = getTzOffsetMinutes(probe, timeZone);
+    const startMs =
+      Date.UTC(targetYear, normalizedIdx, 1, 0) - offsetMin * 60_000;
+    const nextMonthIdx = normalizedIdx + 1;
+    const nextMonthYear =
+      nextMonthIdx >= 12 ? targetYear + 1 : targetYear;
+    const endMs =
+      Date.UTC(nextMonthYear, nextMonthIdx % 12, 1, 0) - offsetMin * 60_000;
+    monthStartMsList.push({ key, startMs, endMs });
+  }
+
+  // For each client, find their first-booking month and increment the
+  // matching bucket if it falls in the 6-month window.
+  let totalNew = 0;
+  for (const c of byClient.values()) {
+    const firstMs = c.firstBookingAt.getTime();
+    for (const m of monthStartMsList) {
+      if (firstMs >= m.startMs && firstMs < m.endMs) {
+        const bucket = monthBuckets.find((b) => b.monthKey === m.key);
+        if (bucket) {
+          bucket.count += 1;
+          totalNew += 1;
+        }
+        break;
+      }
+    }
+  }
+  const newClientsTrend: NewClientsTrend = {
+    hasEnoughData: totalNew > 0,
+    buckets: monthBuckets,
+    totalNew,
+  };
+
+  // ── Client retention (cohort: first booking 180-90 days ago) ───────
+  // Cohort window is 90 days wide, ending 90 days ago. Then "retained"
+  // = booked at all in the last 90 days. True cohort math; smaller
+  // numbers but meaningful signal.
+  const cohortNewerMs = now.getTime() - RETENTION_COHORT_NEWER_DAYS * MS_DAY;
+  const cohortOlderMs = now.getTime() - RETENTION_COHORT_OLDER_DAYS * MS_DAY;
+  const recentMs = cohortNewerMs;
+  let cohortSize = 0;
+  let retainedCount = 0;
+  for (const c of byClient.values()) {
+    const firstMs = c.firstBookingAt.getTime();
+    if (firstMs > cohortNewerMs || firstMs < cohortOlderMs) continue;
+    cohortSize += 1;
+    // Retained = at least one booking in the last 90 days.
+    const hasRecent = c.bookings.some(
+      (b) => new Date(b.start_at).getTime() >= recentMs,
+    );
+    if (hasRecent) retainedCount += 1;
+  }
+  const retention: ClientRetention = {
+    hasEnoughData: cohortSize >= RETENTION_COHORT_MIN,
+    cohortSize,
+    retainedCount,
+    retentionRate: cohortSize > 0 ? retainedCount / cohortSize : 0,
+  };
+
+  return {
+    timeZone,
+    repeatOverview,
+    topByLTV,
+    drifting,
+    newClientsTrend,
+    retention,
+  };
+}
