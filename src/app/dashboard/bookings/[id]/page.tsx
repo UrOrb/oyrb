@@ -6,6 +6,7 @@ import { BookingServiceCard } from "../booking-service-card";
 import { BookingActionsPanel } from "../booking-actions-panel";
 import { NotificationTimeline } from "../notification-timeline";
 import { DisputeInquiryPanel } from "./dispute-inquiry-panel";
+import { TimingButtons } from "./timing-buttons";
 
 export const metadata = {
   title: "Booking — OYRB",
@@ -27,6 +28,8 @@ type BookingDetail = {
   stripe_payment_intent_id: string | null;
   age_is_minor: boolean | null;
   guardian_name: string | null;
+  service_started_at: string | null;
+  service_ended_at: string | null;
   services: {
     name: string;
     description: string | null;
@@ -56,16 +59,18 @@ type BookingDetail = {
  * an unauthenticated user) gets a 404 — we don't leak the existence of
  * the booking by returning 403. Spec rule.
  *
- * ── Forward-extension map ──────────────────────────────────────────
- * The page is a vertical card stack so future phases can add panels
- * without restructuring. Slots reserved for:
- *
- *   • Phase 2.1 — <DisputeInquiryPanel /> (per-booking dispute history,
- *     evidence submission, current strike weight).
- *   • Phase 3.1 — <ServiceTimingPanel /> (actual start/end vs scheduled,
- *     pro-side timing notes).
- *   • PR #22 — pro-side Reschedule action plugs into BookingActionsPanel
- *     alongside the existing Cancel control.
+ * ── Vertical card stack (in render order) ─────────────────────────
+ *   1. BookingHeader
+ *   2. BookingClientCard
+ *   3. BookingServiceCard           ← service info (price, duration)
+ *   4. <TimingButtons />            ← Phase 3 — Start / Stop pings.
+ *                                     Confirmed bookings only. Sits
+ *                                     between service info and the
+ *                                     actions panel: Service info →
+ *                                     Timing state → Actions arc.
+ *   5. BookingActionsPanel          ← Cancel / Reschedule / Calendar
+ *   6. DisputeInquiryPanel          ← Phase 2.1
+ *   7. NotificationTimeline
  *
  * Each new panel is a self-contained card. Keep this stack flat — no
  * tabs, no accordions. Pros scan top-to-bottom on mobile.
@@ -81,7 +86,7 @@ export default async function BookingDetailPage({ params }: Props) {
     .select(
       `id, business_id, status, start_at, end_at, created_at, cancelled_at,
        deposit_paid, paid_in_full_at, paid_amount_cents, stripe_payment_intent_id,
-       age_is_minor, guardian_name,
+       age_is_minor, guardian_name, service_started_at, service_ended_at,
        services(name, description, duration_minutes, price_cents),
        clients(id, name, email, phone, notes, sms_consent),
        businesses(id, slug, owner_id, business_name)`,
@@ -145,6 +150,14 @@ export default async function BookingDetailPage({ params }: Props) {
           stripePaymentIntentId={booking.stripe_payment_intent_id}
         />
 
+        {booking.status === "confirmed" && (
+          <TimingButtons
+            bookingId={booking.id}
+            initialStartedAt={booking.service_started_at}
+            initialEndedAt={booking.service_ended_at}
+          />
+        )}
+
         <BookingActionsPanel
           bookingId={booking.id}
           status={booking.status}
@@ -165,12 +178,6 @@ export default async function BookingDetailPage({ params }: Props) {
         />
 
         <NotificationTimeline bookingId={booking.id} />
-
-        {/*
-          Future panels render here in this same vertical stack:
-            • Phase 3.1 — <ServiceTimingPanel bookingId={booking.id} />
-          See the file-level "Forward-extension map" comment at the top.
-        */}
       </div>
     </div>
   );
