@@ -27,6 +27,8 @@ import {
 } from "@/lib/pass-the-torch-storefront";
 import { VacationBanner } from "@/components/storefront/vacation-banner";
 import { RefBadge } from "@/components/storefront/ref-badge";
+import { ReputationCard } from "@/components/storefront/reputation-card";
+import { getReputationStats } from "@/lib/reputation-stats";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -271,6 +273,19 @@ export default async function PublicSitePage({ params, searchParams }: Props) {
     vacation_end: biz.vacation_end ?? null,
   });
 
+  // Phase 2.3 — public reputation stats. Two gates:
+  //   1. The pro must have flipped public_stats_enabled in settings.
+  //   2. getReputationStats returns null when sample size is below
+  //      threshold (or when strike-paused — defense-in-depth even
+  //      though the storefront 404s on pause already).
+  // When opted in but null is returned, the card renders the
+  // "Earning trust" empty state. When opted out, no card renders at
+  // all.
+  const publicStatsEnabled = biz.public_stats_enabled === true;
+  const reputationStats = publicStatsEnabled
+    ? await getReputationStats(biz.id)
+    : null;
+
   // ?ref=<slug> → look up the referrer's display name once, server-side.
   // Used for the "Recommended by …" hero badge AND threaded into the
   // booking widget so it can stamp the disclosure into the booking
@@ -378,6 +393,28 @@ export default async function PublicSitePage({ params, searchParams }: Props) {
         />
       )}
       <Template {...templateProps} />
+
+      {/* Phase 2.3 — public reputation stats card. Renders only when
+          the pro has opted in via dashboard/settings. The card itself
+          handles the below-threshold "Earning trust" empty state when
+          getReputationStats returned null. Theme is passed through so
+          the card visually inherits the storefront's accent / fonts /
+          surface treatment. */}
+      {publicStatsEnabled && (
+        <ReputationCard
+          stats={reputationStats}
+          theme={{
+            accent: theme.accent,
+            ink: theme.ink,
+            muted: theme.muted,
+            surface: theme.surface,
+            border: theme.border,
+            bodyFont: theme.bodyFont,
+            displayFont: theme.displayFont,
+            radius: theme.radius,
+          }}
+        />
+      )}
 
       {/* Reviews below template.
           Studio / Luxe / Clean render real reviews inline via their own

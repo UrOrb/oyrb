@@ -63,6 +63,10 @@ export type Business = {
   vacation_start: string | null;
   vacation_end: string | null;
   vacation_message: string | null;
+  /** Phase 2.3 — opt-in flag for the public reputation card on the
+   *  storefront. False by default (migration 042). The storefront only
+   *  renders the card when this is true. */
+  public_stats_enabled?: boolean;
   created_at: string;
 };
 
