@@ -1149,3 +1149,369 @@ async function computeMoneyData(
     profitPerMinute,
   };
 }
+
+// ────────────────────────────────────────────────────────────────────
+// Phase 4.3 — Time tab
+// ────────────────────────────────────────────────────────────────────
+//
+// Five cards, one batched query, in-memory bucketing. Operational voice
+// throughout — surfaces observations ("services run 12 min over") not
+// judgments ("you're running late"). Pros draw their own conclusions.
+//
+// Phase 3 timing-data dependency:
+//   - Schedule accuracy        : needs BOTH service_started_at AND
+//                                service_ended_at on a booking to count
+//                                that booking. Sample-size 5.
+//   - By-service timing        : same — needs both pings, ≥3 timed
+//                                bookings per service.
+//   - Started-but-not-stopped  : needs ONLY service_started_at +
+//                                status='completed' + NULL
+//                                service_ended_at. The "single-tap"
+//                                pattern, distinct from the
+//                                "double-tap" data the other two cards
+//                                require.
+//   - Time-of-day / Day-of-week patterns : no Phase 3 dependency. Use
+//                                start_at only.
+
+const TIME_WINDOW_DAYS = 90;
+const STUCK_WINDOW_DAYS = 30;
+const SCHEDULE_ACCURACY_MIN_BOOKINGS = 5;
+const BY_SERVICE_MIN_TIMED_BOOKINGS = 3;
+const BY_SERVICE_DISPLAY_LIMIT = 5;
+const PATTERNS_MIN_BOOKINGS = 10;
+const STUCK_VISIBLE_LIMIT = 5;
+
+export type ScheduleAccuracy = {
+  hasEnoughData: boolean;
+  qualifyingBookings: number;
+  totalActualMinutes: number;
+  totalScheduledMinutes: number;
+  /** Average per-booking overrun (positive = over scheduled, negative = under). */
+  avgOverrunMinutes: number;
+  /** Same direction as avgOverrunMinutes; 0 when totalScheduledMinutes is 0. */
+  overrunPercent: number;
+};
+
+export type ByServiceTimingRow = {
+  serviceId: string;
+  name: string;
+  /** Total non-cancelled bookings for this service in window — drives sort order. */
+  bookingCount: number;
+  /** Subset with both Phase 3 pings populated. Must be ≥ BY_SERVICE_MIN_TIMED_BOOKINGS for the row to render. */
+  timedBookingCount: number;
+  avgScheduledMinutes: number;
+  avgActualMinutes: number;
+  avgOverrunMinutes: number;
+};
+
+export type ByServiceTimingResult = {
+  hasEnoughData: boolean;
+  rows: ByServiceTimingRow[];
+};
+
+export type TimeOfDayBucket = "morning" | "afternoon" | "evening";
+
+export type TimeOfDayPatterns = {
+  hasEnoughData: boolean;
+  totalBookings: number;
+  buckets: Array<{ bucket: TimeOfDayBucket; label: string; count: number }>;
+};
+
+export type DayOfWeekPatterns = {
+  hasEnoughData: boolean;
+  totalBookings: number;
+  /** Mon..Sun (0..6) to match getWeekRange's todayWeekdayIndex. */
+  days: Array<{ label: string; count: number }>;
+};
+
+export type StuckBookingRow = {
+  id: string;
+  serviceStartedAt: Date;
+  startAt: Date;
+  serviceName: string;
+  clientName: string;
+};
+
+export type StartedNotStopped = {
+  /** Up to STUCK_VISIBLE_LIMIT rows, most-recently-started first. */
+  visible: StuckBookingRow[];
+  /** Count of stuck bookings beyond what's visible. Informational only — no link target in v1. */
+  moreCount: number;
+  totalCount: number;
+};
+
+export type TimeData = {
+  timeZone: string;
+  scheduleAccuracy: ScheduleAccuracy;
+  byService: ByServiceTimingResult;
+  timeOfDay: TimeOfDayPatterns;
+  dayOfWeek: DayOfWeekPatterns;
+  stuck: StartedNotStopped;
+};
+
+export async function getTimeData(
+  businessId: string,
+  timeZone: string,
+): Promise<TimeData> {
+  return unstable_cache(
+    async () => computeTimeData(businessId, timeZone),
+    ["business-brain-time", businessId, timeZone],
+    { revalidate: 3600 },
+  )();
+}
+
+type TimeRow = {
+  id: string;
+  start_at: string;
+  end_at: string;
+  status: string;
+  service_id: string | null;
+  service_started_at: string | null;
+  service_ended_at: string | null;
+  services:
+    | { id: string; name: string }
+    | { id: string; name: string }[]
+    | null;
+  clients:
+    | { name: string }
+    | { name: string }[]
+    | null;
+};
+
+async function computeTimeData(
+  businessId: string,
+  timeZone: string,
+): Promise<TimeData> {
+  const admin = createAdminClient();
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - TIME_WINDOW_DAYS * MS_DAY);
+  const stuckStart = new Date(now.getTime() - STUCK_WINDOW_DAYS * MS_DAY);
+
+  const { data } = await admin
+    .from("bookings")
+    .select(
+      "id, start_at, end_at, status, service_id, service_started_at, service_ended_at, services(id, name), clients(name)",
+    )
+    .eq("business_id", businessId)
+    .gte("start_at", windowStart.toISOString())
+    .lt("start_at", now.toISOString());
+
+  const allRows = ((data ?? []) as TimeRow[]).filter(
+    (r) => r.status !== "cancelled",
+  );
+
+  // ── Schedule accuracy ──────────────────────────────────────────────
+  // Note on duration source: "scheduled" = end_at - start_at, the
+  // calendar block as it stood at booking time (or last reschedule).
+  // Equivalent to services.duration_minutes for ~95% of bookings;
+  // diverges only when (a) the pro edited services.duration_minutes
+  // after the booking was made, or (b) the booking was rescheduled
+  // (which re-derives end_at from the CURRENT catalog duration).
+  // Acceptable trade-off for not joining services for duration math.
+  type Timed = { actualMin: number; scheduledMin: number };
+  const timed: Timed[] = [];
+  for (const r of allRows) {
+    if (!r.service_started_at || !r.service_ended_at) continue;
+    const actualMin = Math.max(
+      0,
+      (new Date(r.service_ended_at).getTime() -
+        new Date(r.service_started_at).getTime()) /
+        60_000,
+    );
+    const scheduledMin = Math.max(
+      0,
+      (new Date(r.end_at).getTime() - new Date(r.start_at).getTime()) / 60_000,
+    );
+    if (scheduledMin === 0) continue;
+    timed.push({ actualMin, scheduledMin });
+  }
+
+  let totalActualMinutes = 0;
+  let totalScheduledMinutes = 0;
+  for (const t of timed) {
+    totalActualMinutes += t.actualMin;
+    totalScheduledMinutes += t.scheduledMin;
+  }
+  const accuracyHasData = timed.length >= SCHEDULE_ACCURACY_MIN_BOOKINGS;
+  const avgOverrunMinutes =
+    timed.length > 0
+      ? (totalActualMinutes - totalScheduledMinutes) / timed.length
+      : 0;
+  const overrunPercent =
+    totalScheduledMinutes > 0
+      ? (totalActualMinutes - totalScheduledMinutes) / totalScheduledMinutes
+      : 0;
+
+  const scheduleAccuracy: ScheduleAccuracy = {
+    hasEnoughData: accuracyHasData,
+    qualifyingBookings: timed.length,
+    totalActualMinutes,
+    totalScheduledMinutes,
+    avgOverrunMinutes,
+    overrunPercent,
+  };
+
+  // ── By-service timing ──────────────────────────────────────────────
+  // Group all (non-cancelled) window bookings by service_id to get
+  // bookingCount (sort key). Compute timed averages only over bookings
+  // with both pings. Services below the timed-bookings threshold are
+  // filtered out.
+  type ServiceAgg = {
+    name: string;
+    bookingCount: number;
+    timedBookingCount: number;
+    actualSumMin: number;
+    scheduledSumMin: number;
+  };
+  const byServiceMap = new Map<string, ServiceAgg>();
+  for (const r of allRows) {
+    if (!r.service_id) continue;
+    const svc = pickFirst(r.services);
+    if (!svc) continue;
+    const cur =
+      byServiceMap.get(r.service_id) ??
+      {
+        name: svc.name,
+        bookingCount: 0,
+        timedBookingCount: 0,
+        actualSumMin: 0,
+        scheduledSumMin: 0,
+      };
+    cur.bookingCount += 1;
+    if (r.service_started_at && r.service_ended_at) {
+      const actualMin = Math.max(
+        0,
+        (new Date(r.service_ended_at).getTime() -
+          new Date(r.service_started_at).getTime()) /
+          60_000,
+      );
+      const scheduledMin = Math.max(
+        0,
+        (new Date(r.end_at).getTime() - new Date(r.start_at).getTime()) /
+          60_000,
+      );
+      if (scheduledMin > 0) {
+        cur.timedBookingCount += 1;
+        cur.actualSumMin += actualMin;
+        cur.scheduledSumMin += scheduledMin;
+      }
+    }
+    byServiceMap.set(r.service_id, cur);
+  }
+  const byServiceRows: ByServiceTimingRow[] = Array.from(byServiceMap.entries())
+    .filter(([, v]) => v.timedBookingCount >= BY_SERVICE_MIN_TIMED_BOOKINGS)
+    .map(([serviceId, v]) => {
+      const avgActual = v.actualSumMin / v.timedBookingCount;
+      const avgSched = v.scheduledSumMin / v.timedBookingCount;
+      return {
+        serviceId,
+        name: v.name,
+        bookingCount: v.bookingCount,
+        timedBookingCount: v.timedBookingCount,
+        avgActualMinutes: avgActual,
+        avgScheduledMinutes: avgSched,
+        avgOverrunMinutes: avgActual - avgSched,
+      };
+    })
+    .sort((a, b) => b.bookingCount - a.bookingCount)
+    .slice(0, BY_SERVICE_DISPLAY_LIMIT);
+
+  // ── Time-of-day + Day-of-week patterns ─────────────────────────────
+  // Three buckets in v1: morning < 12, afternoon 12–16, evening ≥ 17,
+  // all in pro's local tz. Day-of-week uses the same Mon=0..Sun=6
+  // convention as getWeekRange.
+  const todBuckets: Record<TimeOfDayBucket, number> = {
+    morning: 0,
+    afternoon: 0,
+    evening: 0,
+  };
+  const dowCounts = new Array<number>(7).fill(0);
+  const dowMap: Record<string, number> = {
+    Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6,
+  };
+  const hourFmt = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour: "2-digit",
+    hour12: false,
+  });
+  const weekdayFmt = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    weekday: "short",
+  });
+  for (const r of allRows) {
+    const d = new Date(r.start_at);
+    const hour = Number.parseInt(hourFmt.format(d), 10) % 24;
+    if (hour < 12) todBuckets.morning += 1;
+    else if (hour < 17) todBuckets.afternoon += 1;
+    else todBuckets.evening += 1;
+
+    const idx = dowMap[weekdayFmt.format(d)];
+    if (idx !== undefined) dowCounts[idx] += 1;
+  }
+
+  const totalForPatterns = allRows.length;
+  const patternsHaveEnough = totalForPatterns >= PATTERNS_MIN_BOOKINGS;
+
+  const timeOfDay: TimeOfDayPatterns = {
+    hasEnoughData: patternsHaveEnough,
+    totalBookings: totalForPatterns,
+    buckets: [
+      { bucket: "morning", label: "Morning", count: todBuckets.morning },
+      { bucket: "afternoon", label: "Afternoon", count: todBuckets.afternoon },
+      { bucket: "evening", label: "Evening", count: todBuckets.evening },
+    ],
+  };
+
+  const dayOfWeek: DayOfWeekPatterns = {
+    hasEnoughData: patternsHaveEnough,
+    totalBookings: totalForPatterns,
+    days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((label, i) => ({
+      label,
+      count: dowCounts[i],
+    })),
+  };
+
+  // ── Started-but-not-stopped (last 30 days) ─────────────────────────
+  // Filter: status='completed' AND service_started_at NOT NULL AND
+  // service_ended_at NULL. Most-recently-started first.
+  const stuckCandidates = allRows
+    .filter((r) => {
+      if (r.status !== "completed") return false;
+      if (!r.service_started_at) return false;
+      if (r.service_ended_at) return false;
+      return new Date(r.service_started_at).getTime() >= stuckStart.getTime();
+    })
+    .map((r) => {
+      const svc = pickFirst(r.services);
+      const cli = pickFirst(r.clients);
+      return {
+        id: r.id,
+        serviceStartedAt: new Date(r.service_started_at!),
+        startAt: new Date(r.start_at),
+        serviceName: svc?.name ?? "Service",
+        clientName: cli?.name ?? "Client",
+      };
+    })
+    .sort(
+      (a, b) =>
+        b.serviceStartedAt.getTime() - a.serviceStartedAt.getTime(),
+    );
+
+  const stuck: StartedNotStopped = {
+    visible: stuckCandidates.slice(0, STUCK_VISIBLE_LIMIT),
+    moreCount: Math.max(0, stuckCandidates.length - STUCK_VISIBLE_LIMIT),
+    totalCount: stuckCandidates.length,
+  };
+
+  return {
+    timeZone,
+    scheduleAccuracy,
+    byService: {
+      hasEnoughData: byServiceRows.length > 0,
+      rows: byServiceRows,
+    },
+    timeOfDay,
+    dayOfWeek,
+    stuck,
+  };
+}
