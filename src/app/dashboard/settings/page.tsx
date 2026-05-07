@@ -6,9 +6,11 @@ import { PlanChangeForm } from "./plan-change-form";
 import { EndTrialButton } from "./end-trial-button";
 import { GoalForm } from "./goal-form";
 import { IdentityCard } from "./identity-card";
+import { PublicStatsCard } from "./public-stats-card";
 import { getCurrentBusiness } from "@/lib/current-site";
 import { getAccountSummary } from "@/lib/account";
 import { ensureGoalSettings } from "@/lib/goal-tracking";
+import { getReputationStats } from "@/lib/reputation-stats";
 import {
   TIERS,
   ADDON_MONTHLY_CENTS,
@@ -30,6 +32,15 @@ export default async function SettingsPage({ searchParams }: Props) {
   const business = await getCurrentBusiness(siteId);
   const account = await getAccountSummary();
   const goalSettings = await ensureGoalSettings(user.id);
+
+  // Phase 2.3 — fetch reputation stats for the preview card. We always
+  // compute these (even when the toggle is off) so flipping the toggle
+  // on shows a fully-populated preview without a roundtrip. The
+  // helper returns null when sample size is insufficient — the
+  // preview then renders the "Earning trust" empty state.
+  const reputationStats = business
+    ? await getReputationStats(business.id)
+    : null;
 
   // Fresh read for the identity columns — getCurrentBusiness's snapshot
   // may not reflect the latest webhook-applied state.
@@ -111,6 +122,14 @@ export default async function SettingsPage({ searchParams }: Props) {
           Manage listing →
         </Link>
       </div>
+
+      {/* Phase 2.3 — public reputation stats opt-in. Sits next to the
+          Directory Listing card because both control public-visibility
+          surfaces. */}
+      <PublicStatsCard
+        initialEnabled={!!business.public_stats_enabled}
+        stats={reputationStats}
+      />
 
       {/* Identity verification — optional Stripe-hosted ID check. The
           ✓ Verified badge lights up on the storefront on success. Never

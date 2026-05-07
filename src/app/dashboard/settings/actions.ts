@@ -147,3 +147,31 @@ export async function deleteAccount(formData: FormData) {
   await supabase.auth.signOut();
   redirect("/?deleted=1");
 }
+
+/**
+ * Phase 2.3 — flip public_stats_enabled on the pro's current business.
+ * Defaults to false (set by migration 042); pros opt in explicitly
+ * after reading the disclosure copy on the settings card.
+ */
+export async function togglePublicStats(
+  enabled: boolean,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not authenticated" };
+
+  const business = await getCurrentBusiness();
+  if (!business) return { ok: false, error: "No business" };
+
+  const { error } = await supabase
+    .from("businesses")
+    .update({ public_stats_enabled: !!enabled })
+    .eq("id", business.id)
+    .eq("owner_id", user.id);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/dashboard/settings");
+  revalidatePath(`/s/${business.slug}`);
+  return { ok: true };
+}
