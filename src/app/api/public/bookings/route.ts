@@ -218,6 +218,10 @@ export async function POST(request: NextRequest) {
       age_confirmed_at: new Date().toISOString(),
       age_is_minor: !!body.age_is_minor,
       guardian_name: body.age_is_minor ? body.guardian_name?.trim() ?? null : null,
+      // Phase 4.5 — drives the Booking Origin card on Where They Come
+      // From. Public widget path; series children inherit the same
+      // source below.
+      booking_source: "public_widget",
       ...(isSeries ? { series_id: seriesId, series_interval_weeks: weeks } : {}),
     })
     .select("id")
@@ -255,6 +259,7 @@ export async function POST(request: NextRequest) {
         start_at: nextStart.toISOString(),
         end_at: nextEnd.toISOString(),
         status: "confirmed",
+        booking_source: "public_widget",
         series_id: seriesId,
         series_interval_weeks: weeks,
       });

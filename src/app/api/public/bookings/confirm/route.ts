@@ -172,6 +172,11 @@ export async function POST(request: NextRequest) {
       status: "confirmed",
       deposit_paid: true,
       stripe_payment_intent_id: paymentIntentId,
+      // Phase 4.5 — drives the Booking Origin card on Where They
+      // Come From. Post-deposit confirmation lands here from the
+      // public Stripe Checkout flow; series children inherit the
+      // same source below.
+      booking_source: "public_widget",
       ...(ageConfirmed ? { age_confirmed_at: new Date().toISOString(), age_is_minor: ageIsMinor, guardian_name: guardianName } : {}),
       ...((() => {
         const w = parseInt(session.metadata?.series_interval_weeks ?? "0", 10);
@@ -208,6 +213,7 @@ export async function POST(request: NextRequest) {
         start_at: nextStart.toISOString(),
         end_at: nextEnd.toISOString(),
         status: "confirmed",
+        booking_source: "public_widget",
         series_id: booking.series_id,
         series_interval_weeks: w,
       });

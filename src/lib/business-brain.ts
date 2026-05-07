@@ -1956,3 +1956,189 @@ async function computeClientsData(
     retention,
   };
 }
+
+// ────────────────────────────────────────────────────────────────────
+// Phase 4.5 — Where They Come From tab
+// ────────────────────────────────────────────────────────────────────
+//
+// Honest scoping: 3 cards in v1 because that's what the data supports
+// today. Future Phase 5 work adds richer attribution (UTM parsing,
+// Pass the Torch persistence per booking, "How did you hear about us?"
+// survey field, storefront view tracking). Until then:
+//
+//   - Acquisition mix       — new vs returning client bookings,
+//                             90-day window. Always renderable from
+//                             min(start_at) per client_id.
+//   - Booking origin        — public widget vs manual, via the new
+//                             bookings.booking_source column
+//                             (migration 044). Hidden when 100% of
+//                             bookings are manual entry — there's no
+//                             distribution to show.
+//   - "What we don't track" — explainer card. Sets expectations
+//                             honestly + gives pros a workaround
+//                             (use the booking notes field).
+//
+// Source attribution priority (v1, narrow): just booking_source +
+// new-vs-returning derivation. When Phase 5 lands richer fields,
+// the priority becomes:
+//     survey_response > utm_source > pass_the_torch > booking_source > Unknown
+// Code documents this so future readers know where to extend.
+
+const REFERRAL_WINDOW_DAYS = 90;
+const REFERRAL_MIN_BOOKINGS = 10;
+
+export type AcquisitionMix = {
+  hasEnoughData: boolean;
+  totalBookings: number;
+  newClientBookings: number;
+  returningClientBookings: number;
+  newClientPct: number;       // 0..1
+  returningClientPct: number; // 0..1
+};
+
+export type BookingOriginBreakdown = {
+  /** True when ≥ REFERRAL_MIN_BOOKINGS in the window. */
+  hasEnoughData: boolean;
+  /** Hidden when public_widget count is zero — there's no distribution to show. */
+  showCard: boolean;
+  totalBookings: number;
+  publicWidgetCount: number;
+  manualCount: number;
+  unknownCount: number;
+  publicWidgetPct: number;
+  manualPct: number;
+  unknownPct: number;
+};
+
+export type ReferralData = {
+  timeZone: string;
+  acquisition: AcquisitionMix;
+  origin: BookingOriginBreakdown;
+};
+
+export async function getReferralData(
+  businessId: string,
+  timeZone: string,
+): Promise<ReferralData> {
+  return unstable_cache(
+    async () => computeReferralData(businessId, timeZone),
+    ["business-brain-referral", businessId, timeZone],
+    { revalidate: 3600 },
+  )();
+}
+
+type ReferralRow = {
+  id: string;
+  start_at: string;
+  client_id: string | null;
+  status: string;
+  booking_source: string | null;
+};
+
+async function computeReferralData(
+  businessId: string,
+  timeZone: string,
+): Promise<ReferralData> {
+  const admin = createAdminClient();
+  const now = new Date();
+  const windowStart = new Date(
+    now.getTime() - REFERRAL_WINDOW_DAYS * MS_DAY,
+  );
+
+  // Two queries:
+  //   1. All-time bookings to derive each client's first-booking date
+  //      (for new vs returning classification within the 90-day window).
+  //      Pulls only the columns we need; cheap.
+  //   2. Last-90-day bookings for the actual window aggregation.
+  // Could be one query — splitting keeps each path's intent explicit.
+  const [allRowsRes, windowRowsRes] = await Promise.all([
+    admin
+      .from("bookings")
+      .select("client_id, start_at")
+      .eq("business_id", businessId)
+      .neq("status", "cancelled")
+      .not("client_id", "is", null)
+      .order("start_at", { ascending: true })
+      .limit(20000),
+    admin
+      .from("bookings")
+      .select("id, start_at, client_id, status, booking_source")
+      .eq("business_id", businessId)
+      .neq("status", "cancelled")
+      .gte("start_at", windowStart.toISOString())
+      .lt("start_at", now.toISOString()),
+  ]);
+
+  // First-booking-date per client (all-time).
+  const firstBookingByClient = new Map<string, number>();
+  for (const r of (allRowsRes.data ?? []) as Array<{
+    client_id: string;
+    start_at: string;
+  }>) {
+    const t = new Date(r.start_at).getTime();
+    const cur = firstBookingByClient.get(r.client_id);
+    if (cur === undefined || t < cur) {
+      firstBookingByClient.set(r.client_id, t);
+    }
+  }
+
+  const windowRows = (windowRowsRes.data ?? []) as ReferralRow[];
+
+  // ── Acquisition mix ────────────────────────────────────────────────
+  // A booking is "new client" if its start_at IS the client's first
+  // booking. Otherwise the client was already in the book before this
+  // appointment — "returning."
+  let newClientBookings = 0;
+  let returningClientBookings = 0;
+  for (const r of windowRows) {
+    if (!r.client_id) continue;
+    const firstMs = firstBookingByClient.get(r.client_id);
+    if (firstMs === undefined) continue;
+    const t = new Date(r.start_at).getTime();
+    if (t === firstMs) newClientBookings += 1;
+    else returningClientBookings += 1;
+  }
+  const totalForAcquisition = newClientBookings + returningClientBookings;
+  const acquisition: AcquisitionMix = {
+    hasEnoughData: totalForAcquisition >= REFERRAL_MIN_BOOKINGS,
+    totalBookings: totalForAcquisition,
+    newClientBookings,
+    returningClientBookings,
+    newClientPct:
+      totalForAcquisition > 0 ? newClientBookings / totalForAcquisition : 0,
+    returningClientPct:
+      totalForAcquisition > 0 ? returningClientBookings / totalForAcquisition : 0,
+  };
+
+  // ── Booking origin (public widget vs manual vs unknown) ────────────
+  let publicWidgetCount = 0;
+  let manualCount = 0;
+  let unknownCount = 0;
+  for (const r of windowRows) {
+    if (r.booking_source === "public_widget") publicWidgetCount += 1;
+    else if (r.booking_source === "manual") manualCount += 1;
+    else unknownCount += 1;
+  }
+  const totalForOrigin = windowRows.length;
+  const origin: BookingOriginBreakdown = {
+    hasEnoughData: totalForOrigin >= REFERRAL_MIN_BOOKINGS,
+    // Hide the card when no public widget bookings exist — the
+    // distribution would just be "100% manual" which can read as
+    // implicit guilt about the storefront not getting bookings.
+    // Empty state in the UI explains the absence.
+    showCard: publicWidgetCount > 0,
+    totalBookings: totalForOrigin,
+    publicWidgetCount,
+    manualCount,
+    unknownCount,
+    publicWidgetPct: totalForOrigin > 0 ? publicWidgetCount / totalForOrigin : 0,
+    manualPct: totalForOrigin > 0 ? manualCount / totalForOrigin : 0,
+    unknownPct: totalForOrigin > 0 ? unknownCount / totalForOrigin : 0,
+  };
+
+  return {
+    timeZone,
+    acquisition,
+    origin,
+  };
+}
