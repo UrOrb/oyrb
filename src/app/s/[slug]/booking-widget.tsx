@@ -1199,7 +1199,7 @@ export function BookingWidget({
                           className="mt-0.5 h-4 w-4 shrink-0"
                         />
                         <span className="text-[#525252]">
-                          <strong>Optional:</strong> I agree to receive SMS appointment reminders at {phone}. Message frequency varies. Message and data rates may apply. Reply STOP to unsubscribe.{" "}
+                          <strong>Optional:</strong> I consent to receive automated SMS appointment reminders from <strong>{businessName}</strong> at {phone}. Message frequency varies. Message and data rates may apply. Consent is not a condition of any purchase. Reply STOP to unsubscribe, HELP for help.{" "}
                           <a
                             href="/sms-policy"
                             target="_blank"

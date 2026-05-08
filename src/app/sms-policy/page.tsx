@@ -6,7 +6,8 @@ export const metadata = {
   description: "What SMS messages OYRB sends, how you opted in, and how to opt out.",
 };
 
-const LAST_UPDATED = "April 28, 2026";
+const EFFECTIVE_DATE = "May 8, 2026";
+const LAST_UPDATED = "May 8, 2026";
 const CONTACT_EMAIL = "support@oyrb.space";
 
 export default function SmsPolicyPage() {
@@ -19,13 +20,16 @@ export default function SmsPolicyPage() {
           SMS Messaging Policy
         </h1>
         <p className="mt-2 text-sm text-[#737373]">
-          Last updated: {LAST_UPDATED}
+          Effective: {EFFECTIVE_DATE} · Last updated: {LAST_UPDATED}
         </p>
 
         <div className="mt-10 space-y-8 text-[#2a2a2a]">
           <section className="space-y-3">
             <p>
               OYRB (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) provides SMS messaging services to clients of beauty professionals using the OYRB platform. This policy explains what messages you may receive, how you opted in, and how to opt out.
+            </p>
+            <p>
+              For information about how we collect, use, and protect phone numbers and SMS data, see our <a href="/privacy" className="text-[#B8896B] hover:underline">Privacy Policy</a>.
             </p>
           </section>
 
@@ -36,13 +40,22 @@ export default function SmsPolicyPage() {
             </p>
             <ul className="list-disc pl-6 space-y-1">
               <li>Appointment confirmations</li>
-              <li>Appointment reminders (24 hours and 2 hours before your appointment)</li>
-              <li>Schedule changes (cancellations, reschedules, or pro updates)</li>
-              <li>Post-appointment review requests</li>
-              <li>Important account or booking updates</li>
+              <li>Appointment reminders (24 hours before your appointment)</li>
+              <li>Reschedule notifications when your beauty professional reschedules an appointment</li>
+              <li>Waitlist availability alerts (only if you joined a waitlist for a fully-booked appointment time)</li>
             </ul>
             <p>
               SMS reminders are available on the Studio and Scale subscription plans. Clients of beauty professionals on the Starter plan will not receive SMS regardless of opt-in status.
+            </p>
+            <p>
+              Phone verification codes sent during booking (when phone verification is enabled) are routed through a separate Twilio service intended for transactional verification. Those codes are sent only when you actively request a code and are not subject to this policy&apos;s marketing-style opt-in.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="font-display text-2xl font-medium">Who sends these messages</h2>
+            <p>
+              SMS messages are sent on behalf of individual beauty professionals using the OYRB platform. Each beauty professional has consented to OYRB&apos;s terms governing message content and frequency. Messages are dispatched through OYRB&apos;s SMS infrastructure (powered by Twilio) and identify the beauty professional sending the message. To contact a beauty professional directly, reply to the message or use the contact information provided in your appointment confirmation.
             </p>
           </section>
 
@@ -52,9 +65,12 @@ export default function SmsPolicyPage() {
             <ol className="list-decimal pl-6 space-y-1">
               <li>Providing your phone number when booking an appointment through any OYRB-powered booking site, AND</li>
               <li>
-                Checking the consent checkbox during checkout that reads: &quot;I agree to receive SMS appointment reminders. Message frequency varies. Message and data rates may apply. Reply STOP to unsubscribe.&quot;
+                Checking the consent checkbox during checkout that reads: &quot;I consent to receive automated SMS appointment reminders from [beauty professional name] at the phone number provided. Message frequency varies. Message and data rates may apply. Consent is not a condition of any purchase. Reply STOP to unsubscribe, HELP for help. View our SMS Policy.&quot;
               </li>
             </ol>
+            <p>
+              Consent is captured with a server-side timestamp and IP address for audit purposes. The consent checkbox is unchecked by default, presented as optional, and not a condition of receiving any service or making any purchase.
+            </p>
           </section>
 
           <section className="space-y-3">
@@ -68,6 +84,30 @@ export default function SmsPolicyPage() {
             <h2 className="font-display text-2xl font-medium">Message and data rates</h2>
             <p>
               Standard message and data rates may apply per your mobile carrier agreement. OYRB does not charge for SMS messages.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="font-display text-2xl font-medium">Delivery limitations</h2>
+            <p>
+              Carriers are not liable for delayed or undelivered messages. Message delivery is dependent on your mobile carrier&apos;s network and is not guaranteed. Some messages may be delayed or undelivered due to carrier network conditions outside OYRB&apos;s control.
+            </p>
+            <p>
+              This SMS service is available on most major US wireless carriers including AT&amp;T, Verizon, T-Mobile, US Cellular, Boost Mobile, Cricket Wireless, Metro by T-Mobile, and others. Service is not available on all carriers and may be subject to change.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="font-display text-2xl font-medium">Phone number privacy</h2>
+            <p>
+              OYRB does not sell, rent, share, or otherwise disclose your phone number to third parties for marketing purposes. Phone numbers collected for SMS are used solely for the appointment-related messages described in this policy. Phone numbers are shared with our SMS delivery provider (Twilio) solely for the purpose of sending the messages described above. For complete details on data practices, see our <a href="/privacy" className="text-[#B8896B] hover:underline">Privacy Policy</a>.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="font-display text-2xl font-medium">Data retention</h2>
+            <p>
+              Phone numbers and SMS interaction data (delivery status, opt-in and opt-out timestamps, message content) are retained for the duration of your relationship with the beauty professional plus seven years for legal and tax compliance. After this period, this data is deleted unless required for ongoing legal obligations.
             </p>
           </section>
 
