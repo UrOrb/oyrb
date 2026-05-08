@@ -2497,3 +2497,227 @@ async function computeReferralData(
     passTheTorch,
   };
 }
+
+// ────────────────────────────────────────────────────────────────────
+// Phase 5 closer — Storefront view tracking analytics
+// ────────────────────────────────────────────────────────────────────
+//
+// Computes everything the 3 view-tracking cards need from a single
+// batched query against storefront_views (migration 047) plus a
+// reuse of the bookings query for conversion rate math:
+//
+//   StorefrontViewsCard       — total + 8-week trend
+//   ConversionRateCard        — views / bookings, last 90 days
+//   ConversionBySourceCard    — per-source conversion rate
+//
+// Source attribution for views uses the same attributeSource()
+// helper as bookings (treating views as if booking_source =
+// 'public_widget' since that's implicit for storefront visits).
+// Single source of truth for source bucketing across views and
+// bookings.
+
+const VIEWS_WINDOW_DAYS = 90;
+const VIEWS_TREND_WEEKS = 8;
+const VIEWS_MIN_BOOKINGS = 10;
+const VIEWS_MIN_PER_SOURCE = 10;
+
+export type ViewsTrendPoint = {
+  weekStart: Date;
+  label: string;
+  count: number;
+};
+
+export type ConversionBySourceRow = {
+  source: string;
+  views: number;
+  bookings: number;
+  /** bookings / views, in [0, 1]. */
+  conversionRate: number;
+};
+
+export type ConversionBySourceResult = {
+  /** True when ≥1 source has ≥VIEWS_MIN_PER_SOURCE views. */
+  hasEnoughData: boolean;
+  /** Sources sorted by views desc, filtered to those with ≥10 views. */
+  rows: ConversionBySourceRow[];
+};
+
+export type ViewsData = {
+  timeZone: string;
+  totalViews: number;
+  /** True when ≥VIEWS_MIN_BOOKINGS views in window — drives Views and Conversion Rate cards. */
+  hasEnoughData: boolean;
+  /** 8 weekly buckets, oldest first. Latest bucket is the current week. */
+  trend: ViewsTrendPoint[];
+  /** Cancelled bookings excluded from this count — same rule as the rest of Business Brain. */
+  totalBookings: number;
+  /** totalBookings / totalViews; 0 when totalViews is 0. */
+  conversionRate: number;
+  bySource: ConversionBySourceResult;
+};
+
+export async function getViewsData(
+  businessId: string,
+  timeZone: string,
+): Promise<ViewsData> {
+  return unstable_cache(
+    async () => computeViewsData(businessId, timeZone),
+    ["business-brain-views", businessId, timeZone],
+    { revalidate: 3600 },
+  )();
+}
+
+type ViewRow = {
+  viewed_at: string;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  referrer_url: string | null;
+  referrer_business_id: string | null;
+};
+
+type ViewBookingRow = {
+  start_at: string;
+  status: string;
+  booking_source: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  referrer_url: string | null;
+  referrer_business_id: string | null;
+};
+
+async function computeViewsData(
+  businessId: string,
+  timeZone: string,
+): Promise<ViewsData> {
+  const admin = createAdminClient();
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - VIEWS_WINDOW_DAYS * MS_DAY);
+  const trendStart = new Date(now.getTime() - VIEWS_TREND_WEEKS * 7 * MS_DAY);
+
+  // Two queries in parallel:
+  //   1. Views in the wider of [trendStart, 90-day window]
+  //   2. Non-cancelled bookings in 90-day window (for conversion math)
+  // Both are filtered to the business and run with index-only scans.
+  const fetchStart = new Date(
+    Math.min(windowStart.getTime(), trendStart.getTime()),
+  );
+  const [viewsRes, bookingsRes] = await Promise.all([
+    admin
+      .from("storefront_views")
+      .select(
+        "viewed_at, utm_source, utm_medium, utm_campaign, referrer_url, referrer_business_id",
+      )
+      .eq("business_id", businessId)
+      .gte("viewed_at", fetchStart.toISOString())
+      .lt("viewed_at", now.toISOString()),
+    admin
+      .from("bookings")
+      .select(
+        "start_at, status, booking_source, utm_source, utm_medium, utm_campaign, referrer_url, referrer_business_id",
+      )
+      .eq("business_id", businessId)
+      .neq("status", "cancelled")
+      .gte("start_at", windowStart.toISOString())
+      .lt("start_at", now.toISOString()),
+  ]);
+
+  const allViews = (viewsRes.data ?? []) as ViewRow[];
+  const last90Views = allViews.filter(
+    (v) => new Date(v.viewed_at).getTime() >= windowStart.getTime(),
+  );
+  const bookings = (bookingsRes.data ?? []) as ViewBookingRow[];
+
+  // ── Total + sample-size flag ───────────────────────────────────────
+  const totalViews = last90Views.length;
+  const totalBookings = bookings.length;
+  const hasEnoughData = totalViews >= VIEWS_MIN_BOOKINGS;
+  const conversionRate = totalViews > 0 ? totalBookings / totalViews : 0;
+
+  // ── Weekly trend (8 weeks ending this week) ────────────────────────
+  // Bucket by week-start in pro tz. Reuses getWeekRange's Mon-anchored
+  // boundary for "this week."
+  const { weekStart: thisWeekStart } = getWeekRange(timeZone);
+  const trend: ViewsTrendPoint[] = [];
+  for (let i = VIEWS_TREND_WEEKS - 1; i >= 0; i -= 1) {
+    const weekStart = new Date(thisWeekStart.getTime() - i * 7 * MS_DAY);
+    trend.push({
+      weekStart,
+      label: new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        month: "short",
+        day: "numeric",
+      }).format(weekStart),
+      count: 0,
+    });
+  }
+  for (const v of allViews) {
+    const t = new Date(v.viewed_at).getTime();
+    for (const bucket of trend) {
+      const bucketStart = bucket.weekStart.getTime();
+      const bucketEnd = bucketStart + 7 * MS_DAY;
+      if (t >= bucketStart && t < bucketEnd) {
+        bucket.count += 1;
+        break;
+      }
+    }
+  }
+
+  // ── Conversion by source ───────────────────────────────────────────
+  // Bucket views by attributed source; bucket bookings by attributed
+  // source; for each source with ≥VIEWS_MIN_PER_SOURCE views, compute
+  // bookings/views. Sources below the per-source threshold are
+  // dropped — a source with 2 views and 1 booking would show 50%
+  // which is noise.
+  const viewsBySource = new Map<string, number>();
+  for (const v of last90Views) {
+    const src = attributeSource({
+      utm_source: v.utm_source,
+      referrer_url: v.referrer_url,
+      // Storefront views are implicitly via the public widget surface —
+      // there's no concept of a "manual view." Pass 'public_widget'
+      // so the priority chain treats them consistently with public
+      // bookings.
+      booking_source: "public_widget",
+      referrer_business_id: v.referrer_business_id,
+    });
+    viewsBySource.set(src, (viewsBySource.get(src) ?? 0) + 1);
+  }
+  const bookingsBySource = new Map<string, number>();
+  for (const b of bookings) {
+    const src = attributeSource({
+      utm_source: b.utm_source,
+      referrer_url: b.referrer_url,
+      booking_source: b.booking_source,
+      referrer_business_id: b.referrer_business_id,
+    });
+    bookingsBySource.set(src, (bookingsBySource.get(src) ?? 0) + 1);
+  }
+  const bySourceRows: ConversionBySourceRow[] = Array.from(viewsBySource.entries())
+    .filter(([, views]) => views >= VIEWS_MIN_PER_SOURCE)
+    .map(([source, views]) => {
+      const bks = bookingsBySource.get(source) ?? 0;
+      return {
+        source,
+        views,
+        bookings: bks,
+        conversionRate: views > 0 ? bks / views : 0,
+      };
+    })
+    .sort((a, b) => b.views - a.views);
+  const bySource: ConversionBySourceResult = {
+    hasEnoughData: bySourceRows.length > 0,
+    rows: bySourceRows,
+  };
+
+  return {
+    timeZone,
+    totalViews,
+    hasEnoughData,
+    trend,
+    totalBookings,
+    conversionRate,
+    bySource,
+  };
+}

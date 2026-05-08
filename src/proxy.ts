@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import {
   sanitizeReferralValue,
   normalizeReferrerUrl,
+  parseReferralCookie,
   REFERRAL_COOKIE_NAME,
 } from "@/lib/referrer-classifier";
 
@@ -42,11 +43,23 @@ function captureReferralAndPass(request: NextRequest): NextResponse {
   );
   const referrer_url = normalizeReferrerUrl(request.headers.get("referer"));
 
+  // Phase 5 closer — preserve session_id across last-touch overwrites.
+  // The proxy rotates utm/referrer fields per visit (strict last-touch
+  // from PR #35) but the session_id stays sticky across the cookie's
+  // 24h life. View tracking uses session_id for 30-minute dedup
+  // against the storefront_views table; rotating the session_id every
+  // visit would defeat that.
+  const existing = parseReferralCookie(
+    request.cookies.get(REFERRAL_COOKIE_NAME)?.value,
+  );
+  const session_id = existing.session_id ?? crypto.randomUUID();
+
   const payload = JSON.stringify({
     utm_source,
     utm_medium,
     utm_campaign,
     referrer_url,
+    session_id,
     captured_at: new Date().toISOString(),
   });
 
