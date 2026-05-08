@@ -26,6 +26,17 @@ import {
   resolveTrustedProsContext,
 } from "@/lib/pass-the-torch-storefront";
 import { VacationBanner } from "@/components/storefront/vacation-banner";
+import { after } from "next/server";
+import { cookies, headers } from "next/headers";
+import {
+  parseReferralCookie,
+  REFERRAL_COOKIE_NAME,
+} from "@/lib/referrer-classifier";
+import {
+  recordStorefrontView,
+  hashIp,
+  extractClientIp,
+} from "@/lib/storefront-view-tracking";
 import { RefBadge } from "@/components/storefront/ref-badge";
 import { ReputationCard } from "@/components/storefront/reputation-card";
 import { getReputationStats } from "@/lib/reputation-stats";
@@ -89,6 +100,67 @@ export default async function PublicSitePage({ params, searchParams }: Props) {
   // Show the "Back to Dashboard" pill to the site owner only. Non-owners
   // (anonymous visitors, clients, other OYRB pros) never see it.
   const isOwner = !!user && user.id === biz.owner_id;
+
+  // Phase 5 closer — storefront view tracking. Schedules a
+  // fire-and-forget INSERT via after() so it runs after the response
+  // is committed; rendering is never blocked. Skipped when:
+  //   - The visitor IS the storefront's own owner (preview hits
+  //     would pollute analytics)
+  //   - The referral cookie has no session_id (cookies set before
+  //     this PR's deploy don't carry one — proxy will set it on the
+  //     next request, but for now we skip this view rather than
+  //     INSERT a row we can't dedup).
+  // The 30-min dedup window is enforced inside recordStorefrontView
+  // via a query against storefront_views.viewed_at — see migration 047
+  // and src/lib/storefront-view-tracking.ts. Sub-routes
+  // (/s/[slug]/booking-confirmed, /s/[slug]/gift-cards, etc.) live in
+  // their own page.tsx files and don't schedule this after() call;
+  // only landing-page views are tracked.
+  if (!isOwner) {
+    const bizId = biz.id as string;
+    const refSlug = typeof refParam === "string" ? refParam : null;
+    after(async () => {
+      try {
+        const cookieStore = await cookies();
+        const cookieValue = cookieStore.get(REFERRAL_COOKIE_NAME)?.value;
+        const referral = parseReferralCookie(cookieValue);
+        if (!referral.session_id) return;
+
+        // Resolve referrer_business_id from ?ref=<slug> URL param
+        // (same self-referral guard as PR #36's booking-insert path).
+        const admin = createAdminClient();
+        let referrerBusinessId: string | null = null;
+        if (refSlug && /^[a-z0-9-]{1,80}$/i.test(refSlug)) {
+          const { data: ref } = await admin
+            .from("businesses")
+            .select("id")
+            .eq("slug", refSlug)
+            .maybeSingle();
+          if (ref && (ref.id as string) !== bizId) {
+            referrerBusinessId = ref.id as string;
+          }
+        }
+
+        const hdrs = await headers();
+        await recordStorefrontView({
+          businessId: bizId,
+          sessionId: referral.session_id,
+          referrerUrl: referral.referrer_url,
+          utmSource: referral.utm_source,
+          utmMedium: referral.utm_medium,
+          utmCampaign: referral.utm_campaign,
+          referrerBusinessId,
+          userAgent: hdrs.get("user-agent"),
+          ipHash: hashIp(extractClientIp(hdrs)),
+        });
+      } catch (err) {
+        // Defense-in-depth — recordStorefrontView already swallows
+        // its own errors, but anything that throws before that call
+        // (cookie parsing, header read, ref slug lookup) lands here.
+        console.error("[storefront view tracking] schedule failed:", err);
+      }
+    });
+  }
 
   const now = new Date();
   const weekAhead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
