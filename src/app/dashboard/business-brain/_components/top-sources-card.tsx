@@ -86,15 +86,23 @@ function Bar({
  * "Direct" and "Unknown" use the platform's neutral palette so
  * they read as neutral fallbacks rather than negative signals.
  *
- * Phase 5 closer adds "Pass the Torch" as the highest-priority
- * bucket. It gets the OYRB accent (#B8896B) — same color the
- * Pass the Torch card uses — so it reads as the platform's own
- * referral mechanism, distinct from external sources. "Direct"
- * shifts to a lighter accent variant so the two platform-touched
- * buckets stay visually distinguishable.
+ * Phase 5 added Pass the Torch (OYRB accent) and Direct (lighter
+ * accent variant) as platform-touched buckets.
+ *
+ * Phase 5 closer (survey field) adds "(self-reported)" suffix
+ * variants — "Instagram (self-reported)", "Word of mouth
+ * (self-reported)", etc. These render as their own rows on the
+ * card (signal-quality distinction stays visible) but reuse the
+ * underlying channel's brand color so the visual identity holds.
+ * Walk-by / word-of-mouth / "Other" survey responses have no
+ * external-source equivalent, so they get neutral palette tones.
  */
 function toneFor(source: string): string {
-  switch (source) {
+  // Strip the "(self-reported)" suffix for color resolution — same
+  // brand color as the inferred version, signal-quality distinction
+  // is conveyed by the label suffix not by color.
+  const base = source.replace(/\s*\(self-reported\)\s*$/, "");
+  switch (base) {
     case "Pass the Torch":
       return "bg-[#B8896B]";
     case "Instagram":
@@ -117,6 +125,13 @@ function toneFor(source: string): string {
       return "bg-[#D4B59A]";
     case "Unknown":
       return "bg-[#A3A3A3]";
+    // Phase 5 closer — survey-only labels with no external equivalent.
+    case "Word of mouth":
+      return "bg-emerald-600";
+    case "Walked by":
+      return "bg-amber-600";
+    case "Other":
+      return "bg-[#525252]";
     default:
       return "bg-[#525252]";
   }

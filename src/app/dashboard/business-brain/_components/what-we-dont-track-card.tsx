@@ -1,18 +1,21 @@
 import { Compass } from "lucide-react";
 
 /**
- * Honest "what we can't tell you yet" card. Shrinks over time as
- * tracking work lands. Phase 5 PR #35 ungated UTM + classified
- * referrer attribution; PR #36 ungated Pass the Torch persistence;
- * Phase 5 closer (this PR) ungated storefront view tracking + view-
- * to-booking conversion analytics. One bullet remains:
+ * "Tracking gaps" card — ongoing transparency framing for the Where
+ * They Come From tab. Renamed from "What we don't track yet" once
+ * every known acquisition signal landed (Phase 5 closer's survey
+ * field was the last gap).
  *
- *   - "How did you hear about us?" survey field on the booking
- *     widget (optional dropdown for the truth that no URL signal
- *     can capture — offline word-of-mouth, walk-bys, etc.)
+ * The card stays in the page stack as continued transparency, not as
+ * a placeholder for missing items. Empty-of-bullets but rhetorically
+ * present — pros see a clear "nothing to flag right now" signal,
+ * and the card is ready to surface new tracking gaps if any emerge
+ * (ad platforms change how they pass data, new channels become
+ * relevant, etc.).
  *
- * Card stays in the stack with this final bullet — honest scoping
- * remains useful framing even when only one item is left.
+ * Component name retained as WhatWeDontTrackCard for git-blame
+ * continuity with PRs #33 / #35 / #36 / #37 / this PR. Section
+ * heading uses the new "Tracking gaps" wording.
  */
 export function WhatWeDontTrackCard() {
   return (
@@ -20,21 +23,21 @@ export function WhatWeDontTrackCard() {
       <header className="flex items-center gap-2">
         <Compass size={16} className="text-[#737373]" strokeWidth={1.5} />
         <h2 className="text-sm font-semibold uppercase tracking-wider text-[#525252]">
-          What we don&apos;t track yet
+          Tracking gaps
         </h2>
       </header>
 
       <div className="mt-4 space-y-4 text-sm leading-relaxed text-[#525252]">
         <p>
-          <strong className="text-[#0A0A0A]">Coming in a future update:</strong>
-          {" "}a &ldquo;How did you hear about us?&rdquo; question on the booking form for the
-          truth that no URL signal can capture — offline word-of-mouth, walk-bys, &ldquo;a
-          friend told me,&rdquo; that kind of thing.
+          All currently-known acquisition signals are captured —
+          self-reported survey responses, Pass the Torch referrals, UTM
+          parameters, classified referrers from the URL, direct visits, and
+          storefront view counts.
         </p>
         <p>
-          <strong className="text-[#0A0A0A]">For now,</strong> if you want to know how a client
-          specifically heard about you, ask them when they book and jot it in the booking&apos;s
-          notes field — you&apos;ll have the answer next to every appointment.
+          If new tracking gaps emerge as your business grows or as ad
+          platforms change how they pass data, we&apos;ll surface them here.
+          For now: nothing to flag.
         </p>
       </div>
     </section>

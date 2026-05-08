@@ -9,6 +9,7 @@ import {
   parseReferralCookie,
   REFERRAL_COOKIE_NAME,
 } from "@/lib/referrer-classifier";
+import { sanitizeSurveyResponse } from "@/lib/survey-options";
 
 type BookingPayload = {
   business_id: string;
@@ -29,6 +30,11 @@ type BookingPayload = {
    *  booking. When present + valid, the confirmation email gets the
    *  Layer-2 disclosure block. */
   referrer_slug?: string | null;
+  /** Phase 5 closer — "How did you hear about us?" survey field.
+   *  Lowercase enum code from src/lib/survey-options.ts when set.
+   *  Validated against the allowlist before insert; arbitrary text
+   *  stored as NULL. */
+  survey_response?: string | null;
 };
 
 export async function POST(request: NextRequest) {
@@ -286,6 +292,12 @@ export async function POST(request: NextRequest) {
       // slug didn't match a business or if the pro tried to refer
       // themselves (self-referral guard).
       referrer_business_id: referrerBusinessId,
+      // Phase 5 closer — "How did you hear about us?" survey response.
+      // Validated against the allowlist; non-matching values map to
+      // NULL. Becomes the priority-1 source signal in canonical
+      // attribution (TopSourcesCard, etc.); skipped by the conversion
+      // analytics chain so view→booking funnel math stays consistent.
+      survey_response: sanitizeSurveyResponse(body.survey_response),
       ...(isSeries ? { series_id: seriesId, series_interval_weeks: weeks } : {}),
     })
     .select("id")
@@ -325,12 +337,14 @@ export async function POST(request: NextRequest) {
         status: "confirmed",
         booking_source: "public_widget",
         // Phase 5 — series children inherit the parent's referral
-        // signals so they aggregate to the same source.
+        // signals (including survey response) so they aggregate to
+        // the same source.
         utm_source: referral.utm_source,
         utm_medium: referral.utm_medium,
         utm_campaign: referral.utm_campaign,
         referrer_url: referral.referrer_url,
         referrer_business_id: referrerBusinessId,
+        survey_response: sanitizeSurveyResponse(body.survey_response),
         series_id: seriesId,
         series_interval_weeks: weeks,
       });
