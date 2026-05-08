@@ -5,6 +5,7 @@ import { getFromAddress, EmailPurpose, DEFAULT_REPLY_TO } from "@/lib/email-from
 import { sendSms, tierAllowsSms } from "@/lib/sms";
 import { issueBookingToken } from "@/lib/booking-tokens";
 import { checkBookingOverlap } from "@/lib/booking-overlap";
+import type { DailyBreakBlock } from "@/lib/booking-slots";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.oyrb.space";
 
@@ -67,7 +68,7 @@ export async function POST(
       id, business_id, service_id, start_at, end_at, status,
       services(name, duration_minutes, price_cents),
       clients(id, name, email, phone, sms_consent),
-      businesses(id, owner_id, business_name, slug, contact_email, phone, subscription_tier, break_between_appointments_minutes)
+      businesses(id, owner_id, business_name, slug, contact_email, phone, subscription_tier, break_between_appointments_minutes, daily_break_blocks)
     `)
     .eq("id", id)
     .maybeSingle();
@@ -96,6 +97,7 @@ export async function POST(
       phone: string | null;
       subscription_tier: string | null;
       break_between_appointments_minutes: number | null;
+      daily_break_blocks: DailyBreakBlock[] | null;
     } | null;
   } | null;
 
@@ -123,6 +125,7 @@ export async function POST(
   // otherwise conflict with itself if its current time happens to
   // overlap the candidate window).
   const breakMin = booking.businesses.break_between_appointments_minutes ?? 15;
+  const dailyBreakBlocks = booking.businesses.daily_break_blocks ?? [];
   const admin = createAdminClient();
   const overlapResult = await checkBookingOverlap(
     admin,
@@ -131,19 +134,30 @@ export async function POST(
     newEnd,
     breakMin,
     booking.id,
+    dailyBreakBlocks,
   );
   if (!overlapResult.ok) {
     const c = overlapResult.conflict;
-    const conflictTime = c.startAt.toLocaleString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-    const who = c.clientName ?? "another booking";
+    if (c.kind === "booking") {
+      const conflictTime = c.startAt.toLocaleString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+      const who = c.clientName ?? "another booking";
+      return NextResponse.json(
+        { error: `Time conflict — overlaps with ${who} at ${conflictTime}` },
+        { status: 409 },
+      );
+    }
+    const fmt = (d: Date) =>
+      d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
     return NextResponse.json(
-      { error: `Time conflict — overlaps with ${who} at ${conflictTime}` },
+      {
+        error: `That time falls in your configured break (${fmt(c.startAt)} – ${fmt(c.endAt)}).`,
+      },
       { status: 409 },
     );
   }

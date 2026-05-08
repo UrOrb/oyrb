@@ -126,6 +126,9 @@ export async function POST(request: NextRequest) {
   const allowLM = (business as { allow_last_minute_booking?: boolean }).allow_last_minute_booking ?? true;
   const cutoffHours =
     (business as { last_minute_cutoff_hours?: number }).last_minute_cutoff_hours ?? 2;
+  const dailyBreakBlocks =
+    (business as { daily_break_blocks?: import("@/lib/booking-slots").DailyBreakBlock[] | null })
+      .daily_break_blocks ?? [];
   const cutoffMs = cutoffHours * 60 * 60_000;
   const sinceNowMs = startAt.getTime() - Date.now();
   if (sinceNowMs < cutoffMs) {
@@ -150,6 +153,8 @@ export async function POST(request: NextRequest) {
     startAt,
     endAt,
     rulesBreak,
+    null,
+    dailyBreakBlocks,
   );
   if (!overlapResult.ok) {
     return NextResponse.json(
@@ -315,13 +320,16 @@ export async function POST(request: NextRequest) {
       const nextStart = new Date(startAt.getTime() + i * weeks * 7 * 24 * 60 * 60 * 1000);
       const nextEnd = new Date(nextStart.getTime() + service.duration_minutes * 60_000);
 
-      // Skip the slot if it overlaps anything (includes break buffer).
+      // Skip the slot if it overlaps anything (includes break buffer
+      // OR a configured daily break block on that date's day-of-week).
       const seriesOverlap = await checkBookingOverlap(
         supabase,
         body.business_id,
         nextStart,
         nextEnd,
         rulesBreak,
+        null,
+        dailyBreakBlocks,
       );
       if (!seriesOverlap.ok) {
         seriesSkipped++;

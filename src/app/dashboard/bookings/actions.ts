@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { getCurrentBusiness } from "@/lib/current-site";
 import { checkBookingOverlap } from "@/lib/booking-overlap";
+import type { DailyBreakBlock } from "@/lib/booking-slots";
 import { notifyBookingConfirmed } from "@/lib/booking-notify";
 import { formatCents } from "@/lib/types";
 
@@ -34,7 +35,7 @@ export async function createManualBooking(formData: FormData): Promise<ActionRes
   const { data: businessRow } = await supabase
     .from("businesses")
     .select(
-      "id, business_name, slug, contact_email, owner_id, subscription_tier, break_between_appointments_minutes",
+      "id, business_name, slug, contact_email, owner_id, subscription_tier, break_between_appointments_minutes, daily_break_blocks",
     )
     .eq("id", business.id)
     .maybeSingle();
@@ -60,22 +61,40 @@ export async function createManualBooking(formData: FormData): Promise<ActionRes
 
   // last_minute_cutoff_hours intentionally NOT enforced — pros need to log
   // walk-ins and same-day phone bookings.
-  const breakMinutes =
-    (businessRow as { break_between_appointments_minutes?: number })
-      .break_between_appointments_minutes ?? 15;
+  const businessRules = businessRow as {
+    break_between_appointments_minutes?: number;
+    daily_break_blocks?: DailyBreakBlock[] | null;
+  };
+  const breakMinutes = businessRules.break_between_appointments_minutes ?? 15;
+  const dailyBreakBlocks = businessRules.daily_break_blocks ?? [];
 
-  const result = await checkBookingOverlap(supabase, business.id, startAt, endAt, breakMinutes);
+  const result = await checkBookingOverlap(
+    supabase,
+    business.id,
+    startAt,
+    endAt,
+    breakMinutes,
+    null,
+    dailyBreakBlocks,
+  );
   if (!result.ok) {
     const c = result.conflict;
-    const conflictTime = c.startAt.toLocaleString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-    const who = c.clientName ?? "another booking";
-    return { error: `Time conflict — overlaps with ${who} at ${conflictTime}` };
+    if (c.kind === "booking") {
+      const conflictTime = c.startAt.toLocaleString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+      const who = c.clientName ?? "another booking";
+      return { error: `Time conflict — overlaps with ${who} at ${conflictTime}` };
+    }
+    const fmt = (d: Date) =>
+      d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    return {
+      error: `That time falls in your configured break (${fmt(c.startAt)} – ${fmt(c.endAt)}).`,
+    };
   }
 
   // Upsert client by email when provided; otherwise create a phone-only

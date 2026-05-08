@@ -6,6 +6,8 @@ import { notifyBookingConfirmed } from "@/lib/booking-notify";
 import { formatCents } from "@/lib/types";
 import { sanitizeReferralValue } from "@/lib/referrer-classifier";
 import { sanitizeSurveyResponse } from "@/lib/survey-options";
+import { checkBookingOverlap } from "@/lib/booking-overlap";
+import type { DailyBreakBlock } from "@/lib/booking-slots";
 
 // Called by the booking-confirmed page after Stripe redirects back.
 // Verifies the Checkout Session was paid, then creates the booking + client.
@@ -78,10 +80,17 @@ export async function POST(request: NextRequest) {
   const notes = metadata.notes || null;
   const smsConsent = metadata.sms_consent === "true";
 
-  // Re-fetch business + service
+  // Re-fetch business + service. Pulling the scheduling-rule columns
+  // here so the post-Stripe race-guard runs the same overlap check the
+  // pre-payment route ran — including break_between_appointments and
+  // daily_break_blocks. A pro who configures a noon-1pm break shouldn't
+  // get a booking landing in it just because a different client paid
+  // first via a stale Checkout Session.
   const { data: business } = await supabase
     .from("businesses")
-    .select("id, business_name, slug, contact_email, owner_id, subscription_tier")
+    .select(
+      "id, business_name, slug, contact_email, owner_id, subscription_tier, break_between_appointments_minutes, daily_break_blocks",
+    )
     .eq("id", businessId)
     .maybeSingle();
   if (!business) {
@@ -99,16 +108,27 @@ export async function POST(request: NextRequest) {
 
   const endAt = new Date(startAt.getTime() + service.duration_minutes * 60_000);
 
-  // One more overlap check (rare race)
-  const { data: overlap } = await supabase
-    .from("bookings")
-    .select("id")
-    .eq("business_id", businessId)
-    .neq("status", "cancelled")
-    .lt("start_at", endAt.toISOString())
-    .gt("end_at", startAt.toISOString())
-    .limit(1);
-  if (overlap && overlap.length > 0) {
+  const businessRules = business as {
+    break_between_appointments_minutes?: number;
+    daily_break_blocks?: DailyBreakBlock[] | null;
+  };
+  const rulesBreak = businessRules.break_between_appointments_minutes ?? 15;
+  const dailyBreakBlocks = businessRules.daily_break_blocks ?? [];
+
+  // One more overlap check (rare post-Stripe race) — must mirror the
+  // pre-payment validation in api/public/bookings/route.ts so a window
+  // that was free at checkout-creation but got taken (or now overlaps a
+  // configured break) gets caught before we land a paid booking on top.
+  const overlapResult = await checkBookingOverlap(
+    supabase,
+    businessId,
+    startAt,
+    endAt,
+    rulesBreak,
+    null,
+    dailyBreakBlocks,
+  );
+  if (!overlapResult.ok) {
     return NextResponse.json(
       { error: "That time was booked while you were paying. Please contact us for a refund." },
       { status: 409 }
@@ -252,15 +272,19 @@ export async function POST(request: NextRequest) {
     for (let i = 1; i < n && i < 12; i++) {
       const nextStart = new Date(startAt.getTime() + i * w * 7 * 24 * 60 * 60 * 1000);
       const nextEnd = new Date(nextStart.getTime() + service.duration_minutes * 60_000);
-      const { data: conflict } = await supabase
-        .from("bookings")
-        .select("id")
-        .eq("business_id", businessId)
-        .neq("status", "cancelled")
-        .lt("start_at", nextEnd.toISOString())
-        .gt("end_at", nextStart.toISOString())
-        .limit(1);
-      if (conflict && conflict.length > 0) continue;
+      // Series children inherit parent's validation rules — break
+      // buffer and daily_break_blocks both apply, matching the
+      // pre-payment series loop in api/public/bookings/route.ts.
+      const seriesOverlap = await checkBookingOverlap(
+        supabase,
+        businessId,
+        nextStart,
+        nextEnd,
+        rulesBreak,
+        null,
+        dailyBreakBlocks,
+      );
+      if (!seriesOverlap.ok) continue;
       await supabase.from("bookings").insert({
         business_id: businessId,
         client_id: clientId,
