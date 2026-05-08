@@ -171,6 +171,36 @@ export async function POST(request: NextRequest) {
   const utmCampaign = sanitizeReferralValue(metadata.utm_campaign) || null;
   const referrerUrl = sanitizeReferralValue(metadata.referrer_url) || null;
 
+  // Phase 5 — Pass the Torch attribution. Pre-insert lookup serves
+  // both persistence (FK store on the booking row) and email reuse
+  // (existing Layer-2 disclosure). See the matching block in
+  // src/app/api/public/bookings/route.ts for the full design notes —
+  // briefly:
+  //   - PERSISTENCE captures historical fact, no is_published gate
+  //   - EMAIL DISPLAY keeps the is_published gate (paused pros not
+  //     named in fresh confirmations)
+  //   - SELF-REFERRAL guard: a pro can't refer themselves
+  let resolvedReferrer: { id: string; business_name: string; is_published: boolean } | null = null;
+  const referrerSlug = metadata.referrer_slug;
+  if (typeof referrerSlug === "string" && /^[a-z0-9-]{1,80}$/i.test(referrerSlug)) {
+    const { data } = await supabase
+      .from("businesses")
+      .select("id, business_name, is_published")
+      .eq("slug", referrerSlug)
+      .maybeSingle();
+    if (data) {
+      resolvedReferrer = data as {
+        id: string;
+        business_name: string;
+        is_published: boolean;
+      };
+    }
+  }
+  const referrerBusinessId =
+    resolvedReferrer && resolvedReferrer.id !== businessId
+      ? resolvedReferrer.id
+      : null;
+
   // Create booking with deposit_paid=true
   const { data: booking, error: bookingErr } = await supabase
     .from("bookings")
@@ -193,6 +223,8 @@ export async function POST(request: NextRequest) {
       utm_medium: utmMedium,
       utm_campaign: utmCampaign,
       referrer_url: referrerUrl,
+      // Phase 5 — Pass the Torch attribution.
+      referrer_business_id: referrerBusinessId,
       ...(ageConfirmed ? { age_confirmed_at: new Date().toISOString(), age_is_minor: ageIsMinor, guardian_name: guardianName } : {}),
       ...((() => {
         const w = parseInt(session.metadata?.series_interval_weeks ?? "0", 10);
@@ -236,6 +268,7 @@ export async function POST(request: NextRequest) {
         utm_medium: utmMedium,
         utm_campaign: utmCampaign,
         referrer_url: referrerUrl,
+        referrer_business_id: referrerBusinessId,
         series_id: booking.series_id,
         series_interval_weeks: w,
       });
@@ -283,21 +316,20 @@ export async function POST(request: NextRequest) {
   const dashboardUrl = `${origin}/dashboard/bookings`;
   const priceLabel = formatCents(service.price_cents);
 
-  // Pass the Torch attribution stashed in the deposit-checkout session
-  // metadata. Resolve the referrer's display name now so the
-  // confirmation email can include the Layer-2 disclosure.
-  let referrerName: string | null = null;
-  const referrerSlug = metadata.referrer_slug;
-  if (typeof referrerSlug === "string" && /^[a-z0-9-]{1,80}$/i.test(referrerSlug)) {
-    const { data: referrer } = await supabase
-      .from("businesses")
-      .select("business_name, is_published")
-      .eq("slug", referrerSlug)
-      .maybeSingle();
-    if (referrer && referrer.is_published) {
-      referrerName = referrer.business_name as string;
-    }
-  }
+  // Pass the Torch attribution — email-display branch. Reuses the
+  // `resolvedReferrer` object captured by the pre-insert lookup
+  // earlier in this function. Persistence already happened on the
+  // booking row above (referrer_business_id); this branch only
+  // computes the display name for the email's Layer-2 disclosure.
+  // The is_published gate is intentional and distinct from
+  // persistence — see the matching block in
+  // src/app/api/public/bookings/route.ts.
+  const referrerName =
+    resolvedReferrer &&
+    resolvedReferrer.is_published &&
+    resolvedReferrer.id !== businessId
+      ? resolvedReferrer.business_name
+      : null;
 
   // Fire emails
   const tasks: Promise<unknown>[] = [

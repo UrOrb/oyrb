@@ -779,6 +779,19 @@ export type ProfitPerMinute = {
   centsPerMinute: number;
 };
 
+/**
+ * Phase 5 closer — Pass the Torch revenue subtotal for the Money tab.
+ * Renders as a single bottom line on the Revenue Overview card,
+ * conditional on bookingCount > 0. Last-90-day window only — Pass
+ * the Torch accumulates slowly enough that week-level signal isn't
+ * useful, and the spec deliberately avoids per-window breakdown to
+ * keep the card compact.
+ */
+export type PassTheTorch90DayRevenue = {
+  bookingCount: number;
+  revenueCollectedCents: number;
+};
+
 export type MoneyData = {
   timeZone: string;
   /** [thisWeek, thisMonth, last30, last90]. */
@@ -789,6 +802,8 @@ export type MoneyData = {
   paymentMix: PaymentMix;
   trend: MoneyTrend;
   profitPerMinute: ProfitPerMinute;
+  /** Phase 5 closer — last-90-day Pass the Torch subtotal. */
+  passTheTorch90: PassTheTorch90DayRevenue;
 };
 
 export async function getMoneyData(
@@ -939,6 +954,8 @@ type MoneyRow = {
   service_started_at: string | null;
   service_ended_at: string | null;
   service_id: string | null;
+  /** Phase 5 closer — Pass the Torch attribution (migration 046). */
+  referrer_business_id: string | null;
   services:
     | { id: string; name: string; price_cents: number; deposit_cents: number }
     | { id: string; name: string; price_cents: number; deposit_cents: number }[]
@@ -974,7 +991,10 @@ async function computeMoneyData(
   const { data } = await admin
     .from("bookings")
     .select(
-      "id, start_at, status, deposit_paid, paid_in_full_at, paid_amount_cents, service_started_at, service_ended_at, service_id, services(id, name, price_cents, deposit_cents)",
+      // Phase 5 closer — referrer_business_id added so the
+      // RevenueOverviewCard can show the last-90-day Pass the Torch
+      // revenue subtotal.
+      "id, start_at, status, deposit_paid, paid_in_full_at, paid_amount_cents, service_started_at, service_ended_at, service_id, referrer_business_id, services(id, name, price_cents, deposit_cents)",
     )
     .eq("business_id", businessId)
     .gte("start_at", widestStart.toISOString())
@@ -1144,6 +1164,17 @@ async function computeMoneyData(
     centsPerMinute: totalMinutes > 0 ? totalRevenueCents / totalMinutes : 0,
   };
 
+  // Phase 5 closer — Pass the Torch revenue over the last-90-day
+  // window. Reuses the in-memory rows already filtered to last90 by
+  // last90Rows above. Single bottom line on the Revenue Overview
+  // card; conditional on bookingCount > 0.
+  const ptLast90 = last90Rows.filter((r) => r.referrer_business_id);
+  const passTheTorch90: PassTheTorch90DayRevenue = {
+    bookingCount: ptLast90.length,
+    revenueCollectedCents: aggregateMoney(toMoneyInputs(ptLast90))
+      .revenueCollectedCents,
+  };
+
   return {
     timeZone,
     windows,
@@ -1152,6 +1183,7 @@ async function computeMoneyData(
     paymentMix,
     trend: { hasEnoughData: trendHasEnoughData, points: trimmedTrend },
     profitPerMinute,
+    passTheTorch90,
   };
 }
 
@@ -2067,6 +2099,24 @@ export type UtmCampaignsResult = {
   rows: UtmCampaignRow[];
 };
 
+export type PassTheTorchTopReferrer = {
+  referrerBusinessId: string;
+  /** Joined business_name; "Former pro" when the referring row has been deleted (FK ON DELETE SET NULL leaves bookingCount but the join returns null). */
+  name: string;
+  bookingCount: number;
+};
+
+export type PassTheTorchData = {
+  /** True when ≥1 Pass the Torch booking in the 90-day window. Lowest sample-size guard of any card — surface as soon as it exists. */
+  hasAny: boolean;
+  bookingCount: number;
+  uniqueReferringPros: number;
+  /** Via aggregateMoney — revenue actually captured by OYRB on Pass the Torch bookings. */
+  revenueCollectedCents: number;
+  /** Top 3 by booking count desc. */
+  topReferrers: PassTheTorchTopReferrer[];
+};
+
 export type ReferralData = {
   timeZone: string;
   acquisition: AcquisitionMix;
@@ -2077,6 +2127,8 @@ export type ReferralData = {
   sourceRevenue: SourceRevenueResult;
   /** Phase 5 — explicit UTM campaign breakdown (when present). */
   utmCampaigns: UtmCampaignsResult;
+  /** Phase 5 closer — Pass the Torch attribution (migration 046). */
+  passTheTorch: PassTheTorchData;
 };
 
 export async function getReferralData(
@@ -2101,6 +2153,18 @@ type ReferralRow = {
   utm_medium: string | null;
   utm_campaign: string | null;
   referrer_url: string | null;
+  // Phase 5 — Pass the Torch attribution (migration 046).
+  referrer_business_id: string | null;
+  /**
+   * Joined referring business name when referrer_business_id is set.
+   * Aliased via the Supabase `referring_business:businesses!referrer_business_id(...)`
+   * select syntax. NULL when no referrer or when the referring business
+   * was deleted (FK ON DELETE SET NULL kicks in).
+   */
+  referring_business:
+    | { business_name: string }
+    | { business_name: string }[]
+    | null;
   // For source-revenue aggregation.
   deposit_paid: boolean | null;
   paid_in_full_at: string | null;
@@ -2113,22 +2177,31 @@ type ReferralRow = {
 
 /**
  * Source attribution priority — single source of truth for how a
- * booking is bucketed at display time.
+ * booking is bucketed at display time. 5-tier priority chain
+ * (highest specificity wins):
  *
- *   1. utm_source if not null      — highest specificity
- *   2. classified referrer hostname — broad bucket
- *   3. "Direct" — public widget booking with no UTM/referrer
- *   4. "Unknown" — legacy or manual bookings
+ *   1. Pass the Torch (referrer_business_id IS NOT NULL) —
+ *      most explicit referral signal: another OYRB pro literally
+ *      shared their booking link. Highest priority because it's
+ *      platform-internal attribution and the most actionable
+ *      signal for the receiving pro.
+ *   2. utm_source if not null — explicit URL tagging by the pro
+ *   3. classified referrer from referrer_url — hostname-suffix bucket
+ *   4. "Direct" — public widget booking with no UTM/referrer
+ *   5. "Unknown" — legacy or manual bookings
  *
- * Returns a display-ready string. utm_source values bypass
- * classification (the pro tagged them themselves) but get a "UTM:"
- * prefix so they don't conflict with classified-bucket labels.
+ * Returns a display-ready string. The "Pass the Torch" label has
+ * its own visual treatment (OYRB accent color) on TopSourcesCard
+ * to distinguish it from external sources.
  */
 function attributeSource(row: {
   utm_source: string | null;
   referrer_url: string | null;
   booking_source: string | null;
+  referrer_business_id: string | null;
 }): string {
+  // Phase 5 — Pass the Torch attribution wins all other signals.
+  if (row.referrer_business_id) return "Pass the Torch";
   if (row.utm_source) {
     // Map common UTM source values to the same labels used by
     // classifyReferrer so "instagram" via UTM and "instagram" via
@@ -2189,7 +2262,12 @@ async function computeReferralData(
       .from("bookings")
       .select(
         // Phase 5 — pull referral signals + services for revenue math.
-        "id, start_at, client_id, status, booking_source, utm_source, utm_medium, utm_campaign, referrer_url, deposit_paid, paid_in_full_at, paid_amount_cents, services(price_cents, deposit_cents)",
+        // referring_business join (migration 046) gives the referring
+        // pro's display name for the Pass the Torch card's "top
+        // referring pros" list. NULL when referrer_business_id is null
+        // or the referring business was deleted (FK ON DELETE SET
+        // NULL fires).
+        "id, start_at, client_id, status, booking_source, utm_source, utm_medium, utm_campaign, referrer_url, referrer_business_id, referring_business:businesses!referrer_business_id(business_name), deposit_paid, paid_in_full_at, paid_amount_cents, services(price_cents, deposit_cents)",
       )
       .eq("business_id", businessId)
       .neq("status", "cancelled")
@@ -2364,6 +2442,51 @@ async function computeReferralData(
     rows: utmCampaignRows,
   };
 
+  // ── Pass the Torch attribution (Phase 5 closer) ──────────────────
+  // Aggregates over the same windowRows already in memory. The
+  // referring_business join is included in the SELECT so the top
+  // referrers list gets the display name without an extra round-trip.
+  // Sample-size guard ≥1 — Pass the Torch is rare enough that we
+  // surface it as soon as it exists.
+  const ptBookings = windowRows.filter((r) => r.referrer_business_id);
+  const ptByReferrer = new Map<string, { count: number; name: string }>();
+  const ptMoneyInputs: MoneyInput[] = [];
+  for (const r of ptBookings) {
+    if (!r.referrer_business_id) continue;
+    const join = pickFirst(r.referring_business);
+    const name = join?.business_name ?? "Former pro";
+    const cur = ptByReferrer.get(r.referrer_business_id) ?? { count: 0, name };
+    cur.count += 1;
+    cur.name = name;
+    ptByReferrer.set(r.referrer_business_id, cur);
+
+    const svc = pickFirst(r.services);
+    ptMoneyInputs.push({
+      depositPaid: !!r.deposit_paid,
+      paidInFullAt: r.paid_in_full_at,
+      paidAmountCents: r.paid_amount_cents ?? 0,
+      priceCents: svc?.price_cents ?? 0,
+      depositCents: svc?.deposit_cents ?? 0,
+    });
+  }
+  const ptTopReferrers: PassTheTorchTopReferrer[] = Array.from(
+    ptByReferrer.entries(),
+  )
+    .map(([referrerBusinessId, v]) => ({
+      referrerBusinessId,
+      name: v.name,
+      bookingCount: v.count,
+    }))
+    .sort((a, b) => b.bookingCount - a.bookingCount)
+    .slice(0, 3);
+  const passTheTorch: PassTheTorchData = {
+    hasAny: ptBookings.length > 0,
+    bookingCount: ptBookings.length,
+    uniqueReferringPros: ptByReferrer.size,
+    revenueCollectedCents: aggregateMoney(ptMoneyInputs).revenueCollectedCents,
+    topReferrers: ptTopReferrers,
+  };
+
   return {
     timeZone,
     acquisition,
@@ -2371,5 +2494,6 @@ async function computeReferralData(
     topSources,
     sourceRevenue,
     utmCampaigns,
+    passTheTorch,
   };
 }
