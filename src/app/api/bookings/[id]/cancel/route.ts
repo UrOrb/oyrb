@@ -31,10 +31,6 @@ export async function POST(
     .eq("id", id)
     .maybeSingle();
 
-  if (!booking) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
-  }
-
   const bookingRow = booking as unknown as {
     id: string;
     business_id: string;
@@ -47,13 +43,23 @@ export async function POST(
       slug: string;
       contact_email: string | null;
       phone: string | null;
-    };
+    } | null;
     services: { name: string } | null;
     clients: { name: string; email: string | null } | null;
-  };
+  } | null;
 
-  if (bookingRow.businesses?.owner_id !== user.id) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  // 404 covers BOTH not-found AND not-owner — no existence leak.
+  // Matches the canonical pattern from PR #22's reschedule route
+  // (api/bookings/[id]/reschedule/route.ts:103). Auth-based routes
+  // must not distinguish "doesn't exist" from "exists but not yours";
+  // a 403 here would let an attacker probe valid booking IDs by
+  // observing 403 vs 404 responses.
+  if (
+    !bookingRow ||
+    !bookingRow.businesses ||
+    bookingRow.businesses.owner_id !== user.id
+  ) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
   if (bookingRow.status === "cancelled") {
