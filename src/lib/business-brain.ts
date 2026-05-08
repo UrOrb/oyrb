@@ -17,6 +17,11 @@
 
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/server";
+import {
+  classifyReferrer,
+  classifiedReferrerLabel,
+  type ClassifiedReferrer,
+} from "@/lib/referrer-classifier";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -2010,10 +2015,68 @@ export type BookingOriginBreakdown = {
   unknownPct: number;
 };
 
+/**
+ * Phase 5 — top sources for the Where They Come From tab.
+ *
+ * Source attribution priority (applied per booking by attributeSource):
+ *   1. utm_source if not null      — highest specificity
+ *   2. classified referrer hostname — broad bucket from hostname matching
+ *   3. "Direct" — booking_source = 'public_widget' AND no UTM/referrer
+ *   4. "Unknown" — legacy bookings (pre-Phase 5) or manual bookings
+ */
+export type SourceBreakdown = {
+  /** Display label, e.g. "Instagram", "Direct", "Unknown", or a sanitized utm_source value. */
+  source: string;
+  bookingCount: number;
+  /** bookingCount / total — for the bar widths. */
+  pct: number;
+};
+
+export type TopSourcesResult = {
+  /** True when ≥10 bookings in 90 days. */
+  hasEnoughData: boolean;
+  totalBookings: number;
+  /** Sorted by bookingCount desc. */
+  sources: SourceBreakdown[];
+};
+
+export type SourceRevenueRow = {
+  source: string;
+  bookingCount: number;
+  revenueCollectedCents: number;
+};
+
+export type SourceRevenueResult = {
+  /** True when ≥10 bookings AND at least one source crossed >$0 collected. */
+  hasEnoughData: boolean;
+  rows: SourceRevenueRow[];
+};
+
+export type UtmCampaignRow = {
+  utmCampaign: string;
+  /** Most-common utm_source paired with this campaign in the window (display only). */
+  utmSource: string | null;
+  bookingCount: number;
+};
+
+export type UtmCampaignsResult = {
+  /** True when ≥5 UTM-tagged bookings in 90 days. */
+  hasEnoughData: boolean;
+  totalUtmTaggedBookings: number;
+  /** Top 5 by booking count desc. */
+  rows: UtmCampaignRow[];
+};
+
 export type ReferralData = {
   timeZone: string;
   acquisition: AcquisitionMix;
   origin: BookingOriginBreakdown;
+  /** Phase 5 — classified-source breakdown over the 90-day window. */
+  topSources: TopSourcesResult;
+  /** Phase 5 — same source breakdown, ranked by revenue contribution. */
+  sourceRevenue: SourceRevenueResult;
+  /** Phase 5 — explicit UTM campaign breakdown (when present). */
+  utmCampaigns: UtmCampaignsResult;
 };
 
 export async function getReferralData(
@@ -2033,7 +2096,69 @@ type ReferralRow = {
   client_id: string | null;
   status: string;
   booking_source: string | null;
+  // Phase 5 — referral signals (migration 045).
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  referrer_url: string | null;
+  // For source-revenue aggregation.
+  deposit_paid: boolean | null;
+  paid_in_full_at: string | null;
+  paid_amount_cents: number | null;
+  services:
+    | { price_cents: number; deposit_cents: number }
+    | { price_cents: number; deposit_cents: number }[]
+    | null;
 };
+
+/**
+ * Source attribution priority — single source of truth for how a
+ * booking is bucketed at display time.
+ *
+ *   1. utm_source if not null      — highest specificity
+ *   2. classified referrer hostname — broad bucket
+ *   3. "Direct" — public widget booking with no UTM/referrer
+ *   4. "Unknown" — legacy or manual bookings
+ *
+ * Returns a display-ready string. utm_source values bypass
+ * classification (the pro tagged them themselves) but get a "UTM:"
+ * prefix so they don't conflict with classified-bucket labels.
+ */
+function attributeSource(row: {
+  utm_source: string | null;
+  referrer_url: string | null;
+  booking_source: string | null;
+}): string {
+  if (row.utm_source) {
+    // Map common UTM source values to the same labels used by
+    // classifyReferrer so "instagram" via UTM and "instagram" via
+    // referrer_url bucket together. Unknown values fall through to
+    // a Title-Cased version of the raw value.
+    const lower = row.utm_source.toLowerCase();
+    const known: Record<string, ClassifiedReferrer> = {
+      instagram: "instagram",
+      ig: "instagram",
+      tiktok: "tiktok",
+      google: "google",
+      facebook: "facebook",
+      fb: "facebook",
+      twitter: "twitter",
+      x: "twitter",
+      youtube: "youtube",
+      yt: "youtube",
+      linktree: "linktree",
+      pinterest: "pinterest",
+    };
+    if (known[lower]) return classifiedReferrerLabel(known[lower]);
+    // Unrecognized UTM source — preserve the raw label, capitalized.
+    return lower.charAt(0).toUpperCase() + lower.slice(1);
+  }
+  if (row.referrer_url) {
+    return classifiedReferrerLabel(classifyReferrer(row.referrer_url));
+  }
+  if (row.booking_source === "public_widget") return "Direct";
+  return "Unknown";
+}
 
 async function computeReferralData(
   businessId: string,
@@ -2062,7 +2187,10 @@ async function computeReferralData(
       .limit(20000),
     admin
       .from("bookings")
-      .select("id, start_at, client_id, status, booking_source")
+      .select(
+        // Phase 5 — pull referral signals + services for revenue math.
+        "id, start_at, client_id, status, booking_source, utm_source, utm_medium, utm_campaign, referrer_url, deposit_paid, paid_in_full_at, paid_amount_cents, services(price_cents, deposit_cents)",
+      )
       .eq("business_id", businessId)
       .neq("status", "cancelled")
       .gte("start_at", windowStart.toISOString())
@@ -2136,9 +2264,112 @@ async function computeReferralData(
     unknownPct: totalForOrigin > 0 ? unknownCount / totalForOrigin : 0,
   };
 
+  // ── Phase 5 aggregations (top sources / revenue / UTM campaigns) ──
+  // All driven by the same windowRows already in memory. attributeSource
+  // applies the priority: utm_source > classified referrer > Direct >
+  // Unknown. Source-revenue uses aggregateMoney for consistency with
+  // Phase 4.2's revenue-collected-through-OYRB framing.
+
+  // Top sources — counts per attributed source.
+  const sourceCounts = new Map<string, number>();
+  for (const r of windowRows) {
+    const src = attributeSource(r);
+    sourceCounts.set(src, (sourceCounts.get(src) ?? 0) + 1);
+  }
+  const totalSourceBookings = windowRows.length;
+  const topSourcesSorted: SourceBreakdown[] = Array.from(sourceCounts.entries())
+    .map(([source, bookingCount]) => ({
+      source,
+      bookingCount,
+      pct: totalSourceBookings > 0 ? bookingCount / totalSourceBookings : 0,
+    }))
+    .sort((a, b) => b.bookingCount - a.bookingCount);
+  const topSources: TopSourcesResult = {
+    hasEnoughData: totalSourceBookings >= REFERRAL_MIN_BOOKINGS,
+    totalBookings: totalSourceBookings,
+    sources: topSourcesSorted,
+  };
+
+  // Source × revenue — collected revenue per source via aggregateMoney.
+  const sourceRevenueMap = new Map<
+    string,
+    { count: number; inputs: MoneyInput[] }
+  >();
+  for (const r of windowRows) {
+    const src = attributeSource(r);
+    const svc = pickFirst(r.services);
+    const cur = sourceRevenueMap.get(src) ?? { count: 0, inputs: [] };
+    cur.count += 1;
+    cur.inputs.push({
+      depositPaid: !!r.deposit_paid,
+      paidInFullAt: r.paid_in_full_at,
+      paidAmountCents: r.paid_amount_cents ?? 0,
+      priceCents: svc?.price_cents ?? 0,
+      depositCents: svc?.deposit_cents ?? 0,
+    });
+    sourceRevenueMap.set(src, cur);
+  }
+  const sourceRevenueRows: SourceRevenueRow[] = Array.from(
+    sourceRevenueMap.entries(),
+  )
+    .map(([source, v]) => ({
+      source,
+      bookingCount: v.count,
+      revenueCollectedCents: aggregateMoney(v.inputs).revenueCollectedCents,
+    }))
+    .sort((a, b) => b.revenueCollectedCents - a.revenueCollectedCents);
+  const anyRevenue = sourceRevenueRows.some((r) => r.revenueCollectedCents > 0);
+  const sourceRevenue: SourceRevenueResult = {
+    hasEnoughData: totalSourceBookings >= REFERRAL_MIN_BOOKINGS && anyRevenue,
+    rows: sourceRevenueRows,
+  };
+
+  // UTM campaigns — explicit utm_campaign values only. utm_source paired
+  // is the most-common companion for that campaign in the window.
+  const campaignCounts = new Map<
+    string,
+    { count: number; sources: Map<string, number> }
+  >();
+  let utmTaggedTotal = 0;
+  for (const r of windowRows) {
+    if (!r.utm_campaign) continue;
+    utmTaggedTotal += 1;
+    const cur = campaignCounts.get(r.utm_campaign) ?? {
+      count: 0,
+      sources: new Map<string, number>(),
+    };
+    cur.count += 1;
+    if (r.utm_source) {
+      cur.sources.set(r.utm_source, (cur.sources.get(r.utm_source) ?? 0) + 1);
+    }
+    campaignCounts.set(r.utm_campaign, cur);
+  }
+  const utmCampaignRows: UtmCampaignRow[] = Array.from(campaignCounts.entries())
+    .map(([utmCampaign, v]) => {
+      let topSource: string | null = null;
+      let topSourceCount = 0;
+      for (const [s, c] of v.sources) {
+        if (c > topSourceCount) {
+          topSource = s;
+          topSourceCount = c;
+        }
+      }
+      return { utmCampaign, utmSource: topSource, bookingCount: v.count };
+    })
+    .sort((a, b) => b.bookingCount - a.bookingCount)
+    .slice(0, 5);
+  const utmCampaigns: UtmCampaignsResult = {
+    hasEnoughData: utmTaggedTotal >= 5,
+    totalUtmTaggedBookings: utmTaggedTotal,
+    rows: utmCampaignRows,
+  };
+
   return {
     timeZone,
     acquisition,
     origin,
+    topSources,
+    sourceRevenue,
+    utmCampaigns,
   };
 }

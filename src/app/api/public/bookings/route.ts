@@ -5,6 +5,10 @@ import { formatCents } from "@/lib/types";
 import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
 import { notifyBookingConfirmed } from "@/lib/booking-notify";
 import { checkBookingOverlap } from "@/lib/booking-overlap";
+import {
+  parseReferralCookie,
+  REFERRAL_COOKIE_NAME,
+} from "@/lib/referrer-classifier";
 
 type BookingPayload = {
   business_id: string;
@@ -205,6 +209,17 @@ export async function POST(request: NextRequest) {
   const isSeries = weeks >= 2 && occurrences >= 2;
   const seriesId = isSeries ? crypto.randomUUID() : null;
 
+  // Phase 5 — read referral signals from the cookie set by the proxy
+  // on the original storefront visit. Defense-in-depth sanitization:
+  // proxy already cleaned values at write time; parseReferralCookie
+  // re-applies sanitization on read so a manually-edited cookie can't
+  // sneak control characters into the DB. Missing cookie → all NULL,
+  // analytics classify as "Direct" (since booking_source =
+  // 'public_widget' and no other signals).
+  const referral = parseReferralCookie(
+    request.cookies.get(REFERRAL_COOKIE_NAME)?.value,
+  );
+
   // Create primary booking
   const { data: booking, error: bookingErr } = await supabase
     .from("bookings")
@@ -222,6 +237,11 @@ export async function POST(request: NextRequest) {
       // From. Public widget path; series children inherit the same
       // source below.
       booking_source: "public_widget",
+      // Phase 5 — referral signals captured at storefront visit.
+      utm_source: referral.utm_source,
+      utm_medium: referral.utm_medium,
+      utm_campaign: referral.utm_campaign,
+      referrer_url: referral.referrer_url,
       ...(isSeries ? { series_id: seriesId, series_interval_weeks: weeks } : {}),
     })
     .select("id")
@@ -260,6 +280,12 @@ export async function POST(request: NextRequest) {
         end_at: nextEnd.toISOString(),
         status: "confirmed",
         booking_source: "public_widget",
+        // Phase 5 — series children inherit the parent's referral
+        // signals so they aggregate to the same source.
+        utm_source: referral.utm_source,
+        utm_medium: referral.utm_medium,
+        utm_campaign: referral.utm_campaign,
+        referrer_url: referral.referrer_url,
         series_id: seriesId,
         series_interval_weeks: weeks,
       });

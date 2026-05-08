@@ -4,6 +4,9 @@ import { getCurrentBusiness } from "@/lib/current-site";
 import { getReferralData } from "@/lib/business-brain";
 import { AcquisitionMixCard } from "../_components/acquisition-mix-card";
 import { BookingOriginCard } from "../_components/booking-origin-card";
+import { TopSourcesCard } from "../_components/top-sources-card";
+import { SourceRevenueCard } from "../_components/source-revenue-card";
+import { UtmCampaignsCard } from "../_components/utm-campaigns-card";
 import { WhatWeDontTrackCard } from "../_components/what-we-dont-track-card";
 
 export const metadata = { title: "Where They Come From — Business Brain" };
@@ -14,22 +17,29 @@ interface Props {
 }
 
 /**
- * Phase 4.5 — Where They Come From tab. Closes the Business Brain
- * module (5/5 tabs).
+ * Where They Come From tab. Phase 4.5 shipped the 3 sample-data
+ * cards (Acquisition / Booking origin / What we don't track);
+ * Phase 5 added 3 more cards backed by real referral signals from
+ * migration 045 (Top sources / Revenue by source / UTM campaigns).
  *
- * Honestly scoped: 3 cards in v1 because that's what existing data
- * supports. UTM parsing, Pass the Torch attribution, "How did you
- * hear about us?" survey, and storefront view tracking are queued
- * for Phase 5 — each is its own focused piece of work that would
- * have been rushed if bundled here.
+ * Cards (in render order):
+ *   1. Acquisition mix      — new vs returning client bookings
+ *   2. Top sources          — Phase 5; classified-source breakdown
+ *                             (Instagram, Google, Direct, etc.)
+ *   3. Revenue by source    — Phase 5; same buckets ranked by
+ *                             revenue collected through OYRB
+ *   4. UTM campaigns        — Phase 5; explicit campaign tags
+ *   5. Booking origin       — public widget vs manual; hidden
+ *                             gracefully when 0% public_widget
+ *   6. What we don't track  — Pass the Torch persistence, view
+ *                             tracking, "How did you hear" survey
  *
- * Cards:
- *   1. Acquisition mix       — new vs returning bookings (90-day)
- *   2. Booking origin        — public widget vs manual (driven by
- *                              the booking_source column from
- *                              migration 044). Hidden gracefully
- *                              when 0% public widget bookings.
- *   3. What we don't track   — explainer + workaround
+ * Source attribution priority for cards 2 and 3 (defined in
+ * src/lib/business-brain.ts attributeSource):
+ *   1. utm_source           highest specificity
+ *   2. classified referrer  hostname-based bucket
+ *   3. "Direct"             public_widget with no UTM/referrer
+ *   4. "Unknown"            legacy or manual bookings
  */
 export default async function WhereTheyComeFromTabPage({ searchParams }: Props) {
   const supabase = await createClient();
@@ -52,6 +62,9 @@ export default async function WhereTheyComeFromTabPage({ searchParams }: Props) 
   return (
     <div className="space-y-4">
       <AcquisitionMixCard data={data.acquisition} />
+      <TopSourcesCard data={data.topSources} />
+      <SourceRevenueCard data={data.sourceRevenue} />
+      <UtmCampaignsCard data={data.utmCampaigns} />
       <BookingOriginCard data={data.origin} />
       <WhatWeDontTrackCard />
     </div>

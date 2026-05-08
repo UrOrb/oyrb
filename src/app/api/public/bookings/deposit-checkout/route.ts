@@ -7,6 +7,10 @@ import {
   CLIENT_PAYMENTS_DISABLED_MESSAGE,
 } from "@/lib/client-payments";
 import { loadConnectAccountForCheckout } from "@/lib/stripe-connect";
+import {
+  parseReferralCookie,
+  REFERRAL_COOKIE_NAME,
+} from "@/lib/referrer-classifier";
 
 type Payload = {
   business_id: string;
@@ -170,6 +174,12 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  // Phase 5 — read referral signals from the cookie set by the proxy
+  // on the storefront visit, forward as 4 metadata keys so the
+  // post-webhook confirm route can persist them on the booking row.
+  const { utm_source: utmSource, utm_medium: utmMedium, utm_campaign: utmCampaign, referrer_url: referrerUrl } =
+    parseReferralCookie(request.cookies.get(REFERRAL_COOKIE_NAME)?.value);
+
   try {
     // Direct charge on the pro's connected account — money flows
     // client's card → pro's Stripe balance → pro's bank. OYRB never
@@ -208,6 +218,16 @@ export async function POST(request: NextRequest) {
           // the booking didn't originate from a referral context.
           referrer_slug:
             (typeof body.referrer_slug === "string" && body.referrer_slug.slice(0, 80)) || "",
+          // Phase 5 — referral signals from the storefront-visit cookie.
+          // Forwarded as 4 separate metadata keys (matches existing
+          // key-per-field convention in this metadata block; clean for
+          // Stripe-dashboard audits and parse-step-free reads in the
+          // confirm route). Empty strings when cookie absent or values
+          // were null — confirm route maps "" back to NULL on insert.
+          utm_source: utmSource ?? "",
+          utm_medium: utmMedium ?? "",
+          utm_campaign: utmCampaign ?? "",
+          referrer_url: referrerUrl ?? "",
         },
       },
       { stripeAccount: connectedAccountId }
