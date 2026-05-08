@@ -1,7 +1,80 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  sanitizeReferralValue,
+  normalizeReferrerUrl,
+  REFERRAL_COOKIE_NAME,
+} from "@/lib/referrer-classifier";
+
+const REFERRAL_COOKIE_MAX_AGE_SEC = 60 * 60 * 24; // 24 hours
+
+/**
+ * Phase 5 — capture referral signals on every storefront visit, set a
+ * short-lived cookie, and return early without running the dashboard
+ * auth + Supabase logic that the rest of the proxy needs.
+ *
+ * Strict last-touch: every /s/:slug* hit overwrites the cookie. A
+ * client who arrives via Instagram, browses, leaves, and returns
+ * direct gets attributed to "Direct" on the second visit. Predictable
+ * over clever — pros who want richer multi-touch attribution get a
+ * future phase.
+ *
+ * The Referer-derived URL is filtered for self-referrals (oyrb.space
+ * pages linking to oyrb.space pages) at normalize time. Internal
+ * navigations don't overwrite with meaningless self-referrer data.
+ *
+ * Cookie security: HttpOnly + SameSite=Lax + Secure (prod) + 24h
+ * expiry. No client-side JS access; only server reads at booking
+ * creation. No PII — only UTM params and a hostname+pathname referrer
+ * string (query + fragment stripped).
+ */
+function captureReferralAndPass(request: NextRequest): NextResponse {
+  const response = NextResponse.next({ request });
+
+  const utm_source = sanitizeReferralValue(
+    request.nextUrl.searchParams.get("utm_source"),
+  );
+  const utm_medium = sanitizeReferralValue(
+    request.nextUrl.searchParams.get("utm_medium"),
+  );
+  const utm_campaign = sanitizeReferralValue(
+    request.nextUrl.searchParams.get("utm_campaign"),
+  );
+  const referrer_url = normalizeReferrerUrl(request.headers.get("referer"));
+
+  const payload = JSON.stringify({
+    utm_source,
+    utm_medium,
+    utm_campaign,
+    referrer_url,
+    captured_at: new Date().toISOString(),
+  });
+
+  const isProd = process.env.NODE_ENV === "production";
+  response.cookies.set({
+    name: REFERRAL_COOKIE_NAME,
+    value: payload,
+    httpOnly: true,
+    sameSite: "lax",
+    secure: isProd,
+    domain: isProd ? ".oyrb.space" : undefined,
+    path: "/",
+    maxAge: REFERRAL_COOKIE_MAX_AGE_SEC,
+  });
+
+  return response;
+}
 
 export async function proxy(request: NextRequest) {
+  // Phase 5 — capture referral signals on storefront visits BEFORE
+  // running any auth / Supabase logic. Storefront traffic doesn't
+  // need the dashboard session machinery and runs at much higher
+  // volume than dashboard requests; short-circuiting here keeps the
+  // happy path cheap.
+  if (request.nextUrl.pathname.startsWith("/s/")) {
+    return captureReferralAndPass(request);
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -91,5 +164,13 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/signup", "/"],
+  matcher: [
+    "/dashboard/:path*",
+    "/login",
+    "/signup",
+    "/",
+    // Phase 5 — storefront referral capture. Runs the early-return
+    // captureReferralAndPass branch in proxy() above.
+    "/s/:slug*",
+  ],
 };

@@ -4,6 +4,7 @@ import { stripe } from "@/lib/stripe";
 import { sendOwnerNotification } from "@/lib/email";
 import { notifyBookingConfirmed } from "@/lib/booking-notify";
 import { formatCents } from "@/lib/types";
+import { sanitizeReferralValue } from "@/lib/referrer-classifier";
 
 // Called by the booking-confirmed page after Stripe redirects back.
 // Verifies the Checkout Session was paid, then creates the booking + client.
@@ -160,6 +161,16 @@ export async function POST(request: NextRequest) {
   const ageIsMinor = metadata.age_is_minor === "true";
   const guardianName = metadata.guardian_name ?? null;
 
+  // Phase 5 — referral signals forwarded from the storefront-visit
+  // cookie via deposit-checkout's metadata. Stripe metadata values
+  // are strings; empty string maps back to NULL on insert. Defense-
+  // in-depth re-sanitization in case metadata was tampered with
+  // between checkout creation and webhook return.
+  const utmSource = sanitizeReferralValue(metadata.utm_source) || null;
+  const utmMedium = sanitizeReferralValue(metadata.utm_medium) || null;
+  const utmCampaign = sanitizeReferralValue(metadata.utm_campaign) || null;
+  const referrerUrl = sanitizeReferralValue(metadata.referrer_url) || null;
+
   // Create booking with deposit_paid=true
   const { data: booking, error: bookingErr } = await supabase
     .from("bookings")
@@ -177,6 +188,11 @@ export async function POST(request: NextRequest) {
       // public Stripe Checkout flow; series children inherit the
       // same source below.
       booking_source: "public_widget",
+      // Phase 5 — referral signals.
+      utm_source: utmSource,
+      utm_medium: utmMedium,
+      utm_campaign: utmCampaign,
+      referrer_url: referrerUrl,
       ...(ageConfirmed ? { age_confirmed_at: new Date().toISOString(), age_is_minor: ageIsMinor, guardian_name: guardianName } : {}),
       ...((() => {
         const w = parseInt(session.metadata?.series_interval_weeks ?? "0", 10);
@@ -214,6 +230,12 @@ export async function POST(request: NextRequest) {
         end_at: nextEnd.toISOString(),
         status: "confirmed",
         booking_source: "public_widget",
+        // Phase 5 — series children inherit the parent's referral
+        // signals so they aggregate to the same source.
+        utm_source: utmSource,
+        utm_medium: utmMedium,
+        utm_campaign: utmCampaign,
+        referrer_url: referrerUrl,
         series_id: booking.series_id,
         series_interval_weeks: w,
       });
