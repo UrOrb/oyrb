@@ -7,6 +7,7 @@ import { BookingOriginCard } from "../_components/booking-origin-card";
 import { TopSourcesCard } from "../_components/top-sources-card";
 import { SourceRevenueCard } from "../_components/source-revenue-card";
 import { UtmCampaignsCard } from "../_components/utm-campaigns-card";
+import { PassTheTorchCard } from "../_components/pass-the-torch-card";
 import { WhatWeDontTrackCard } from "../_components/what-we-dont-track-card";
 
 export const metadata = { title: "Where They Come From — Business Brain" };
@@ -17,29 +18,34 @@ interface Props {
 }
 
 /**
- * Where They Come From tab. Phase 4.5 shipped the 3 sample-data
- * cards (Acquisition / Booking origin / What we don't track);
- * Phase 5 added 3 more cards backed by real referral signals from
- * migration 045 (Top sources / Revenue by source / UTM campaigns).
+ * Where They Come From tab. Phase 4.5 shipped 3 sample-data cards;
+ * Phase 5 (PR #35) added 3 more backed by UTM + classified referrer
+ * signals; Phase 5 closer (this PR) adds Pass the Torch attribution.
  *
  * Cards (in render order):
- *   1. Acquisition mix      — new vs returning client bookings
- *   2. Top sources          — Phase 5; classified-source breakdown
- *                             (Instagram, Google, Direct, etc.)
- *   3. Revenue by source    — Phase 5; same buckets ranked by
- *                             revenue collected through OYRB
- *   4. UTM campaigns        — Phase 5; explicit campaign tags
- *   5. Booking origin       — public widget vs manual; hidden
- *                             gracefully when 0% public_widget
- *   6. What we don't track  — Pass the Torch persistence, view
- *                             tracking, "How did you hear" survey
+ *   1. Acquisition mix       — new vs returning client bookings
+ *   2. Pass the Torch        — Phase 5 closer; platform-internal
+ *                              referrals (?ref=<slug> URL flow)
+ *   3. Top sources           — classified-source breakdown
+ *                              (Pass the Torch, Instagram, Google,
+ *                              Direct, etc.)
+ *   4. Revenue by source     — same buckets ranked by revenue
+ *                              collected through OYRB
+ *   5. UTM campaigns         — explicit campaign tags
+ *   6. Booking origin        — public widget vs manual; hidden
+ *                              gracefully when 0% public_widget
+ *   7. What we don't track   — view tracking, "How did you hear"
+ *                              survey (Pass the Torch removed —
+ *                              this PR ships it)
  *
- * Source attribution priority for cards 2 and 3 (defined in
+ * Source attribution priority for cards 3 and 4 (defined in
  * src/lib/business-brain.ts attributeSource):
- *   1. utm_source           highest specificity
- *   2. classified referrer  hostname-based bucket
- *   3. "Direct"             public_widget with no UTM/referrer
- *   4. "Unknown"            legacy or manual bookings
+ *   1. Pass the Torch       referrer_business_id IS NOT NULL —
+ *                            highest priority, most explicit signal
+ *   2. utm_source           explicit URL tagging
+ *   3. classified referrer  hostname-based bucket
+ *   4. "Direct"             public_widget with no UTM/referrer
+ *   5. "Unknown"            legacy or manual bookings
  */
 export default async function WhereTheyComeFromTabPage({ searchParams }: Props) {
   const supabase = await createClient();
@@ -62,6 +68,7 @@ export default async function WhereTheyComeFromTabPage({ searchParams }: Props) 
   return (
     <div className="space-y-4">
       <AcquisitionMixCard data={data.acquisition} />
+      <PassTheTorchCard data={data.passTheTorch} />
       <TopSourcesCard data={data.topSources} />
       <SourceRevenueCard data={data.sourceRevenue} />
       <UtmCampaignsCard data={data.utmCampaigns} />

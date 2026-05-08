@@ -85,9 +85,18 @@ function Bar({
  * Per-source bar tones. Branded sources get a recognizable hint;
  * "Direct" and "Unknown" use the platform's neutral palette so
  * they read as neutral fallbacks rather than negative signals.
+ *
+ * Phase 5 closer adds "Pass the Torch" as the highest-priority
+ * bucket. It gets the OYRB accent (#B8896B) — same color the
+ * Pass the Torch card uses — so it reads as the platform's own
+ * referral mechanism, distinct from external sources. "Direct"
+ * shifts to a lighter accent variant so the two platform-touched
+ * buckets stay visually distinguishable.
  */
 function toneFor(source: string): string {
   switch (source) {
+    case "Pass the Torch":
+      return "bg-[#B8896B]";
     case "Instagram":
       return "bg-pink-500";
     case "TikTok":
@@ -105,7 +114,7 @@ function toneFor(source: string): string {
     case "Pinterest":
       return "bg-red-500";
     case "Direct":
-      return "bg-[#B8896B]";
+      return "bg-[#D4B59A]";
     case "Unknown":
       return "bg-[#A3A3A3]";
     default:

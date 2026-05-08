@@ -220,6 +220,46 @@ export async function POST(request: NextRequest) {
     request.cookies.get(REFERRAL_COOKIE_NAME)?.value,
   );
 
+  // Phase 5 — Pass the Torch attribution. Pre-insert lookup serves
+  // two concerns at once:
+  //
+  //   1. PERSISTENCE — captures the historical fact that a referral
+  //      happened. Resolved business_id is stored on the booking row
+  //      via referrer_business_id (migration 046). Does NOT gate on
+  //      is_published — a referral that happened, happened, even if
+  //      the referring pro is currently paused.
+  //
+  //   2. EMAIL DISPLAY — the confirmation email's Layer-2 disclosure
+  //      block names the referrer. This DOES gate on is_published so
+  //      paused pros aren't named in fresh emails. Same data, different
+  //      gate.
+  //
+  // Self-referral guard: a pro can't refer themselves. If the resolved
+  // referrer's id matches the booking's business_id, both attribution
+  // persistence and email display are NULL.
+  let resolvedReferrer: { id: string; business_name: string; is_published: boolean } | null = null;
+  if (
+    typeof body.referrer_slug === "string" &&
+    /^[a-z0-9-]{1,80}$/i.test(body.referrer_slug)
+  ) {
+    const { data } = await supabase
+      .from("businesses")
+      .select("id, business_name, is_published")
+      .eq("slug", body.referrer_slug)
+      .maybeSingle();
+    if (data) {
+      resolvedReferrer = data as {
+        id: string;
+        business_name: string;
+        is_published: boolean;
+      };
+    }
+  }
+  const referrerBusinessId =
+    resolvedReferrer && resolvedReferrer.id !== body.business_id
+      ? resolvedReferrer.id
+      : null;
+
   // Create primary booking
   const { data: booking, error: bookingErr } = await supabase
     .from("bookings")
@@ -242,6 +282,10 @@ export async function POST(request: NextRequest) {
       utm_medium: referral.utm_medium,
       utm_campaign: referral.utm_campaign,
       referrer_url: referral.referrer_url,
+      // Phase 5 — Pass the Torch attribution. Resolved above; NULL if
+      // slug didn't match a business or if the pro tried to refer
+      // themselves (self-referral guard).
+      referrer_business_id: referrerBusinessId,
       ...(isSeries ? { series_id: seriesId, series_interval_weeks: weeks } : {}),
     })
     .select("id")
@@ -286,6 +330,7 @@ export async function POST(request: NextRequest) {
         utm_medium: referral.utm_medium,
         utm_campaign: referral.utm_campaign,
         referrer_url: referral.referrer_url,
+        referrer_business_id: referrerBusinessId,
         series_id: seriesId,
         series_interval_weeks: weeks,
       });
@@ -309,24 +354,20 @@ export async function POST(request: NextRequest) {
   // Errors are caught so a failing email doesn't fail the booking response.
   const emailTasks: Promise<unknown>[] = [];
 
-  // Pass the Torch attribution: when the booking carried a valid
-  // referrer_slug from the storefront URL or the inline Pro Referrals
-  // widget, resolve the referrer's display name so the confirmation
-  // email can include the Layer-2 disclosure.
-  let referrerName: string | null = null;
-  if (
-    typeof body.referrer_slug === "string" &&
-    /^[a-z0-9-]{1,80}$/i.test(body.referrer_slug)
-  ) {
-    const { data: referrer } = await supabase
-      .from("businesses")
-      .select("business_name, is_published")
-      .eq("slug", body.referrer_slug)
-      .maybeSingle();
-    if (referrer && referrer.is_published) {
-      referrerName = referrer.business_name as string;
-    }
-  }
+  // Pass the Torch attribution — email-display branch. Reuses the
+  // `resolvedReferrer` object from the pre-insert lookup above.
+  // The is_published gate is intentional and distinct from the
+  // persistence path: paused referring pros are NOT named in fresh
+  // confirmation emails (current presentation), but their
+  // referral attribution IS persisted on the booking row
+  // (historical fact). See the docblock above the resolution
+  // block earlier in this function.
+  const referrerName =
+    resolvedReferrer &&
+    resolvedReferrer.is_published &&
+    resolvedReferrer.id !== body.business_id
+      ? resolvedReferrer.business_name
+      : null;
 
   emailTasks.push(
     notifyBookingConfirmed({

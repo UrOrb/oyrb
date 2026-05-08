@@ -46,7 +46,10 @@ export default async function MoneyTabPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-4">
-      <RevenueOverviewCard windows={data.windows} />
+      <RevenueOverviewCard
+        windows={data.windows}
+        passTheTorch90={data.passTheTorch90}
+      />
       <TopEarningServicesCard
         services={data.topServices}
         hasEnoughData={data.topServicesHasEnoughData}

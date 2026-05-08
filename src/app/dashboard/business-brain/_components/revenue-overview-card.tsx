@@ -1,5 +1,5 @@
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
-import type { RevenueWindow } from "@/lib/business-brain";
+import { TrendingUp, TrendingDown, Minus, Flame } from "lucide-react";
+import type { RevenueWindow, PassTheTorch90DayRevenue } from "@/lib/business-brain";
 import { formatCents } from "@/lib/types";
 
 /**
@@ -14,7 +14,19 @@ import { formatCents } from "@/lib/types";
  * Mobile: 2x2 grid below sm: breakpoint, 4-across above. Long values
  * wrap onto a second line within their tile rather than overflowing.
  */
-export function RevenueOverviewCard({ windows }: { windows: RevenueWindow[] }) {
+export function RevenueOverviewCard({
+  windows,
+  passTheTorch90,
+}: {
+  windows: RevenueWindow[];
+  /**
+   * Phase 5 closer — last-90-day Pass the Torch revenue subtotal.
+   * Renders as a single bottom line on the card, conditional on
+   * bookingCount > 0. No per-window breakdown — Pass the Torch is
+   * too slow-accumulating for week-level signal to be useful.
+   */
+  passTheTorch90: PassTheTorch90DayRevenue;
+}) {
   const empty = windows.every((w) => w.grossCents === 0 && w.prevGrossCents === 0);
 
   return (
@@ -35,6 +47,22 @@ export function RevenueOverviewCard({ windows }: { windows: RevenueWindow[] }) {
           {windows.map((w) => (
             <Tile key={w.label} window={w} />
           ))}
+        </div>
+      )}
+
+      {/* Phase 5 closer — Pass the Torch revenue subtotal. Single
+          bottom line, conditional on ≥1 booking in the 90-day window
+          (consistent with the Pass the Torch card's threshold). */}
+      {passTheTorch90.bookingCount > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#F5F5F4] pt-3 text-xs">
+          <Flame size={12} className="shrink-0 text-[#B8896B]" strokeWidth={1.8} />
+          <span className="text-[#525252]">
+            <strong className="text-[#0A0A0A]">
+              {formatCents(passTheTorch90.revenueCollectedCents)}
+            </strong>{" "}
+            collected from {passTheTorch90.bookingCount} Pass the Torch booking
+            {passTheTorch90.bookingCount === 1 ? "" : "s"} in the last 90 days
+          </span>
         </div>
       )}
     </section>
