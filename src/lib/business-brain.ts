@@ -22,6 +22,10 @@ import {
   classifiedReferrerLabel,
   type ClassifiedReferrer,
 } from "@/lib/referrer-classifier";
+import {
+  surveyAttributionLabel,
+  type SurveyCode,
+} from "@/lib/survey-options";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -2165,6 +2169,8 @@ type ReferralRow = {
     | { business_name: string }
     | { business_name: string }[]
     | null;
+  /** Phase 5 closer — "How did you hear about us?" survey (migration 048). */
+  survey_response: string | null;
   // For source-revenue aggregation.
   deposit_paid: boolean | null;
   paid_in_full_at: string | null;
@@ -2176,31 +2182,53 @@ type ReferralRow = {
 };
 
 /**
- * Source attribution priority — single source of truth for how a
- * booking is bucketed at display time. 5-tier priority chain
- * (highest specificity wins):
+ * Canonical source attribution — 6-tier priority chain. Used by the
+ * source-attribution analytics cards (TopSourcesCard, SourceRevenueCard,
+ * PassTheTorchCard's underlying aggregation, UtmCampaignsCard's source
+ * pairing). Highest-quality signal wins.
  *
- *   1. Pass the Torch (referrer_business_id IS NOT NULL) —
- *      most explicit referral signal: another OYRB pro literally
- *      shared their booking link. Highest priority because it's
- *      platform-internal attribution and the most actionable
- *      signal for the receiving pro.
- *   2. utm_source if not null — explicit URL tagging by the pro
- *   3. classified referrer from referrer_url — hostname-suffix bucket
- *   4. "Direct" — public widget booking with no UTM/referrer
- *   5. "Unknown" — legacy or manual bookings
+ *   1. Survey response (survey_response IS NOT NULL, excluding
+ *      'prefer_not_to_say' which is silent) — Phase 5 closer.
+ *      Self-reported by the client; the most reliable acquisition
+ *      signal because the client themselves told us. Returns labels
+ *      like "Instagram (self-reported)" so signal quality stays
+ *      visible on the card.
+ *   2. Pass the Torch (referrer_business_id IS NOT NULL) — platform-
+ *      internal referral, persisted at insert time.
+ *   3. utm_source if not null — explicit URL tagging by the pro.
+ *   4. classified referrer from referrer_url — hostname-suffix bucket.
+ *   5. "Direct" — public widget booking with no UTM/referrer.
+ *   6. "Unknown" — legacy or manual bookings.
  *
- * Returns a display-ready string. The "Pass the Torch" label has
- * its own visual treatment (OYRB accent color) on TopSourcesCard
- * to distinguish it from external sources.
+ * NOTE — DIVERGENT HELPER FOR CONVERSION ANALYTICS:
+ * ConversionBySourceCard (PR #37) uses attributeSourceForConversion()
+ * below, which skips priority 1 (survey). Reason: storefront views
+ * don't carry survey responses (the survey only appears at booking
+ * time), so a survey-attributed booking like "Instagram (self-reported)"
+ * couldn't be matched to a view-side bucket of the same name —
+ * conversion math would produce nonsense ("0 views, 3 bookings, ∞%").
+ * The 5-tier conversion helper buckets bookings and views consistently.
+ *
+ * Two helpers, two purposes — intentionally different. Both are honest;
+ * conflating them would not be.
  */
 function attributeSource(row: {
   utm_source: string | null;
   referrer_url: string | null;
   booking_source: string | null;
   referrer_business_id: string | null;
+  /** Phase 5 closer — lowercase enum from src/lib/survey-options.ts. */
+  survey_response: string | null;
 }): string {
-  // Phase 5 — Pass the Torch attribution wins all other signals.
+  // Priority 1 — Phase 5 closer survey response (self-reported).
+  // surveyAttributionLabel returns NULL for 'prefer_not_to_say' so
+  // that response falls through to the next priority — clients who
+  // declined to share signal aren't bucketed as if they answered.
+  if (row.survey_response) {
+    const label = surveyAttributionLabel(row.survey_response as SurveyCode);
+    if (label) return label;
+  }
+  // Priority 2 — Pass the Torch attribution (PR #36).
   if (row.referrer_business_id) return "Pass the Torch";
   if (row.utm_source) {
     // Map common UTM source values to the same labels used by
@@ -2224,6 +2252,63 @@ function attributeSource(row: {
     };
     if (known[lower]) return classifiedReferrerLabel(known[lower]);
     // Unrecognized UTM source — preserve the raw label, capitalized.
+    return lower.charAt(0).toUpperCase() + lower.slice(1);
+  }
+  if (row.referrer_url) {
+    return classifiedReferrerLabel(classifyReferrer(row.referrer_url));
+  }
+  if (row.booking_source === "public_widget") return "Direct";
+  return "Unknown";
+}
+
+/**
+ * Conversion-analytics attribution — 5-tier priority chain that
+ * SKIPS the survey signal. Intentionally divergent from the
+ * canonical attributeSource() above. See the long-form note in
+ * attributeSource()'s docblock for the full rationale.
+ *
+ * Short version: storefront views don't carry survey responses.
+ * If we used the canonical 6-tier chain for ConversionBySourceCard,
+ * a booking attributed to "Instagram (self-reported)" couldn't be
+ * matched to any view-side bucket — math goes nonsense ("0 views,
+ * 3 bookings, ∞%"). This helper buckets bookings and views
+ * consistently for funnel calculations: both sides skip survey,
+ * both sides land in the same Pass-the-Torch / UTM / classified /
+ * Direct / Unknown bucket.
+ *
+ * Survey-attributed bookings still appear correctly on
+ * TopSourcesCard / SourceRevenueCard (which use the 6-tier chain);
+ * they're just bucketed by their non-survey signal for conversion
+ * math.
+ */
+function attributeSourceForConversion(row: {
+  utm_source: string | null;
+  referrer_url: string | null;
+  booking_source: string | null;
+  referrer_business_id: string | null;
+}): string {
+  // Same 5-tier chain as attributeSource minus priority 1 (survey).
+  // Inlined rather than calling attributeSource with survey_response:
+  // null because the type signatures differ — explicit divergence is
+  // easier to reason about than a parameter trick.
+  if (row.referrer_business_id) return "Pass the Torch";
+  if (row.utm_source) {
+    const lower = row.utm_source.toLowerCase();
+    const known: Record<string, ClassifiedReferrer> = {
+      instagram: "instagram",
+      ig: "instagram",
+      tiktok: "tiktok",
+      google: "google",
+      facebook: "facebook",
+      fb: "facebook",
+      twitter: "twitter",
+      x: "twitter",
+      youtube: "youtube",
+      yt: "youtube",
+      linktree: "linktree",
+      pinterest: "pinterest",
+    };
+    if (known[lower]) return classifiedReferrerLabel(known[lower]);
     return lower.charAt(0).toUpperCase() + lower.slice(1);
   }
   if (row.referrer_url) {
@@ -2266,8 +2351,9 @@ async function computeReferralData(
         // pro's display name for the Pass the Torch card's "top
         // referring pros" list. NULL when referrer_business_id is null
         // or the referring business was deleted (FK ON DELETE SET
-        // NULL fires).
-        "id, start_at, client_id, status, booking_source, utm_source, utm_medium, utm_campaign, referrer_url, referrer_business_id, referring_business:businesses!referrer_business_id(business_name), deposit_paid, paid_in_full_at, paid_amount_cents, services(price_cents, deposit_cents)",
+        // NULL fires). survey_response (migration 048) drives priority
+        // 1 of the canonical 6-tier source attribution chain.
+        "id, start_at, client_id, status, booking_source, utm_source, utm_medium, utm_campaign, referrer_url, referrer_business_id, referring_business:businesses!referrer_business_id(business_name), survey_response, deposit_paid, paid_in_full_at, paid_amount_cents, services(price_cents, deposit_cents)",
       )
       .eq("business_id", businessId)
       .neq("status", "cancelled")
@@ -2670,9 +2756,19 @@ async function computeViewsData(
   // bookings/views. Sources below the per-source threshold are
   // dropped — a source with 2 views and 1 booking would show 50%
   // which is noise.
+  //
+  // IMPORTANT: this card uses attributeSourceForConversion (5-tier),
+  // NOT the canonical 6-tier attributeSource. Survey response is
+  // skipped for conversion bucketing because storefront views don't
+  // carry survey data — bucketing bookings by survey while bucketing
+  // views by inferred signal would produce nonsense rows like
+  // "Instagram (self-reported): 0 views, 3 bookings, ∞%". Survey-
+  // attributed bookings still appear correctly on TopSourcesCard /
+  // SourceRevenueCard via attributeSource; they're just bucketed by
+  // their non-survey signal here for funnel math.
   const viewsBySource = new Map<string, number>();
   for (const v of last90Views) {
-    const src = attributeSource({
+    const src = attributeSourceForConversion({
       utm_source: v.utm_source,
       referrer_url: v.referrer_url,
       // Storefront views are implicitly via the public widget surface —
@@ -2686,7 +2782,7 @@ async function computeViewsData(
   }
   const bookingsBySource = new Map<string, number>();
   for (const b of bookings) {
-    const src = attributeSource({
+    const src = attributeSourceForConversion({
       utm_source: b.utm_source,
       referrer_url: b.referrer_url,
       booking_source: b.booking_source,

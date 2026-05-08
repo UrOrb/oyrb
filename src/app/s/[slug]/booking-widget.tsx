@@ -5,6 +5,7 @@ import { Calendar, X, Clock, Check, ArrowLeft, Heart } from "lucide-react";
 import { ClientAccountOffer } from "./client-account-offer";
 import { ProsITrust } from "@/components/storefront/pros-i-trust";
 import type { TrustedProPeer } from "@/lib/pass-the-torch-storefront";
+import { SURVEY_OPTIONS } from "@/lib/survey-options";
 
 type Service = {
   id: string;
@@ -227,6 +228,11 @@ export function BookingWidget({
   const [isMinor, setIsMinor] = useState(false);
   const [guardianName, setGuardianName] = useState("");
   const [smsConsent, setSmsConsent] = useState(false);
+  // Phase 5 closer — "How did you hear about us?" survey response.
+  // Empty string = "no selection" (matches the placeholder option's
+  // value). Persisted as bookings.survey_response (lowercase enum
+  // code from src/lib/survey-options.ts) when non-empty.
+  const [surveyResponse, setSurveyResponse] = useState<string>("");
   // Marketing consent is separate from SMS reminders — explicit opt-in
   // per CAN-SPAM. Starts UNCHECKED.
   const [marketingOptIn, setMarketingOptIn] = useState(false);
@@ -344,6 +350,7 @@ export function BookingWidget({
     setGuardianName("");
     setSmsConsent(false);
     setMarketingOptIn(false);
+    setSurveyResponse("");
     setTipPct(0);
     setReferencePhotos([]);
     setPhotoUploadError(null);
@@ -434,6 +441,10 @@ export function BookingWidget({
           notes: combinedNotes,
           sms_consent: smsConsent && !!phone,
           marketing_opt_in: marketingOptIn,
+          // Phase 5 closer — empty string from the dropdown's
+          // placeholder option becomes null on the wire. Routes
+          // re-validate via sanitizeSurveyResponse before insert.
+          survey_response: surveyResponse || null,
           tip_cents: tipCents,
           series_interval_weeks: seriesWeeks > 0 ? seriesWeeks : null,
           series_occurrences: seriesWeeks > 0 ? seriesOccurrences : null,
@@ -1190,6 +1201,34 @@ export function BookingWidget({
                         I authorize this booking and understand that clicking &quot;Confirm&quot; below is my final, binding agreement to this appointment and any applicable deposit. I will not dispute this charge after confirmation except as permitted by law.
                       </span>
                     </label>
+
+                    {/* Phase 5 closer — "How did you hear about us?"
+                        survey field. Optional, dropdown-only (no
+                        free-text). Stored as bookings.survey_response
+                        and surfaced as the priority-1 source signal in
+                        Business Brain analytics. Top border separator
+                        matches the SMS / marketing optional pattern;
+                        wrapped in <div> rather than <label> since the
+                        <select> doesn't pair with a checkbox. */}
+                    <div className="border-t border-[#E7E5E4] pt-3 text-xs">
+                      <p className="text-[#525252]">
+                        <strong>Optional:</strong> How did you hear about{" "}
+                        <strong>{businessName}</strong>?
+                      </p>
+                      <select
+                        value={surveyResponse}
+                        onChange={(e) => setSurveyResponse(e.target.value)}
+                        className="mt-2 w-full rounded-md border border-[#E7E5E4] bg-white px-3 py-2 text-sm text-[#0A0A0A]"
+                      >
+                        <option value="">Choose if you&apos;d like</option>
+                        {SURVEY_OPTIONS.map((opt) => (
+                          <option key={opt.code} value={opt.code}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
                     {phone && (
                       <label className="flex items-start gap-3 border-t border-[#E7E5E4] pt-3 text-xs">
                         <input

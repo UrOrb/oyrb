@@ -29,6 +29,8 @@ type Payload = {
   age_is_minor?: boolean;
   guardian_name?: string;
   referrer_slug?: string | null;
+  /** Phase 5 closer — "How did you hear about us?" survey field. */
+  survey_response?: string | null;
 };
 
 // Creates a Stripe Checkout Session to collect the deposit.
@@ -228,6 +230,15 @@ export async function POST(request: NextRequest) {
           utm_medium: utmMedium ?? "",
           utm_campaign: utmCampaign ?? "",
           referrer_url: referrerUrl ?? "",
+          // Phase 5 closer — survey response forwarded as its own
+          // metadata key. Empty string when missing or invalid;
+          // confirm route re-validates against the allowlist before
+          // insert (defense in depth — the booking widget's dropdown
+          // is the only intended input mechanism).
+          survey_response:
+            (typeof body.survey_response === "string"
+              ? body.survey_response.slice(0, 100)
+              : "") || "",
         },
       },
       { stripeAccount: connectedAccountId }
