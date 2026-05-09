@@ -150,8 +150,12 @@ export async function sendSms(params: SendSmsParams): Promise<{
 
 /**
  * Normalize a US-style phone number to E.164. Returns null if invalid.
+ * Exported for use by the inbound SMS handler at
+ * /api/twilio/sms/inbound, which normalizes both the inbound `From`
+ * field and (for cross-business STOP processing) every clients.phone
+ * value against the same shape.
  */
-function normalizeToE164(raw: string): string | null {
+export function normalizeToE164(raw: string): string | null {
   const digits = raw.replace(/[^\d+]/g, "");
   if (digits.startsWith("+")) return digits;
   if (digits.length === 10) return `+1${digits}`;

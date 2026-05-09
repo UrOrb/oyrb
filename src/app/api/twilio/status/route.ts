@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "node:crypto";
 import { updateNotificationStatusByProviderId } from "@/lib/notification-log";
 import type { NotificationStatus } from "@/lib/notification-purposes";
+import { verifyTwilioSignature } from "@/lib/twilio-sig";
 
 /**
  * Twilio status callback receiver. Twilio POSTs a form-encoded payload
@@ -89,31 +89,5 @@ function mapTwilioStatus(s: string): NotificationStatus | null {
   }
 }
 
-/**
- * Twilio request validation — HMAC-SHA1 over (url + sorted form params).
- * https://www.twilio.com/docs/usage/webhooks/webhooks-security
- */
-function verifyTwilioSignature(
-  authToken: string,
-  expectedSignature: string,
-  url: string,
-  form: URLSearchParams,
-): boolean {
-  const sortedKeys = Array.from(form.keys()).sort();
-  let payload = url;
-  for (const key of sortedKeys) {
-    payload += key;
-    payload += form.get(key) ?? "";
-  }
-
-  const computed = crypto
-    .createHmac("sha1", authToken)
-    .update(payload, "utf-8")
-    .digest("base64");
-
-  // Constant-time compare to defeat timing side channels.
-  const a = Buffer.from(computed);
-  const b = Buffer.from(expectedSignature);
-  if (a.length !== b.length) return false;
-  return crypto.timingSafeEqual(a, b);
-}
+// Twilio signature validation lives in src/lib/twilio-sig.ts — shared
+// with the inbound SMS handler at /api/twilio/sms/inbound.
