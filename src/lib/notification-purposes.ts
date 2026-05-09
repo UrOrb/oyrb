@@ -48,6 +48,13 @@ export const KNOWN_PURPOSES = [
   "strike_issued",
   "strike_approaching_threshold",
   "storefront_auto_paused",
+
+  // Inbound SMS — TCPA audit trail for client-originated messages.
+  // Logged by /api/twilio/sms/inbound; carry status='received' (vs
+  // outbound 'sent'/'delivered'/...).
+  "inbound_stop",
+  "inbound_help",
+  "inbound_other",
 ] as const;
 
 export type KnownPurpose = (typeof KNOWN_PURPOSES)[number];
@@ -104,6 +111,11 @@ const PURPOSE_LABELS: Record<string, string> = {
   strike_issued: "Strike applied",
   strike_approaching_threshold: "Account standing — heads-up",
   storefront_auto_paused: "Storefront auto-paused",
+
+  // Inbound SMS
+  inbound_stop: "Inbound STOP",
+  inbound_help: "Inbound HELP",
+  inbound_other: "Inbound message",
 };
 
 export function displayLabel(purpose: string): string {
@@ -122,7 +134,11 @@ export type NotificationStatus =
   | "delivered"
   | "failed"
   | "undelivered"
-  | "bounced";
+  | "bounced"
+  // Inbound terminal status — set by /api/twilio/sms/inbound when a
+  // client SMS reaches OYRB. Inbound rows are never advanced by the
+  // status callback path; the rank below is a sentinel only.
+  | "received";
 
 // ── Status lifecycle ranking ────────────────────────────────────────────
 // Webhooks deliver duplicate or out-of-order callbacks (Twilio in particular
@@ -131,6 +147,7 @@ export type NotificationStatus =
 // would overwrite the already-confirmed "delivered" we got first.
 //
 // 0 = pre-terminal, 1 = terminal. Spec: "sent < delivered/failed/undelivered/bounced".
+// `received` is its own terminal state for inbound — never advanced.
 
 const STATUS_RANK: Record<NotificationStatus, number> = {
   sent: 0,
@@ -138,6 +155,7 @@ const STATUS_RANK: Record<NotificationStatus, number> = {
   failed: 1,
   undelivered: 1,
   bounced: 1,
+  received: 1,
 };
 
 export function statusRank(s: NotificationStatus): number {
