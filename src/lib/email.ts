@@ -179,6 +179,228 @@ export async function sendBookingConfirmation(params: {
   }
 }
 
+/**
+ * Pro-initiated reschedule notification → client. Fires when a pro
+ * moves a booking from the dashboard. Tone: "your pro updated your
+ * time — here's the new one."
+ *
+ * Includes the pro's contact (phone or email, whichever is on file)
+ * when present so the client has a direct line if the new time
+ * doesn't work. View-my-booking CTA points at a freshly-issued
+ * magic-link URL the route handler computes; this function doesn't
+ * issue tokens.
+ *
+ * Logged as `booking_rescheduled_by_pro` to keep it distinguishable
+ * from client-self-initiated reschedules in the notification timeline.
+ */
+export async function sendBookingRescheduledByPro(params: {
+  to: string;
+  businessId?: string | null;
+  bookingId?: string | null;
+  clientName: string;
+  proName: string;
+  serviceName: string;
+  newStart: Date;
+  oldStart: Date;
+  bookingUrl: string;
+  proContact: string | null;
+}) {
+  if (!resend) return;
+  const { to, clientName, proName, serviceName, newStart, oldStart, bookingUrl, proContact } = params;
+  const whenLabel = newStart.toLocaleString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const oldLabel = oldStart.toLocaleString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  try {
+    const __sendResult = await resend.emails.send({
+      from: getFromAddress(EmailPurpose.BOOKING),
+      replyTo: DEFAULT_REPLY_TO,
+      to,
+      subject: `Schedule change from ${proName}: ${serviceName}`,
+      html: `
+          <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
+            <p style="color:#B8896B;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Schedule change</p>
+            <h1 style="font-size:24px;font-weight:600;margin:0 0 12px;">${proName} moved your appointment.</h1>
+            <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 16px;">
+              Hi ${clientName} — ${proName} updated the time of your upcoming ${serviceName}.
+            </p>
+            <div style="background:#FAFAF9;border:1px solid #E7E5E4;border-radius:12px;padding:20px;margin:20px 0;">
+              <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">New time</p>
+              <p style="margin:0 0 14px;font-size:16px;font-weight:600;">${whenLabel}</p>
+              <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Previously</p>
+              <p style="margin:0;font-size:13px;text-decoration:line-through;color:#A3A3A3;">${oldLabel}</p>
+            </div>
+            <a href="${bookingUrl}" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:600;">View my booking</a>
+            ${proContact ? `
+              <p style="color:#525252;font-size:13px;margin:24px 0 0;line-height:1.55;">
+                If the new time doesn&apos;t work for you, please reach out to ${proName} directly at <strong>${proContact}</strong> to discuss.
+              </p>
+            ` : ""}
+          </div>
+        `,
+    });
+    await logEmailSendResult(__sendResult, {
+      businessId: params.businessId ?? null,
+      bookingId: params.bookingId ?? null,
+      recipientType: "client",
+      purpose: "booking_rescheduled_by_pro",
+      recipientAddress: to,
+    });
+  } catch (err) {
+    console.error("Failed to send pro reschedule client email", err);
+  }
+}
+
+/**
+ * Client-self reschedule confirmation → client. Fires when a client
+ * uses the magic-link reschedule flow. Tone: "you moved your time —
+ * confirmed." Footer reminds the client the self-serve reschedule
+ * window stays open up to 24h before the appointment.
+ *
+ * Logged as `booking_rescheduled` (distinct from `_by_pro`).
+ */
+export async function sendBookingRescheduled(params: {
+  to: string;
+  businessId?: string | null;
+  bookingId?: string | null;
+  clientName: string;
+  businessName: string;
+  serviceName: string;
+  newStart: Date;
+  oldStart: Date;
+  bookingUrl: string;
+}) {
+  if (!resend) return;
+  const { to, clientName, businessName, serviceName, newStart, oldStart, bookingUrl } = params;
+  const whenLabel = newStart.toLocaleString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const oldLabel = oldStart.toLocaleString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  try {
+    const __sendResult = await resend.emails.send({
+      from: getFromAddress(EmailPurpose.BOOKING),
+      replyTo: DEFAULT_REPLY_TO,
+      to,
+      subject: `Rescheduled: ${serviceName} with ${businessName}`,
+      html: `
+            <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
+              <p style="color:#B8896B;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Reschedule confirmed ✦</p>
+              <h1 style="font-size:24px;font-weight:600;margin:0 0 12px;">New time locked in, ${clientName}.</h1>
+              <div style="background:#FAFAF9;border:1px solid #E7E5E4;border-radius:12px;padding:20px;margin:20px 0;">
+                <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">New time</p>
+                <p style="margin:0 0 14px;font-size:16px;font-weight:600;">${whenLabel}</p>
+                <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Previously</p>
+                <p style="margin:0;font-size:13px;text-decoration:line-through;color:#A3A3A3;">${oldLabel}</p>
+              </div>
+              <a href="${bookingUrl}" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:600;">View my booking</a>
+              <p style="color:#A3A3A3;font-size:11px;margin:24px 0 0;border-top:1px solid #E7E5E4;padding-top:16px;">
+                Need to change again? The reschedule option in the confirmation page is open up to 24 hours before your appointment.
+              </p>
+            </div>
+          `,
+    });
+    await logEmailSendResult(__sendResult, {
+      businessId: params.businessId ?? null,
+      bookingId: params.bookingId ?? null,
+      recipientType: "client",
+      purpose: "booking_rescheduled",
+      recipientAddress: to,
+    });
+  } catch (err) {
+    console.error("Failed to send client reschedule email", err);
+  }
+}
+
+/**
+ * Client-self reschedule alert → pro. Internal-side notification when
+ * a client moves their own booking. Intentionally omits replyTo
+ * (matches the sendOwnerNotification pattern) — it's an ops alert,
+ * not a customer-facing thread starter. CTA opens the dashboard
+ * bookings list rather than a client-side magic link.
+ *
+ * Logged as `owner_reschedule_alert`.
+ */
+export async function sendOwnerRescheduleAlert(params: {
+  to: string;
+  businessId?: string | null;
+  bookingId?: string | null;
+  clientName: string;
+  serviceName: string;
+  newStart: Date;
+  oldStart: Date;
+}) {
+  if (!resend) return;
+  const { to, clientName, serviceName, newStart, oldStart } = params;
+  const whenLabel = newStart.toLocaleString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const oldLabel = oldStart.toLocaleString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  try {
+    const __sendResult = await resend.emails.send({
+      from: getFromAddress(EmailPurpose.BOOKING),
+      to,
+      subject: `${clientName} rescheduled — ${serviceName}`,
+      html: `
+            <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
+              <p style="color:#B8896B;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Reschedule notice</p>
+              <h1 style="font-size:22px;font-weight:600;margin:0 0 12px;">${clientName} moved their booking.</h1>
+              <div style="background:#FAFAF9;border:1px solid #E7E5E4;border-radius:12px;padding:20px;margin:20px 0;">
+                <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Service</p>
+                <p style="margin:0 0 14px;font-size:14px;font-weight:600;">${serviceName}</p>
+                <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">New time</p>
+                <p style="margin:0 0 14px;font-size:16px;font-weight:600;">${whenLabel}</p>
+                <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Previously</p>
+                <p style="margin:0;font-size:13px;text-decoration:line-through;color:#A3A3A3;">${oldLabel}</p>
+              </div>
+              <a href="${APP_URL}/dashboard/bookings" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;">Open dashboard</a>
+            </div>
+          `,
+    });
+    await logEmailSendResult(__sendResult, {
+      businessId: params.businessId ?? null,
+      bookingId: params.bookingId ?? null,
+      recipientType: "pro",
+      purpose: "owner_reschedule_alert",
+      recipientAddress: to,
+    });
+  } catch (err) {
+    console.error("Failed to send owner reschedule alert", err);
+  }
+}
+
 export async function sendPaymentReceived(params: {
   to: string;
   businessId?: string | null;
