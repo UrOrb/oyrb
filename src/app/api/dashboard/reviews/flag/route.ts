@@ -46,12 +46,18 @@ export async function POST(request: NextRequest) {
     businesses: { owner_id: string } | null;
   } | null;
 
-  if (!review || !review.businesses) {
-    return NextResponse.json({ error: "Review not found" }, { status: 404 });
-  }
-  // Only the pro whose business the review is on can flag it.
-  if (review.businesses.owner_id !== user.id) {
-    return NextResponse.json({ error: "Not your review" }, { status: 403 });
+  // 404 covers BOTH not-found AND not-owner — no existence leak.
+  // Matches the canonical pattern from PR #22's reschedule route
+  // (api/bookings/[id]/reschedule/route.ts:103). Auth-based routes
+  // must not distinguish "doesn't exist" from "exists but not yours";
+  // a 403 here would let an attacker probe valid review IDs by
+  // observing 403 vs 404 responses.
+  if (
+    !review ||
+    !review.businesses ||
+    review.businesses.owner_id !== user.id
+  ) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
   if (review.status === "removed") {
     return NextResponse.json({ error: "Already removed" }, { status: 409 });

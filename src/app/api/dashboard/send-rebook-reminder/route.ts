@@ -46,11 +46,18 @@ export async function POST(request: NextRequest) {
     businesses: { id: string; owner_id: string; business_name: string; slug: string } | null;
   } | null;
 
-  if (!client || !client.businesses) {
-    return NextResponse.json({ error: "Client not found" }, { status: 404 });
-  }
-  if (client.businesses.owner_id !== user.id) {
-    return NextResponse.json({ error: "Not your client" }, { status: 403 });
+  // 404 covers BOTH not-found AND not-owner — no existence leak.
+  // Matches the canonical pattern from PR #22's reschedule route
+  // (api/bookings/[id]/reschedule/route.ts:103). Auth-based routes
+  // must not distinguish "doesn't exist" from "exists but not yours";
+  // a 403 here would let an attacker probe valid client IDs by
+  // observing 403 vs 404 responses.
+  if (
+    !client ||
+    !client.businesses ||
+    client.businesses.owner_id !== user.id
+  ) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
   if (!client.email) {
     return NextResponse.json({ error: "This client has no email" }, { status: 400 });
