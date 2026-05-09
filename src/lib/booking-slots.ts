@@ -111,16 +111,7 @@ export function slotsForDay(
 
   // Daily break blocks: expand to date intervals for this day and merge
   // with busy so they're treated identically (no slot, no buffer after).
-  const dowName = DOW_NAMES[day.getDay()];
-  const dailyBlocks: SlotInterval[] = rules.dailyBreakBlocks
-    .filter((b) => b.days.includes(dowName))
-    .map((b) => {
-      const [sH, sM] = parseHM(b.start);
-      const [eH, eM] = parseHM(b.end);
-      const s = new Date(day); s.setHours(sH, sM, 0, 0);
-      const e = new Date(day); e.setHours(eH, eM, 0, 0);
-      return { start: s, end: e };
-    });
+  const dailyBlocks = expandDailyBreakBlocksForDay(day, rules.dailyBreakBlocks);
 
   // Buffer existing busy blocks by the pro's break setting. Daily blocks
   // are NOT buffered (they're the pro's intentional hard gaps).
@@ -157,6 +148,32 @@ export function slotsForDay(
     out.push(slotStart);
   }
   return out;
+}
+
+/**
+ * Expands the pro's `daily_break_blocks` configuration into concrete
+ * date intervals for a given calendar day. Extracted so the write-time
+ * overlap helper (`checkBookingOverlap`) reuses the exact same logic
+ * the slot generator uses to filter slots — keeping read-time and
+ * write-time enforcement of break windows in sync.
+ *
+ * Day-of-week and HH:MM are interpreted in the server's local timezone,
+ * matching `slotsForDay` behavior.
+ */
+export function expandDailyBreakBlocksForDay(
+  day: Date,
+  blocks: DailyBreakBlock[],
+): SlotInterval[] {
+  const dowName = DOW_NAMES[day.getDay()];
+  return blocks
+    .filter((b) => b.days.includes(dowName))
+    .map((b) => {
+      const [sH, sM] = parseHM(b.start);
+      const [eH, eM] = parseHM(b.end);
+      const s = new Date(day); s.setHours(sH, sM, 0, 0);
+      const e = new Date(day); e.setHours(eH, eM, 0, 0);
+      return { start: s, end: e };
+    });
 }
 
 function indexByDow(hours: BusinessHoursRow[]): Map<number, BusinessHoursRow> {

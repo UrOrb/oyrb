@@ -4,6 +4,8 @@ import { resolveToken } from "@/lib/booking-tokens";
 import { resend, logEmailSendResult } from "@/lib/email";
 import { getFromAddress, EmailPurpose, DEFAULT_REPLY_TO } from "@/lib/email-from";
 import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
+import { checkBookingOverlap } from "@/lib/booking-overlap";
+import type { DailyBreakBlock } from "@/lib/booking-slots";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.oyrb.space";
 const RESCHEDULE_CUTOFF_MS = 24 * 60 * 60 * 1000;
@@ -58,7 +60,7 @@ export async function POST(request: NextRequest) {
       id, business_id, service_id, start_at, end_at, status,
       services(name, duration_minutes, price_cents),
       clients(name, email),
-      businesses(business_name, slug, contact_email, phone, owner_id)
+      businesses(business_name, slug, contact_email, phone, owner_id, break_between_appointments_minutes, daily_break_blocks)
     `)
     .eq("id", resolved.bookingId)
     .maybeSingle();
@@ -78,6 +80,8 @@ export async function POST(request: NextRequest) {
       contact_email: string | null;
       phone: string | null;
       owner_id: string;
+      break_between_appointments_minutes: number | null;
+      daily_break_blocks: DailyBreakBlock[] | null;
     } | null;
   } | null;
 
@@ -127,19 +131,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "That time is outside open hours." }, { status: 400 });
   }
 
-  // Verify no overlap with any other confirmed booking — excluding this one.
-  const { data: overlap } = await supabase
-    .from("bookings")
-    .select("id")
-    .eq("business_id", booking.business_id)
-    .neq("status", "cancelled")
-    .neq("id", booking.id)
-    .lt("start_at", newEnd.toISOString())
-    .gt("end_at", newStart.toISOString())
-    .limit(1);
-  if (overlap && overlap.length > 0) {
+  // Defer to the shared helper so this client-side reschedule path
+  // applies the SAME write-time validation as every other write path:
+  // booking overlap (with break_between_appointments buffer on both
+  // sides) AND daily_break_blocks for the candidate's day-of-week.
+  // Pre-fix this route ran a raw `lt/gt` overlap that ignored both —
+  // letting clients land bookings inside configured break windows or
+  // back-to-back without the configured buffer.
+  const breakMin = booking.businesses.break_between_appointments_minutes ?? 15;
+  const dailyBreakBlocks = booking.businesses.daily_break_blocks ?? [];
+  const overlapResult = await checkBookingOverlap(
+    supabase,
+    booking.business_id,
+    newStart,
+    newEnd,
+    breakMin,
+    booking.id,
+    dailyBreakBlocks,
+  );
+  if (!overlapResult.ok) {
     return NextResponse.json(
-      { error: "That slot was just booked — pick another." },
+      { error: "That time isn't available — please pick another." },
       { status: 409 },
     );
   }
