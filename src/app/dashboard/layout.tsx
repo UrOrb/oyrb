@@ -1,4 +1,5 @@
 import { Sidebar } from "@/components/dashboard/sidebar";
+import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusiness, listMySites } from "@/lib/current-site";
 import { SiteSwitcher } from "./site-switcher";
@@ -86,6 +87,11 @@ export default async function DashboardLayout({
       <Sidebar pendingTrustedPros={pendingTrustedPros} />
       <div className="flex flex-1 flex-col overflow-y-auto">
         <header className="flex h-14 shrink-0 items-center border-b border-[#E7E5E4] px-6">
+          {/* Mobile-only hamburger trigger + slide-out drawer.
+              `md:hidden` on the trigger means it occupies zero width on
+              desktop, so the desktop header layout is pixel-identical
+              to before this PR. */}
+          <MobileNav pendingTrustedPros={pendingTrustedPros} />
           <div className="flex flex-1 items-center justify-between">
             <div className="flex items-center gap-2 text-xs text-[#737373]">
               {mySites.length > 1 && activeBusiness && (
