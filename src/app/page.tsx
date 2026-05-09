@@ -73,6 +73,41 @@ const TIERS = [
   },
 ];
 
+// ─── Hero floating badges ────────────────────────────────────────────────────
+// Extracted from inline JSX so the desktop image-composition layout AND
+// the mobile stacked-images layout render the exact same badge content.
+// Position classes live on the wrapper at each call site (desktop:
+// absolute over the composition; mobile: anchored to a specific stacked
+// image). Intrinsic visual identity — width, rounded, border, bg,
+// shadow, padding, typography — lives here so it can't drift between
+// the two surfaces.
+
+function LiveBadge() {
+  return (
+    <div className="flex items-center gap-2 rounded-full border border-[#E7E5E4] bg-white/95 px-3 py-1.5 shadow-sm backdrop-blur-sm">
+      <span className="h-2 w-2 animate-pulse rounded-full bg-green-500 motion-reduce:animate-none" />
+      <span className="text-xs font-medium text-[#525252]">Your site is live</span>
+    </div>
+  );
+}
+
+function BookingConfirmedBadge() {
+  return (
+    <div className="w-52 rounded-2xl border border-[#E7E5E4] bg-white/95 p-3.5 shadow-lg backdrop-blur-sm lg:w-56">
+      <div className="flex items-start gap-3">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#B8896B]/15">
+          <span className="text-sm">✓</span>
+        </div>
+        <div>
+          <p className="text-xs font-medium text-[#0A0A0A]">New booking confirmed</p>
+          <p className="mt-0.5 text-xs text-[#737373]">Cut &amp; Color · Today 2:00 PM</p>
+          <p className="mt-1 text-xs font-medium text-[#B8896B]">+$85 deposit received</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   return (
     <div className="flex flex-col">
@@ -81,10 +116,19 @@ export default function HomePage() {
       {/* ── Hero ── */}
       <section className="overflow-hidden pt-20 md:pt-0">
         <div className="mx-auto max-w-[1200px] px-6">
-          <div className="grid min-h-[90vh] items-center gap-12 md:grid-cols-2">
+          {/* Grid: text column + (≥1024px only) desktop image composition.
+              `min-h-[90vh]` is scoped to `lg:` because the desktop
+              composition needs the height to fill its absolute-
+              positioned children. Below 1024px the hero flows
+              naturally, with the mobile image stack rendered as a
+              sibling row after this grid. */}
+          <div className="grid items-center gap-12 md:grid-cols-2 lg:min-h-[90vh]">
 
-            {/* Left: copy */}
-            <div className="py-16 md:py-0">
+            {/* Left: copy. `pb-6` on mobile gives the spec-mandated
+                24px gap from the trial line down to the first image
+                in the mobile stack. `md:py-0` removes both axes on
+                desktop where the composition fills the column instead. */}
+            <div className="pt-16 pb-6 md:py-0">
               <p className="mb-5 text-sm font-medium text-[#B8896B]">
                 For hair stylists, lash techs, nail techs &amp; more
               </p>
@@ -118,14 +162,18 @@ export default function HomePage() {
               </p>
             </div>
 
-            {/* Right: floating image composition */}
-            <div className="relative hidden h-[600px] md:flex md:items-center md:justify-center lg:h-[700px]">
+            {/* Right: floating image composition. Toggled on `lg:`
+                (≥1024px) rather than `md:` because the absolute-
+                positioned children's pixel coordinates are tuned for
+                that width. Below 1024px the mobile image stack
+                renders instead — see the `lg:hidden` block below. */}
+            <div className="relative hidden h-[600px] lg:flex lg:items-center lg:justify-center lg:h-[700px]">
 
-              {/* Main large image */}
+              {/* Main large image — lash artist working on client */}
               <div className="absolute right-0 top-8 h-[420px] w-[300px] overflow-hidden rounded-2xl shadow-xl lg:h-[500px] lg:w-[340px]">
                 <Image
                   src="https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/hero-1-1776526722.jpg"
-                  alt="Beauty professional at work"
+                  alt="Lash artist applying lash extensions to client"
                   fill
                   className="object-cover"
                   priority
@@ -133,46 +181,85 @@ export default function HomePage() {
                 />
               </div>
 
-              {/* Second image — left, lower */}
+              {/* Second image — left, lower — man with sunglasses, men's grooming */}
               <div className="absolute left-0 bottom-12 h-[260px] w-[200px] overflow-hidden rounded-2xl shadow-lg lg:h-[300px] lg:w-[230px]">
                 <Image
                   src="https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/hero-1-1776525604.jpg"
-                  alt="Beauty professional at work"
+                  alt="Man with sunglasses, men's grooming style"
                   fill
                   className="object-cover"
                   sizes="230px"
                 />
               </div>
 
-              {/* Third image — left, upper */}
+              {/* Third image — left, upper — nail closeup with detailed art */}
               <div className="absolute left-16 top-10 h-[180px] w-[160px] overflow-hidden rounded-2xl shadow-md lg:h-[210px] lg:w-[190px]">
                 <Image
                   src="https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/hero-3-1776527115.jpg"
-                  alt="Beauty professional at work"
+                  alt="Detailed nail art with black and amber polish"
                   fill
                   className="object-cover"
                   sizes="190px"
                 />
               </div>
 
-              {/* Floating booking notification bubble */}
-              <div className="absolute bottom-32 right-4 w-52 rounded-2xl border border-[#E7E5E4] bg-white/95 p-3.5 shadow-lg backdrop-blur-sm lg:right-8 lg:w-56">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#B8896B]/15">
-                    <span className="text-sm">✓</span>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-[#0A0A0A]">New booking confirmed</p>
-                    <p className="mt-0.5 text-xs text-[#737373]">Cut &amp; Color · Today 2:00 PM</p>
-                    <p className="mt-1 text-xs font-medium text-[#B8896B]">+$85 deposit received</p>
-                  </div>
-                </div>
+              {/* Floating booking notification — anchored to the bottom
+                  of the lash artist image on desktop. */}
+              <div className="absolute bottom-32 right-4 lg:right-8">
+                <BookingConfirmedBadge />
               </div>
 
-              {/* Floating "live" indicator */}
-              <div className="absolute left-4 top-[45%] flex items-center gap-2 rounded-full border border-[#E7E5E4] bg-white/95 px-3 py-1.5 shadow-sm backdrop-blur-sm">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-                <span className="text-xs font-medium text-[#525252]">Your site is live</span>
+              {/* Floating "live" indicator — overlays the boundary
+                  between the upper-left and lower-left small images. */}
+              <div className="absolute left-4 top-[45%]">
+                <LiveBadge />
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile/tablet image stack (<1024px). Renders the same
+              three photos and the same two badges as the desktop
+              composition, but as a vertical stack with badges
+              anchored to specific images per the spec mapping
+              (LiveBadge on the lash artist at the top;
+              BookingConfirmedBadge on the man-with-sunglasses at the
+              bottom). Inherits the page-level `px-6` padding from
+              the surrounding `max-w-[1200px]` wrapper, so each image
+              has 24px breathing room on either side. Hidden on
+              desktop where the absolute-positioned composition takes
+              over. */}
+          <div className="flex flex-col gap-6 pb-6 lg:hidden">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-2xl shadow-lg">
+              <Image
+                src="https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/hero-1-1776526722.jpg"
+                alt="Lash artist applying lash extensions to client"
+                fill
+                sizes="(max-width: 1024px) 100vw, 0px"
+                className="object-cover"
+              />
+              <div className="absolute bottom-3 right-3">
+                <LiveBadge />
+              </div>
+            </div>
+            <div className="relative aspect-[4/5] overflow-hidden rounded-2xl shadow-lg">
+              <Image
+                src="https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/hero-3-1776527115.jpg"
+                alt="Detailed nail art with black and amber polish"
+                fill
+                sizes="(max-width: 1024px) 100vw, 0px"
+                className="object-cover"
+              />
+            </div>
+            <div className="relative aspect-[4/5] overflow-hidden rounded-2xl shadow-lg">
+              <Image
+                src="https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/hero-1-1776525604.jpg"
+                alt="Man with sunglasses, men's grooming style"
+                fill
+                sizes="(max-width: 1024px) 100vw, 0px"
+                className="object-cover"
+              />
+              <div className="absolute bottom-3 right-3">
+                <BookingConfirmedBadge />
               </div>
             </div>
           </div>
