@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { resend, logEmailSendResult } from "@/lib/email";
-import { getFromAddress, EmailPurpose, DEFAULT_REPLY_TO } from "@/lib/email-from";
+import { resend, sendBookingRescheduledByPro } from "@/lib/email";
 import { sendSms, tierAllowsSms } from "@/lib/sms";
 import { issueBookingToken } from "@/lib/booking-tokens";
 import { checkBookingOverlap } from "@/lib/booking-overlap";
@@ -222,47 +221,18 @@ export async function POST(
   const proContact = booking.businesses.phone ?? booking.businesses.contact_email ?? null;
 
   if (booking.clients.email && resend) {
-    const clientEmailAddr = booking.clients.email;
-    const clientName = booking.clients.name;
-    const serviceName = booking.services.name;
-    try {
-      const result = await resend.emails.send({
-        from: getFromAddress(EmailPurpose.BOOKING),
-        replyTo: DEFAULT_REPLY_TO,
-        to: clientEmailAddr,
-        subject: `Schedule change from ${proName}: ${serviceName}`,
-        html: `
-          <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
-            <p style="color:#B8896B;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Schedule change</p>
-            <h1 style="font-size:24px;font-weight:600;margin:0 0 12px;">${proName} moved your appointment.</h1>
-            <p style="color:#525252;font-size:15px;line-height:1.55;margin:0 0 16px;">
-              Hi ${clientName} — ${proName} updated the time of your upcoming ${serviceName}.
-            </p>
-            <div style="background:#FAFAF9;border:1px solid #E7E5E4;border-radius:12px;padding:20px;margin:20px 0;">
-              <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">New time</p>
-              <p style="margin:0 0 14px;font-size:16px;font-weight:600;">${whenLabel}</p>
-              <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Previously</p>
-              <p style="margin:0;font-size:13px;text-decoration:line-through;color:#A3A3A3;">${oldLabel}</p>
-            </div>
-            <a href="${bookingUrl}" style="display:inline-block;background:#0A0A0A;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:600;">View my booking</a>
-            ${proContact ? `
-              <p style="color:#525252;font-size:13px;margin:24px 0 0;line-height:1.55;">
-                If the new time doesn&apos;t work for you, please reach out to ${proName} directly at <strong>${proContact}</strong> to discuss.
-              </p>
-            ` : ""}
-          </div>
-        `,
-      });
-      await logEmailSendResult(result, {
-        businessId: booking.business_id,
-        bookingId: booking.id,
-        recipientType: "client",
-        purpose: "booking_rescheduled_by_pro",
-        recipientAddress: clientEmailAddr,
-      });
-    } catch (err) {
-      console.error("Pro reschedule client email failed:", err);
-    }
+    await sendBookingRescheduledByPro({
+      to: booking.clients.email,
+      businessId: booking.business_id,
+      bookingId: booking.id,
+      clientName: booking.clients.name,
+      proName,
+      serviceName: booking.services.name,
+      newStart,
+      oldStart,
+      bookingUrl,
+      proContact,
+    });
   }
 
   // SMS to the client — only when consent + tier permits. sendSms
