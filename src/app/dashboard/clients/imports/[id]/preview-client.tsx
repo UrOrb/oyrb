@@ -2,8 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, AlertCircle, Loader2, Info } from "lucide-react";
+import { CheckCircle2, AlertCircle, Loader2, Info, Undo2 } from "lucide-react";
 import type { ClientImport, ImportPreviewRow, ImportTargetField } from "@/lib/client-imports/types";
+
+const ROLLBACK_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 const TARGET_FIELDS: Array<{ value: ImportTargetField; label: string }> = [
   { value: "name", label: "Name" },
@@ -30,14 +32,20 @@ const STATUS_PILLS: Record<ImportPreviewRow["status"], string> = {
  *   - Column mapping (read-only in PR 2 — editable in PR 4)
  *   - Sample-row preview table (50-row cap)
  *
- * The footer is sticky on desktop so "Cancel" / "Confirm" stay
- * reachable while the pro scrolls. The Confirm button is disabled
- * with placeholder copy — commit lands in PR 3.
+ * Footer actions vary by status:
+ *   - pending_review → Cancel + Confirm
+ *   - committed within 7 days → Undo import (PR 3 rollback)
+ *   - committed past 7 days → "Rollback window expired" (read-only)
+ *   - rolled_back / cancelled / failed → state banner, no action
  */
 export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) {
   const router = useRouter();
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [committing, setCommitting] = useState(false);
+  const [commitError, setCommitError] = useState<string | null>(null);
+  const [rolling, setRolling] = useState(false);
+  const [rollError, setRollError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   const previewRows = importRow.preview_data ?? [];
@@ -49,7 +57,29 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
 
   const isReviewable = importRow.status === "pending_review";
   const isCommitted = importRow.status === "committed";
+  const isRolledBack = importRow.status === "rolled_back";
   const isFailed = importRow.status === "failed";
+
+  // Rollback affordance is gated on a 7-day window from committed_at.
+  // Mirrors the server-side check in the rollback route — surfacing
+  // the same constraint in the UI keeps the pro from clicking a
+  // button that's about to 410 on them.
+  //
+  // `nowAtMount` is captured once at first render via useState's lazy
+  // init so React's purity rule isn't violated by calling Date.now()
+  // during render. The 7-day window is wide enough that millisecond
+  // drift between mount and the user's eventual click doesn't matter.
+  const [nowAtMount] = useState(() => Date.now());
+  const committedMs = importRow.committed_at
+    ? new Date(importRow.committed_at).getTime()
+    : null;
+  const msSinceCommit = committedMs !== null ? nowAtMount - committedMs : null;
+  const undoEligible =
+    isCommitted && msSinceCommit !== null && msSinceCommit < ROLLBACK_WINDOW_MS;
+  const undoDaysRemaining =
+    undoEligible && msSinceCommit !== null
+      ? Math.max(1, Math.ceil((ROLLBACK_WINDOW_MS - msSinceCommit) / (24 * 60 * 60 * 1000)))
+      : 0;
 
   const onCancel = async () => {
     if (!isReviewable) return;
@@ -69,6 +99,58 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
     } catch (e) {
       setCancelError(e instanceof Error ? e.message : "Cancel failed.");
       setCancelling(false);
+    }
+  };
+
+  const onCommit = async () => {
+    if (!isReviewable) return;
+    setCommitError(null);
+    setCommitting(true);
+    try {
+      const res = await fetch(`/api/dashboard/clients/imports/${importRow.id}/commit`, {
+        method: "POST",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        // Server's `error` field is a short identifier; surface a
+        // friendlier message based on the known cases. Fall back to
+        // the raw identifier so the pro can quote it to support.
+        const msg =
+          json?.message ?? errorCopy(json?.error) ?? "Import failed. Try again.";
+        throw new Error(msg);
+      }
+      // Refresh the route so the server fetches the new committed
+      // state and re-renders with the Undo button. router.refresh()
+      // re-runs the page's server component without a full nav.
+      startTransition(() => router.refresh());
+    } catch (e) {
+      setCommitError(e instanceof Error ? e.message : "Import failed.");
+      setCommitting(false);
+    }
+  };
+
+  const onUndo = async () => {
+    if (!undoEligible) return;
+    setRollError(null);
+    setRolling(true);
+    try {
+      const res = await fetch(`/api/dashboard/clients/imports/${importRow.id}/rollback`, {
+        method: "POST",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg =
+          json?.error === "rollback_blocked_bookings_exist"
+            ? `Rollback blocked: ${json.count} booking(s) reference these clients. Contact support to undo manually.`
+            : json?.error === "rollback_window_expired"
+              ? "The 7-day undo window has expired."
+              : json?.message ?? errorCopy(json?.error) ?? "Undo failed.";
+        throw new Error(msg);
+      }
+      startTransition(() => router.refresh());
+    } catch (e) {
+      setRollError(e instanceof Error ? e.message : "Undo failed.");
+      setRolling(false);
     }
   };
 
@@ -261,10 +343,58 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
         )}
       </section>
 
-      {cancelError && (
+      {/* State banners for terminal states. Shown ABOVE the action
+          footer (which renders different controls per status), so the
+          pro reads "what happened" before "what they can do next". */}
+      {isCommitted && (
+        <div className="mt-6 flex items-start gap-3 rounded-md border border-emerald-100 bg-emerald-50/50 px-4 py-3 text-sm text-emerald-900">
+          <CheckCircle2 size={16} strokeWidth={1.5} className="mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">
+              {importRow.clients_created ?? 0} client
+              {importRow.clients_created === 1 ? "" : "s"} added to your list
+            </p>
+            <p className="mt-0.5 text-xs">
+              {undoEligible
+                ? `You can undo this import for ${undoDaysRemaining} more day${undoDaysRemaining === 1 ? "" : "s"}.`
+                : "The 7-day undo window has expired."}
+            </p>
+          </div>
+        </div>
+      )}
+      {isRolledBack && (
+        <div className="mt-6 flex items-start gap-3 rounded-md border border-[#E7E5E4] bg-[#FAFAF9] px-4 py-3 text-sm text-[#525252]">
+          <Undo2 size={16} strokeWidth={1.5} className="mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium text-[#0A0A0A]">Import rolled back</p>
+            <p className="mt-0.5 text-xs">
+              {importRow.clients_deleted ?? 0} client
+              {importRow.clients_deleted === 1 ? "" : "s"} removed
+              {importRow.rolled_back_at && ` on ${new Date(importRow.rolled_back_at).toLocaleDateString()}`}
+              .
+            </p>
+          </div>
+        </div>
+      )}
+      {isFailed && (
+        <div className="mt-6 flex items-start gap-3 rounded-md border border-rose-100 bg-rose-50/50 px-4 py-3 text-sm text-rose-900">
+          <AlertCircle size={16} strokeWidth={1.5} className="mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">Import failed</p>
+            <p className="mt-0.5 text-xs">
+              {importRow.error_summary ?? "Something went wrong during import."}
+              {(importRow.clients_created ?? 0) > 0 && (
+                <> {importRow.clients_created} client{importRow.clients_created === 1 ? "" : "s"} were added before the failure — visible in your client list with this import as their source.</>
+              )}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {(cancelError || commitError || rollError) && (
         <div className="mt-4 flex items-start gap-2 rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-800">
           <AlertCircle size={14} strokeWidth={1.5} className="mt-0.5 shrink-0" />
-          <span>{cancelError}</span>
+          <span>{cancelError ?? commitError ?? rollError}</span>
         </div>
       )}
 
@@ -273,34 +403,74 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
           the pro scrolls the table. */}
       <div className="sticky bottom-0 z-30 mt-6 flex flex-col-reverse gap-3 border-t border-[#E7E5E4] bg-white/95 py-4 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="text-xs text-[#737373]">
-          {isReviewable && "Confirm to add valid rows to your client list."}
-          {isCommitted && "This import has been added to your client list."}
-          {isFailed && "Parsing failed. Cancel and try a different file."}
+          {isReviewable && `Confirm to add ${valid} valid row${valid === 1 ? "" : "s"} to your client list.`}
+          {isCommitted && undoEligible && `Undo within ${undoDaysRemaining} day${undoDaysRemaining === 1 ? "" : "s"} if needed.`}
+          {isCommitted && !undoEligible && "Rollback window expired."}
+          {isRolledBack && "This import has been undone."}
+          {isFailed && "Open a new import to try again."}
         </div>
         <div className="flex items-center justify-end gap-3">
           {isReviewable && (
+            <>
+              <button
+                type="button"
+                disabled={cancelling || committing}
+                onClick={onCancel}
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-[#E7E5E4] px-4 py-2 text-sm text-[#0A0A0A] transition-colors hover:bg-[#F5F5F4] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {cancelling && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />}
+                Cancel import
+              </button>
+              <button
+                type="button"
+                disabled={committing || cancelling || valid === 0}
+                onClick={onCommit}
+                title={valid === 0 ? "No valid rows to import." : undefined}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-[#0A0A0A] px-4 py-2 text-sm text-white transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {committing && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />}
+                {committing ? `Importing ${valid}…` : `Confirm import (${valid})`}
+              </button>
+            </>
+          )}
+          {isCommitted && undoEligible && (
             <button
               type="button"
-              disabled={cancelling}
-              onClick={onCancel}
+              disabled={rolling}
+              onClick={onUndo}
               className="inline-flex items-center justify-center gap-2 rounded-md border border-[#E7E5E4] px-4 py-2 text-sm text-[#0A0A0A] transition-colors hover:bg-[#F5F5F4] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {cancelling && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />}
-              Cancel import
+              {rolling
+                ? <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />
+                : <Undo2 size={14} strokeWidth={1.5} />}
+              {rolling ? "Undoing…" : `Undo import (${undoDaysRemaining}d left)`}
             </button>
           )}
-          <button
-            type="button"
-            disabled
-            title="Commit functionality coming in next update"
-            className="inline-flex cursor-not-allowed items-center justify-center rounded-md bg-[#0A0A0A] px-4 py-2 text-sm text-white opacity-40"
-          >
-            Confirm import
-          </button>
         </div>
       </div>
     </>
   );
+}
+
+function errorCopy(code: string | undefined): string | null {
+  switch (code) {
+    case "invalid_state":
+      return "This import is no longer in a state that can be imported. Refresh the page to see the latest status.";
+    case "missing_source":
+      return "The uploaded file is no longer available. Cancel and re-upload.";
+    case "missing_mapping":
+      return "Column mapping was lost. Cancel and re-upload.";
+    case "insert_failed":
+      return "Some rows failed to insert. Check your client list and contact support if anything looks off.";
+    case "commit_failed":
+      return "Import failed unexpectedly. Try again or contact support.";
+    case "not_found":
+      return "Import not found.";
+    case "unauthorized":
+      return "Sign in to continue.";
+    default:
+      return null;
+  }
 }
 
 function StatusPill({ status }: { status: ClientImport["status"] }) {

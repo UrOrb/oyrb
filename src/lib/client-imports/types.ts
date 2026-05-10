@@ -84,9 +84,16 @@ export type ClientImport = {
   preview_data: ImportPreviewRow[] | null;
   errors: ImportError[] | null;
   consent_affirmed: boolean;
+  // Audit columns added in migration 051 (PR 3). Populated by the
+  // commit / rollback / cron-sweep routes; null until the relevant
+  // transition runs.
+  clients_created: number | null;
+  clients_deleted: number | null;
+  error_summary: string | null;
   created_at: string;
   parsed_at: string | null;
   committed_at: string | null;
   rolled_back_at: string | null;
   cancelled_at: string | null;
+  failed_at: string | null;
 };
