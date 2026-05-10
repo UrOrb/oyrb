@@ -8,6 +8,7 @@ import { sanitizeReferralValue } from "@/lib/referrer-classifier";
 import { sanitizeSurveyResponse } from "@/lib/survey-options";
 import { checkBookingOverlap } from "@/lib/booking-overlap";
 import type { DailyBreakBlock } from "@/lib/booking-slots";
+import { fillEmptyClientFields } from "@/lib/clients/fill-empty";
 
 // Called by the booking-confirmed page after Stripe redirects back.
 // Verifies the Checkout Session was paid, then creates the booking + client.
@@ -135,11 +136,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Upsert client
+  // Upsert client. Lookup pulls existing name/phone/notes so the
+  // fill-empty-only helper preserves anything the pro has curated via
+  // the dashboard edit page. See src/lib/clients/fill-empty.ts.
   let clientId: string | null = null;
   const { data: existingClient } = await supabase
     .from("clients")
-    .select("id")
+    .select("id, name, phone, notes")
     .eq("business_id", businessId)
     .ilike("email", email)
     .maybeSingle();
@@ -157,10 +160,16 @@ export async function POST(request: NextRequest) {
 
   if (existingClient) {
     clientId = existingClient.id;
-    await supabase
-      .from("clients")
-      .update({ name, phone, notes, ...consentFields })
-      .eq("id", clientId);
+    const { patch } = fillEmptyClientFields(
+      existingClient as { name: string | null; phone: string | null; notes: string | null },
+      { name, phone, notes },
+    );
+    if (Object.keys(patch).length > 0 || Object.keys(consentFields).length > 0) {
+      await supabase
+        .from("clients")
+        .update({ ...patch, ...consentFields })
+        .eq("id", clientId);
+    }
   } else {
     const { data: newClient } = await supabase
       .from("clients")
