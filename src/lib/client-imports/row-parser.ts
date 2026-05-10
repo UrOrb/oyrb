@@ -110,10 +110,48 @@ export function classifyErrorField(message: string): string {
 }
 
 /**
- * Single round-trip read of every existing client's email + phone for
- * a business, returned as Sets for O(1) dedup lookups. Phones are
- * normalized to E.164 on read so they compare on the same shape we
- * use during parse/commit.
+ * Existing client row shape returned by loadExistingContacts. Carries
+ * everything the merge step needs (id, name, phone, notes, plus the
+ * audit columns the commit route writes back). Wider than parse-only
+ * dedup needs, but the cost is small (~10k rows max per business)
+ * and centralizing it here keeps parse and commit reading identical
+ * data.
+ */
+export type ExistingClientRow = {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  imported_via_id: string | null;
+};
+
+/**
+ * Indexed view of every existing client for a business. Maps from
+ * dedup keys (lowercased email + E.164-normalized phone) to the full
+ * row, so:
+ *
+ *   - Parse / commit dedup checks use `byEmail.has(...)` /
+ *     `byPhone.has(...)` for O(1) presence detection
+ *   - Commit's merge action uses `byEmail.get(...)` /
+ *     `byPhone.get(...)` to reach the existing row's full shape
+ *     without a second round trip
+ *
+ * Both Maps reference the same row objects — checking either index
+ * surfaces the same client. Mutating the returned objects is fine
+ * (commit does this when staging merge updates) but no caller should
+ * rely on map identity for invariants.
+ */
+export type ExistingClientIndex = {
+  byEmail: Map<string, ExistingClientRow>;
+  byPhone: Map<string, ExistingClientRow>;
+};
+
+/**
+ * Single round-trip read of every existing client for a business,
+ * indexed by both email (lowercased) and phone (E.164). Phones are
+ * normalized on read so they compare on the same shape we use during
+ * parse/commit.
  *
  * Caller is responsible for using a privileged client (admin or
  * RLS-allowed) — this helper just runs the query.
@@ -121,19 +159,19 @@ export function classifyErrorField(message: string): string {
 export async function loadExistingContacts(
   admin: ReturnType<typeof createAdminClient>,
   businessId: string,
-): Promise<{ emails: Set<string>; phones: Set<string> }> {
+): Promise<ExistingClientIndex> {
   const { data } = await admin
     .from("clients")
-    .select("email, phone")
+    .select("id, name, email, phone, notes, imported_via_id")
     .eq("business_id", businessId);
-  const emails = new Set<string>();
-  const phones = new Set<string>();
-  for (const r of (data ?? []) as Array<{ email: string | null; phone: string | null }>) {
-    if (r.email) emails.add(r.email.toLowerCase());
+  const byEmail = new Map<string, ExistingClientRow>();
+  const byPhone = new Map<string, ExistingClientRow>();
+  for (const r of (data ?? []) as ExistingClientRow[]) {
+    if (r.email) byEmail.set(r.email.toLowerCase(), r);
     if (r.phone) {
       const norm = normalizeToE164(r.phone);
-      if (norm) phones.add(norm);
+      if (norm) byPhone.set(norm, r);
     }
   }
-  return { emails, phones };
+  return { byEmail, byPhone };
 }
