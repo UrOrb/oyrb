@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import Papa from "papaparse";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { normalizeToE164 } from "@/lib/sms";
 import { isAllowedMime } from "@/lib/client-imports/upload-constants";
 import { detectVendor, buildInitialMapping } from "@/lib/client-imports/vendor-presets";
+import {
+  normalizeRow,
+  classifyErrorField,
+  loadExistingContacts,
+  type ParsedRow,
+} from "@/lib/client-imports/row-parser";
 import type {
   ImportColumnMapping,
   ImportPreviewRow,
@@ -25,8 +30,6 @@ import type {
  */
 
 const PREVIEW_ROW_CAP = 50;
-
-type ParsedRow = Record<string, string | undefined>;
 
 export async function POST(
   _request: NextRequest,
@@ -228,109 +231,4 @@ async function fetchSourceFile(
     throw new Error(`download failed: ${error?.message ?? "no data"}`);
   }
   return await data.text();
-}
-
-type NormalizedRow = {
-  row_index: number;
-  status: "valid" | "duplicate" | "error";
-  name: string | null;
-  email: string | null;
-  phone: string | null;
-  notes: string | null;
-  errors?: string[];
-};
-
-function normalizeRow(
-  raw: ParsedRow,
-  mapping: ImportColumnMapping,
-  rowIndex: number,
-): NormalizedRow {
-  // Multiple columns can map to "name" (Acuity's First Name + Last
-  // Name); concatenate in iteration order so the OYRB record reads
-  // "First Last" without us hardcoding either column's identity.
-  const nameParts: string[] = [];
-  let email: string | null = null;
-  let phoneRaw: string | null = null;
-  let notes: string | null = null;
-
-  for (const [header, target] of Object.entries(mapping)) {
-    const value = (raw[header] ?? "").toString().trim();
-    if (!value) continue;
-    switch (target) {
-      case "name":
-        nameParts.push(value);
-        break;
-      case "email":
-        if (!email) email = value.toLowerCase();
-        break;
-      case "phone":
-        if (!phoneRaw) phoneRaw = value;
-        break;
-      case "notes":
-        if (!notes) notes = value;
-        break;
-      case "ignore":
-        break;
-    }
-  }
-
-  const name = nameParts.length > 0 ? nameParts.join(" ").trim() : null;
-  // Phone normalization happens once here so dedup compares on the
-  // canonical E.164 form. Non-conforming phones land as null + an
-  // error; the row stays unimportable until the pro fixes the source.
-  const phone = phoneRaw ? normalizeToE164(phoneRaw) : null;
-
-  const errors: string[] = [];
-  if (!name) errors.push("Name is required.");
-  if (!email && !phone) {
-    errors.push("Either email or phone is required.");
-  }
-  if (phoneRaw && !phone) {
-    errors.push("Phone number could not be normalized.");
-  }
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    errors.push("Email address is malformed.");
-    email = null;
-  }
-
-  return {
-    row_index: rowIndex,
-    status: "valid",
-    name,
-    email,
-    phone,
-    notes,
-    ...(errors.length > 0 ? { errors } : {}),
-  };
-}
-
-function classifyErrorField(message: string): string {
-  // Lightweight bucketing so the structured errors[] entries point at
-  // the field the pro should look at. Keeps the preview UI from
-  // collapsing every error into "row-level".
-  const lower = message.toLowerCase();
-  if (lower.startsWith("name")) return "name";
-  if (lower.includes("email")) return "email";
-  if (lower.includes("phone")) return "phone";
-  return "row";
-}
-
-async function loadExistingContacts(
-  admin: ReturnType<typeof createAdminClient>,
-  businessId: string,
-): Promise<{ emails: Set<string>; phones: Set<string> }> {
-  const { data } = await admin
-    .from("clients")
-    .select("email, phone")
-    .eq("business_id", businessId);
-  const emails = new Set<string>();
-  const phones = new Set<string>();
-  for (const r of (data ?? []) as Array<{ email: string | null; phone: string | null }>) {
-    if (r.email) emails.add(r.email.toLowerCase());
-    if (r.phone) {
-      const norm = normalizeToE164(r.phone);
-      if (norm) phones.add(norm);
-    }
-  }
-  return { emails, phones };
 }

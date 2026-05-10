@@ -44,6 +44,14 @@ export default async function ClientImportsPage({ searchParams }: Props) {
 
   const imports = (importsRaw ?? []) as ClientImport[];
 
+  // Capture render-start time once so the UndoBadge stays pure during
+  // render. Server components run once per request, so this is the
+  // single moment of truth for "is this commit still inside the 7-day
+  // undo window." Same pattern as src/app/dashboard/clients/page.tsx
+  // — purity rule is overzealous for async server components.
+  // eslint-disable-next-line react-hooks/purity
+  const renderedAt = Date.now();
+
   return (
     <div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -90,6 +98,7 @@ export default async function ClientImportsPage({ searchParams }: Props) {
                   </td>
                   <td className="px-4 py-3">
                     <StatusPill status={imp.status} />
+                    <UndoBadge imp={imp} now={renderedAt} />
                   </td>
                   <td className="px-4 py-3 text-xs text-[#525252]">
                     <CountsCell imp={imp} />
@@ -116,7 +125,10 @@ export default async function ClientImportsPage({ searchParams }: Props) {
                       {imp.vendor_hint ? labelForVendor(imp.vendor_hint) : "Format unknown"}
                     </p>
                   </div>
-                  <StatusPill status={imp.status} />
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <StatusPill status={imp.status} />
+                    <UndoBadge imp={imp} now={renderedAt} />
+                  </div>
                 </div>
                 <div className="text-xs text-[#525252]">
                   <CountsCell imp={imp} />
@@ -167,6 +179,23 @@ function StatusPill({ status }: { status: ClientImport["status"] }) {
 }
 
 function CountsCell({ imp }: { imp: ClientImport }) {
+  // Committed and rolled_back rows show the more useful audit number
+  // (clients added / removed) instead of the parse-time breakdown the
+  // pro already saw on the preview page.
+  if (imp.status === "committed" && imp.clients_created != null) {
+    return (
+      <span>
+        <span className="font-medium text-emerald-700">{imp.clients_created}</span> imported
+      </span>
+    );
+  }
+  if (imp.status === "rolled_back" && imp.clients_deleted != null) {
+    return (
+      <span>
+        <span className="font-medium text-[#525252]">{imp.clients_deleted}</span> rolled back
+      </span>
+    );
+  }
   if (imp.total_rows == null) {
     return <span className="text-[#A3A3A3]">—</span>;
   }
@@ -179,6 +208,19 @@ function CountsCell({ imp }: { imp: ClientImport }) {
       <span className="text-amber-700">{imp.duplicate_rows ?? 0} dup</span>
       <span className="mx-1 text-[#D6D3D1]">·</span>
       <span className="text-rose-700">{imp.error_rows ?? 0} err</span>
+    </span>
+  );
+}
+
+const ROLLBACK_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+function UndoBadge({ imp, now }: { imp: ClientImport; now: number }) {
+  if (imp.status !== "committed" || !imp.committed_at) return null;
+  const ms = now - new Date(imp.committed_at).getTime();
+  if (ms >= ROLLBACK_WINDOW_MS) return null;
+  return (
+    <span className="ml-2 inline-flex items-center rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
+      Undo available
     </span>
   );
 }
