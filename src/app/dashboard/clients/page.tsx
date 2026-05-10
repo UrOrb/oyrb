@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Mail, Phone, MessageSquare } from "lucide-react";
 import { getCurrentBusiness } from "@/lib/current-site";
@@ -94,6 +95,10 @@ export default async function ClientsPage({ searchParams }: Props) {
   const vipCutIdx = Math.max(0, Math.floor(sortedTotals.length * 0.1) - 1);
   const vipFloor = sortedTotals[vipCutIdx] ?? Infinity;
 
+  // Captured once per request so the auto-tag pass + per-row "overdue"
+  // checks below all use the same wall-clock anchor. Server component
+  // — runs once per render, no re-render hazard from the lint rule.
+  // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
   const SIXTY_DAYS = 60 * 24 * 60 * 60 * 1000;
   const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
@@ -161,105 +166,202 @@ export default async function ClientsPage({ searchParams }: Props) {
             No clients yet — they&rsquo;ll appear here after their first booking.
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="border-b border-[#E7E5E4] bg-[#FAFAF9] text-xs uppercase text-[#737373]">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium">Client</th>
-                <th className="px-4 py-3 text-left font-medium">Contact</th>
-                <th className="px-4 py-3 text-left font-medium">Tag</th>
-                <th className="px-4 py-3 text-left font-medium">Marketing</th>
-                <th className="px-4 py-3 text-right font-medium">Visits</th>
-                <th className="px-4 py-3 text-right font-medium">Spend</th>
-                <th className="px-4 py-3 text-left font-medium">Last visit</th>
-                <th className="px-4 py-3 text-left font-medium">Suggested next</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E7E5E4]">
-              {rows.map((c) => {
-                const overdue = c.suggested_next && c.suggested_next.getTime() < Date.now();
-                return (
-                  <tr key={c.id} className="hover:bg-[#FAFAF9]">
-                    <td className="px-4 py-3">
-                      <p className="font-medium">{c.name}</p>
-                      <p className="text-xs text-[#A3A3A3]">
-                        Since {new Date(c.created_at).toLocaleDateString()}
-                      </p>
-                    </td>
-                    <td className="px-4 py-3 text-[#525252]">
-                      <div className="space-y-0.5">
-                        {c.email && (
-                          <a href={`mailto:${c.email}`} className="flex items-center gap-1 text-xs hover:text-[#B8896B]">
-                            <Mail size={11} /> {c.email}
-                          </a>
+          <>
+            {/* Desktop table — hidden on small viewports. Mobile card
+                stack (below) uses the same row data with a layout that
+                fits a 375px viewport without horizontal scroll. */}
+            <table className="hidden w-full text-sm md:table">
+              <thead className="border-b border-[#E7E5E4] bg-[#FAFAF9] text-xs uppercase text-[#737373]">
+                <tr>
+                  <th className="px-4 py-3 text-left font-medium">Client</th>
+                  <th className="px-4 py-3 text-left font-medium">Contact</th>
+                  <th className="px-4 py-3 text-left font-medium">Tag</th>
+                  <th className="px-4 py-3 text-left font-medium">Marketing</th>
+                  <th className="px-4 py-3 text-right font-medium">Visits</th>
+                  <th className="px-4 py-3 text-right font-medium">Spend</th>
+                  <th className="px-4 py-3 text-left font-medium">Last visit</th>
+                  <th className="px-4 py-3 text-left font-medium">Suggested next</th>
+                  <th className="px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E7E5E4]">
+                {rows.map((c) => {
+                  const overdue = c.suggested_next && c.suggested_next.getTime() < now;
+                  return (
+                    <tr key={c.id} className="hover:bg-[#FAFAF9]">
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/dashboard/clients/${c.id}`}
+                          className="font-medium text-[#0A0A0A] underline-offset-2 hover:text-[#B8896B] hover:underline"
+                        >
+                          {c.name}
+                        </Link>
+                        <p className="text-xs text-[#A3A3A3]">
+                          Since {new Date(c.created_at).toLocaleDateString()}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3 text-[#525252]">
+                        <div className="space-y-0.5">
+                          {c.email && (
+                            <a href={`mailto:${c.email}`} className="flex items-center gap-1 text-xs hover:text-[#B8896B]">
+                              <Mail size={11} /> {c.email}
+                            </a>
+                          )}
+                          {c.phone && (
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                              <a
+                                href={`tel:${c.phone}`}
+                                className="flex items-center gap-1 text-xs hover:text-[#B8896B]"
+                                aria-label={`Call ${c.phone}`}
+                              >
+                                <Phone size={11} /> {c.phone}
+                              </a>
+                              <a
+                                href={`sms:${c.phone}`}
+                                className="flex items-center gap-1 text-[11px] text-[#737373] hover:text-[#B8896B]"
+                                aria-label={`Text ${c.phone}`}
+                                title="Send text message"
+                              >
+                                <MessageSquare size={11} /> Text
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <TagPill tag={c.tag} />
+                      </td>
+                      <td className="px-4 py-3">
+                        {c.marketing_opt_in ? (
+                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                            Opted in ✓
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-[#A3A3A3]">No marketing</span>
                         )}
-                        {c.phone && (
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium">{c.booking_count}</td>
+                      <td className="px-4 py-3 text-right font-medium">{formatCents(c.total_spent_cents)}</td>
+                      <td className="px-4 py-3 text-xs text-[#525252]">
+                        {c.last_end_at ? new Date(c.last_end_at).toLocaleDateString() : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        {c.suggested_next ? (
+                          <span className={overdue ? "font-semibold text-amber-700" : "text-[#525252]"}>
+                            {c.suggested_next.toLocaleDateString()}
+                            {overdue && " (overdue)"}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {c.email && c.last_end_at && (
+                          <ClientRowActions clientId={c.id} />
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {/* Mobile card stack — mirrors the imports preview pattern.
+                Cards have a min-h that comfortably exceeds 44px so the
+                whole row is a tappable link to the detail page. The
+                phone tel:/sms: anchors stop propagation so they fire
+                their own intents instead of navigating to /[id]. */}
+            <ul className="divide-y divide-[#E7E5E4] md:hidden">
+              {rows.map((c) => {
+                const overdue = c.suggested_next && c.suggested_next.getTime() < now;
+                return (
+                  <li key={c.id} className="relative">
+                    <Link
+                      href={`/dashboard/clients/${c.id}`}
+                      aria-label={`Edit ${c.name}`}
+                      className="absolute inset-0 z-0"
+                    />
+                    <div className="relative z-10 flex flex-col gap-3 p-4 pointer-events-none">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-[#0A0A0A]">{c.name}</p>
+                          <p className="text-[11px] text-[#A3A3A3]">
+                            Since {new Date(c.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <TagPill tag={c.tag} />
+                          {c.marketing_opt_in && (
+                            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                              Marketing ✓
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {(c.email || c.phone) && (
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[#525252] pointer-events-auto">
+                          {c.email && (
                             <a
-                              href={`tel:${c.phone}`}
+                              href={`mailto:${c.email}`}
                               className="flex items-center gap-1 text-xs hover:text-[#B8896B]"
-                              aria-label={`Call ${c.phone}`}
                             >
-                              <Phone size={11} /> {c.phone}
+                              <Mail size={12} /> <span className="truncate">{c.email}</span>
                             </a>
-                            <a
-                              href={`sms:${c.phone}`}
-                              className="flex items-center gap-1 text-[11px] text-[#737373] hover:text-[#B8896B]"
-                              aria-label={`Text ${c.phone}`}
-                              title="Send text message"
-                            >
-                              <MessageSquare size={11} /> Text
-                            </a>
-                          </div>
+                          )}
+                          {c.phone && (
+                            <>
+                              <a
+                                href={`tel:${c.phone}`}
+                                className="flex items-center gap-1 text-xs hover:text-[#B8896B]"
+                                aria-label={`Call ${c.phone}`}
+                              >
+                                <Phone size={12} /> {c.phone}
+                              </a>
+                              <a
+                                href={`sms:${c.phone}`}
+                                className="flex items-center gap-1 text-[11px] text-[#737373] hover:text-[#B8896B]"
+                                aria-label={`Text ${c.phone}`}
+                              >
+                                <MessageSquare size={12} /> Text
+                              </a>
+                            </>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px] text-[#737373]">
+                        <span>
+                          <span className="font-medium text-[#0A0A0A]">{c.booking_count}</span>{" "}
+                          visit{c.booking_count === 1 ? "" : "s"}
+                          {c.total_spent_cents > 0 && (
+                            <> · {formatCents(c.total_spent_cents)}</>
+                          )}
+                        </span>
+                        {c.last_end_at && (
+                          <span>
+                            Last {new Date(c.last_end_at).toLocaleDateString()}
+                          </span>
+                        )}
+                        {c.suggested_next && (
+                          <span className={overdue ? "font-semibold text-amber-700" : ""}>
+                            Next {c.suggested_next.toLocaleDateString()}
+                            {overdue && " (overdue)"}
+                          </span>
                         )}
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                          c.tag === "VIP" ? "bg-amber-50 text-amber-800" :
-                          c.tag === "Regular" ? "bg-emerald-50 text-emerald-800" :
-                          c.tag === "New" ? "bg-sky-50 text-sky-800" :
-                          "bg-[#FAFAF9] text-[#737373]"
-                        }`}
-                      >
-                        {c.tag}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {c.marketing_opt_in ? (
-                        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
-                          Opted in ✓
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-[#A3A3A3]">No marketing</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right font-medium">{c.booking_count}</td>
-                    <td className="px-4 py-3 text-right font-medium">{formatCents(c.total_spent_cents)}</td>
-                    <td className="px-4 py-3 text-xs text-[#525252]">
-                      {c.last_end_at ? new Date(c.last_end_at).toLocaleDateString() : "—"}
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      {c.suggested_next ? (
-                        <span className={overdue ? "font-semibold text-amber-700" : "text-[#525252]"}>
-                          {c.suggested_next.toLocaleDateString()}
-                          {overdue && " (overdue)"}
-                        </span>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
+
                       {c.email && c.last_end_at && (
-                        <ClientRowActions clientId={c.id} />
+                        <div className="pointer-events-auto">
+                          <ClientRowActions clientId={c.id} />
+                        </div>
                       )}
-                    </td>
-                  </tr>
+                    </div>
+                  </li>
                 );
               })}
-            </tbody>
-          </table>
+            </ul>
+          </>
         )}
       </div>
 
@@ -271,5 +373,18 @@ export default async function ClientsPage({ searchParams }: Props) {
         . Clients can unsubscribe from rebook reminders anytime.
       </p>
     </div>
+  );
+}
+
+function TagPill({ tag }: { tag: ClientWithAgg["tag"] }) {
+  const cls =
+    tag === "VIP" ? "bg-amber-50 text-amber-800" :
+    tag === "Regular" ? "bg-emerald-50 text-emerald-800" :
+    tag === "New" ? "bg-sky-50 text-sky-800" :
+    "bg-[#FAFAF9] text-[#737373]";
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${cls}`}>
+      {tag}
+    </span>
   );
 }

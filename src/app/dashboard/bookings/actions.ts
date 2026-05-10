@@ -7,8 +7,32 @@ import { checkBookingOverlap } from "@/lib/booking-overlap";
 import type { DailyBreakBlock } from "@/lib/booking-slots";
 import { notifyBookingConfirmed } from "@/lib/booking-notify";
 import { formatCents } from "@/lib/types";
+import { fillEmptyClientFields } from "@/lib/clients/fill-empty";
+import { normalizeToE164 } from "@/lib/sms";
 
-type ActionResult = { error: string } | { success: true };
+/**
+ * Returned by createManualBooking when the booking saved successfully
+ * but the pro typed name/phone values that conflicted with the
+ * existing client's curated record. The form surfaces this as an
+ * inline notice ("This client's phone is on file as X — edit them
+ * directly to change it") with a link to the client edit page.
+ *
+ * Phone is the only field this notice was specifically requested for
+ * (consent implications), but we surface name and notes too since
+ * detecting the case is free here.
+ */
+export type SuppressedClientFields = {
+  client_id: string;
+  fields: {
+    name?: { existing: string };
+    phone?: { existing: string };
+    notes?: { existing: string };
+  };
+};
+
+type ActionResult =
+  | { error: string }
+  | { success: true; suppressed?: SuppressedClientFields };
 
 export async function createManualBooking(formData: FormData): Promise<ActionResult> {
   const supabase = await createClient();
@@ -97,22 +121,60 @@ export async function createManualBooking(formData: FormData): Promise<ActionRes
     };
   }
 
-  // Upsert client by email when provided; otherwise create a phone-only
-  // (or name-only) client row. Mirrors the public route's client handling.
+  // Upsert client by email when provided; otherwise create a
+  // phone-only (or name-only) client row. Mirrors the public route's
+  // fill-empty-only handling — see src/lib/clients/fill-empty.ts.
+  // The pro intentionally types client info here, but the booking
+  // flow is no longer the place to mutate an existing client record;
+  // changes happen on /dashboard/clients/[id] instead. We surface a
+  // notice via `suppressed` so the form can link the pro there.
   let clientId: string | null = null;
+  let suppressed: SuppressedClientFields | undefined;
   if (clientEmail) {
     const { data: existing } = await supabase
       .from("clients")
-      .select("id")
+      .select("id, name, phone, notes")
       .eq("business_id", business.id)
       .ilike("email", clientEmail)
       .maybeSingle();
     if (existing) {
-      clientId = existing.id;
-      await supabase
-        .from("clients")
-        .update({ name: clientName, phone: clientPhone })
-        .eq("id", clientId);
+      clientId = (existing as { id: string }).id;
+      // Normalize the pro's typed phone before comparing — they might
+      // type "404-555-1234" against an existing "+14045551234" and
+      // we don't want a cosmetic difference to flip suppression on.
+      const normalizedPhone = clientPhone ? normalizeToE164(clientPhone) ?? clientPhone : null;
+      const existingFields = existing as {
+        id: string;
+        name: string | null;
+        phone: string | null;
+        notes: string | null;
+      };
+      const { patch, suppressed: suppressedFields } = fillEmptyClientFields(
+        {
+          name: existingFields.name,
+          phone: existingFields.phone ? normalizeToE164(existingFields.phone) ?? existingFields.phone : null,
+          notes: existingFields.notes,
+        },
+        { name: clientName, phone: normalizedPhone },
+      );
+      if (Object.keys(patch).length > 0) {
+        await supabase
+          .from("clients")
+          .update(patch)
+          .eq("id", clientId);
+      }
+      const suppressedKeys = Object.keys(suppressedFields) as Array<"name" | "phone" | "notes">;
+      if (suppressedKeys.length > 0) {
+        suppressed = {
+          client_id: clientId,
+          fields: Object.fromEntries(
+            suppressedKeys.map((k) => [
+              k,
+              { existing: suppressedFields[k]!.existing },
+            ]),
+          ) as SuppressedClientFields["fields"],
+        };
+      }
     } else {
       const { data: created } = await supabase
         .from("clients")
@@ -192,5 +254,5 @@ export async function createManualBooking(formData: FormData): Promise<ActionRes
   }
 
   revalidatePath("/dashboard/bookings");
-  return { success: true };
+  return suppressed ? { success: true, suppressed } : { success: true };
 }

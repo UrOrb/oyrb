@@ -10,6 +10,7 @@ import {
   REFERRAL_COOKIE_NAME,
 } from "@/lib/referrer-classifier";
 import { sanitizeSurveyResponse } from "@/lib/survey-options";
+import { fillEmptyClientFields } from "@/lib/clients/fill-empty";
 
 type BookingPayload = {
   business_id: string;
@@ -163,11 +164,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Upsert client
+  // Upsert client. The lookup pulls the existing name/phone/notes so
+  // the fill-empty-only helper can preserve any pro-curated values
+  // (the dashboard edit page is the only intended write path for
+  // changes after the first booking — see src/lib/clients/fill-empty.ts).
   let clientId: string | null = null;
   const { data: existingClient } = await supabase
     .from("clients")
-    .select("id")
+    .select("id, name, phone, notes")
     .eq("business_id", body.business_id)
     .ilike("email", body.email)
     .maybeSingle();
@@ -189,15 +193,23 @@ export async function POST(request: NextRequest) {
 
   if (existingClient) {
     clientId = existingClient.id;
-    await supabase
-      .from("clients")
-      .update({
+    const { patch } = fillEmptyClientFields(
+      existingClient as { name: string | null; phone: string | null; notes: string | null },
+      {
         name: body.name,
         phone: body.phone ?? null,
         notes: body.notes ?? null,
-        ...consentFields,
-      })
-      .eq("id", clientId);
+      },
+    );
+    // Skip the UPDATE when nothing changed AND no consent fields were
+    // captured this booking — saves a round trip on the common case
+    // (returning client whose curated data is already correct).
+    if (Object.keys(patch).length > 0 || Object.keys(consentFields).length > 0) {
+      await supabase
+        .from("clients")
+        .update({ ...patch, ...consentFields })
+        .eq("id", clientId);
+    }
   } else {
     const { data: newClient } = await supabase
       .from("clients")
