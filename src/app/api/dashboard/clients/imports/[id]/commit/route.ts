@@ -8,6 +8,8 @@ import {
   type ParsedRow,
 } from "@/lib/client-imports/row-parser";
 import { mergeClientRecord } from "@/lib/client-imports/merge";
+import { CONSENT_AFFIRMATION_VERSION } from "@/lib/client-imports/consent-affirmation";
+import { ipFromRequest } from "@/lib/rate-limit";
 import type {
   DuplicateAction,
   ImportColumnMapping,
@@ -32,8 +34,13 @@ import type {
  * Side-effect surface area: clients.insert only. No emails sent, no
  * Stripe customers, no welcome flow, no marketing/SMS consent flips.
  * Imported clients land with marketing_opt_in=false and
- * sms_consent=false — PR 5 will add a consent-affirmation checkbox
- * that lets the pro flip these per-row, but PR 3 hardcodes false.
+ * sms_consent=false. The PR 5 consent affirmation GATES this commit
+ * (frontend modal + backend `consent_affirmed: true` body check) but
+ * does NOT grant any consent — imported clients still receive zero
+ * messages until the pro explicitly opts each one in via the
+ * per-client edit page or one of the booking flows. The audit
+ * trail captures who affirmed, when, from where, and against which
+ * version of the affirmation copy (mig 053).
  *
  * Concurrency: the status transition `pending_review → committed`
  * is gated by the `.eq("status", "pending_review")` filter on the
@@ -46,7 +53,7 @@ import type {
 const INSERT_BATCH_SIZE = 500;
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
@@ -56,6 +63,29 @@ export async function POST(
   if (!user) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+
+  // Read and validate the consent affirmation BEFORE any DB work. If
+  // the body is missing the flag — e.g., a hand-crafted curl call
+  // skipping the modal — refuse before we even hit the import row.
+  // The frontend modal is the friendly path; this is the
+  // backend-enforced legal floor.
+  let body: { consent_affirmed?: unknown } = {};
+  try {
+    body = (await request.json()) as { consent_affirmed?: unknown };
+  } catch {
+    return NextResponse.json(
+      { error: "consent_affirmation_required" },
+      { status: 400 },
+    );
+  }
+  if (body.consent_affirmed !== true) {
+    return NextResponse.json(
+      { error: "consent_affirmation_required" },
+      { status: 400 },
+    );
+  }
+  const affirmationIp = ipFromRequest(request);
+  const affirmationUserAgent = request.headers.get("user-agent")?.slice(0, 500) ?? null;
 
   const admin = createAdminClient();
 
@@ -229,6 +259,18 @@ export async function POST(
         // from an earlier failed attempt that's been kept around.
         error_summary: null,
         failed_at: null,
+        // Consent affirmation audit (PR 5). Written into the same
+        // atomic claim UPDATE so a successful claim ALWAYS carries a
+        // complete affirmation record — there's no observable state
+        // where status='committed' but the affirmation columns are
+        // null. The legacy boolean stays true for cheap "was it
+        // affirmed at all?" checks.
+        consent_affirmed: true,
+        consent_affirmed_at: claimedAt,
+        consent_affirmed_by_user_id: user.id,
+        consent_affirmation_ip: affirmationIp,
+        consent_affirmation_user_agent: affirmationUserAgent,
+        consent_affirmation_version: CONSENT_AFFIRMATION_VERSION,
       })
       .eq("id", id)
       .eq("status", "pending_review")
@@ -358,9 +400,13 @@ async function markFailed(
  * shape regardless of whether the row was originally `valid` or a
  * `duplicate` flagged for `create_anyway` — both go through here.
  *
- * `marketing_opt_in` and `sms_consent` are hardcoded to false per
- * the Phase 7 spec; PR 5 will surface a per-import affirmation
- * checkbox that flips marketing_opt_in to true if the pro confirms.
+ * `marketing_opt_in` and `sms_consent` are hardcoded to false. The
+ * PR 5 consent affirmation gates the entire commit but does NOT
+ * flip per-row consent — the affirmation attests to legitimate
+ * collection, not platform-level opt-in. Pros enable per-client
+ * marketing/SMS via the booking widget, magic-link flow, or the
+ * per-client edit page (PR #52). See
+ * src/lib/client-imports/consent-affirmation.ts.
  */
 function buildInsert(
   businessId: string,

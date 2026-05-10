@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, AlertCircle, Loader2, Undo2, RefreshCw } from "lucide-react";
+import { CheckCircle2, AlertCircle, Loader2, Undo2, RefreshCw, ShieldCheck, X } from "lucide-react";
 import type {
   ClientImport,
   DuplicateAction,
@@ -10,6 +10,12 @@ import type {
   ImportPreviewRow,
   ImportTargetField,
 } from "@/lib/client-imports/types";
+import {
+  CONSENT_AFFIRMATIONS,
+  CONSENT_CHECKBOXES,
+  CONSENT_COMMITMENTS,
+  CONSENT_PLATFORM_BEHAVIOR,
+} from "@/lib/client-imports/consent-affirmation";
 
 const ROLLBACK_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 // Per-row duplicate-action saves debounce by 500ms so rapid clicks
@@ -61,7 +67,17 @@ const STATUS_PILLS: Record<ImportPreviewRow["status"], string> = {
  *   - Duplicate-action edits PATCH on debounce — local state mirrors
  *     server state with optimistic update.
  */
-export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) {
+export function ImportPreviewClient({
+  importRow,
+  viewer,
+}: {
+  importRow: ClientImport;
+  /** The currently-signed-in user. Used by the committed-state audit
+   *  strip to render "Imported by you" vs. "Imported by another team
+   *  member" — multi-user pro accounts are post-v1 but the audit row
+   *  records the affirming user separately, so the UI is ready. */
+  viewer: { id: string; email: string | null };
+}) {
   const router = useRouter();
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
@@ -72,6 +88,12 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
   const [reparsing, setReparsing] = useState(false);
   const [reparseError, setReparseError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+
+  // Consent affirmation modal state (PR 5). Opens when the pro hits
+  // Confirm; the modal owns its own checkbox state and only fires
+  // the actual commit after both checkboxes are ticked + the pro
+  // explicitly clicks the modal's confirm button.
+  const [showAffirmation, setShowAffirmation] = useState(false);
 
   const previewRows = importRow.preview_data ?? [];
   const total = importRow.total_rows ?? 0;
@@ -284,13 +306,32 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
     }
   };
 
-  const onCommit = async () => {
+  // The Confirm button on the sticky footer opens the affirmation
+  // modal; the modal's own confirm button calls runCommit. This
+  // structurally separates "I want to import" from "I attest to the
+  // affirmation" — friction is the feature here.
+  const openAffirmation = () => {
+    if (!isReviewable) return;
+    setCommitError(null);
+    setShowAffirmation(true);
+  };
+  const closeAffirmation = () => {
+    setShowAffirmation(false);
+  };
+
+  const runCommit = async () => {
     if (!isReviewable) return;
     setCommitError(null);
     setCommitting(true);
     try {
       const res = await fetch(`/api/dashboard/clients/imports/${importRow.id}/commit`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // The body's consent_affirmed flag is the backend's defensive
+        // floor — even if the modal were bypassed, the route refuses
+        // without this. Frontend sends it from the modal's confirm
+        // handler so the path of least resistance is the legal one.
+        body: JSON.stringify({ consent_affirmed: true }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -298,10 +339,13 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
           json?.message ?? errorCopy(json?.error) ?? "Import failed. Try again.";
         throw new Error(msg);
       }
+      setShowAffirmation(false);
       startTransition(() => router.refresh());
     } catch (e) {
       setCommitError(e instanceof Error ? e.message : "Import failed.");
       setCommitting(false);
+      // Leave the modal open on error so the pro can retry without
+      // losing their checkbox state.
     }
   };
 
@@ -598,6 +642,7 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
                   ? `You can undo this import for ${undoDaysRemaining} more day${undoDaysRemaining === 1 ? "" : "s"}.`
                   : "The 7-day undo window has expired."}
             </p>
+            <AffirmationAuditStrip importRow={importRow} viewer={viewer} />
           </div>
         </div>
       )}
@@ -671,7 +716,7 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
               <button
                 type="button"
                 disabled={committing || cancelling || reparsing || totalToWrite === 0}
-                onClick={onCommit}
+                onClick={openAffirmation}
                 title={totalToWrite === 0 ? "No rows to import." : undefined}
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-[#0A0A0A] px-4 py-2 text-sm text-white transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-40"
               >
@@ -695,7 +740,206 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
           )}
         </div>
       </div>
+
+      {showAffirmation && (
+        <ConsentAffirmationModal
+          totalToWrite={totalToWrite}
+          validToCreate={validToCreate}
+          mergeCount={mergeCount}
+          submitting={committing}
+          submitError={commitError}
+          onCancel={closeAffirmation}
+          onConfirm={runCommit}
+        />
+      )}
     </>
+  );
+}
+
+/**
+ * Pre-commit affirmation modal. Mirrors the SMS-consent reset modal
+ * pattern from PR #52 (fixed-position overlay + role="dialog" +
+ * state-driven render). Two checkboxes — both must be ticked before
+ * the primary action enables. Cancel returns the pro to the preview
+ * with no audit row written. Submit hands off to runCommit, which
+ * sends `consent_affirmed: true` to the gated commit endpoint.
+ *
+ * Why a modal and not an in-page step: the affirmation is a distinct
+ * legal beat — separating it visually from the preview review keeps
+ * the moments structurally separate. Friction is the feature.
+ */
+function ConsentAffirmationModal({
+  totalToWrite,
+  validToCreate,
+  mergeCount,
+  submitting,
+  submitError,
+  onCancel,
+  onConfirm,
+}: {
+  totalToWrite: number;
+  validToCreate: number;
+  mergeCount: number;
+  submitting: boolean;
+  submitError: string | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const [checks, setChecks] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(CONSENT_CHECKBOXES.map((c) => [c.id, false])),
+  );
+  const allChecked = CONSENT_CHECKBOXES.every((c) => checks[c.id] === true);
+
+  const buttonLabel = mergeCount > 0
+    ? `Confirm and import ${validToCreate} new + ${mergeCount} merge${mergeCount === 1 ? "" : "s"}`
+    : `Confirm and import ${totalToWrite} client${totalToWrite === 1 ? "" : "s"}`;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/40 p-4 sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="consent-affirmation-title"
+    >
+      <div className="w-full max-w-xl overflow-hidden rounded-lg border border-[#E7E5E4] bg-white shadow-xl">
+        <div className="flex items-start justify-between border-b border-[#E7E5E4] px-5 py-4">
+          <div className="flex items-center gap-2">
+            <ShieldCheck size={16} strokeWidth={1.5} className="text-[#B8896B]" />
+            <h3
+              id="consent-affirmation-title"
+              className="font-display text-base font-medium text-[#0A0A0A]"
+            >
+              Before we add these clients to your database
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={submitting}
+            aria-label="Close"
+            className="text-[#737373] hover:text-[#0A0A0A] disabled:opacity-50"
+          >
+            <X size={16} strokeWidth={1.5} />
+          </button>
+        </div>
+
+        <div className="space-y-4 px-5 py-4 text-sm text-[#525252]">
+          <p>
+            By importing these{" "}
+            <span className="font-medium text-[#0A0A0A]">{totalToWrite}</span>{" "}
+            client{totalToWrite === 1 ? "" : "s"}, you confirm:
+          </p>
+          <ul className="list-disc space-y-1.5 pl-5">
+            {CONSENT_AFFIRMATIONS.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+
+          <p className="pt-1">You agree to:</p>
+          <ul className="list-disc space-y-1.5 pl-5">
+            {CONSENT_COMMITMENTS.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+
+          <p className="rounded-md bg-[#FAFAF9] px-3 py-2 text-xs text-[#525252]">
+            {CONSENT_PLATFORM_BEHAVIOR}
+          </p>
+
+          <div className="space-y-2.5 border-t border-[#E7E5E4] pt-4">
+            {CONSENT_CHECKBOXES.map((box) => (
+              <label
+                key={box.id}
+                htmlFor={`affirm-${box.id}`}
+                className="flex cursor-pointer items-start gap-2.5 text-sm text-[#0A0A0A]"
+              >
+                <input
+                  id={`affirm-${box.id}`}
+                  type="checkbox"
+                  checked={!!checks[box.id]}
+                  disabled={submitting}
+                  onChange={(e) =>
+                    setChecks((prev) => ({ ...prev, [box.id]: e.target.checked }))
+                  }
+                  className="mt-0.5 h-4 w-4 rounded border-[#E7E5E4]"
+                />
+                <span>{box.label}</span>
+              </label>
+            ))}
+          </div>
+
+          {submitError && (
+            <p className="rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-800">
+              {submitError}
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-col-reverse gap-2 border-t border-[#E7E5E4] bg-[#FAFAF9] px-5 py-4 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={submitting}
+            className="inline-flex items-center justify-center rounded-md border border-[#E7E5E4] bg-white px-4 py-2 text-sm text-[#525252] hover:bg-[#F5F5F4] disabled:opacity-50"
+          >
+            Back to preview
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={!allChecked || submitting}
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-[#0A0A0A] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {submitting && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />}
+            {submitting ? "Importing…" : buttonLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Audit-trail strip displayed inside the committed banner. Surfaces
+ * the consent affirmation record (who clicked through, when, from
+ * where, against which copy version) so the pro can self-serve a
+ * compliance review without leaving the page. Falls back gracefully
+ * for legacy committed imports from before mig 053 — those rows
+ * have null audit columns and the strip just hides itself.
+ */
+function AffirmationAuditStrip({
+  importRow,
+  viewer,
+}: {
+  importRow: ClientImport;
+  viewer: { id: string; email: string | null };
+}) {
+  if (!importRow.consent_affirmed_at) return null;
+
+  const affirmedDate = new Date(importRow.consent_affirmed_at);
+  const isViewerTheAffirmer = importRow.consent_affirmed_by_user_id === viewer.id;
+  const whoLabel = isViewerTheAffirmer
+    ? viewer.email ?? "you"
+    : "another team member";
+
+  return (
+    <p className="mt-2 border-t border-emerald-100/70 pt-2 text-[11px] text-emerald-900/80">
+      Affirmed by <span className="font-medium">{whoLabel}</span> on{" "}
+      {affirmedDate.toLocaleDateString()} at{" "}
+      {affirmedDate.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+      {importRow.consent_affirmation_ip && (
+        <> · {importRow.consent_affirmation_ip}</>
+      )}
+      {importRow.consent_affirmation_version != null && (
+        <> · affirmation v{importRow.consent_affirmation_version}</>
+      )}
+      {importRow.consent_affirmation_user_agent && (
+        <>
+          {" "}
+          · <span title={importRow.consent_affirmation_user_agent}>UA captured</span>
+        </>
+      )}
+    </p>
   );
 }
 
@@ -761,6 +1005,8 @@ function errorCopy(code: string | undefined): string | null {
       return "A merge update failed mid-commit. Check your client list and contact support if anything looks off.";
     case "commit_failed":
       return "Import failed unexpectedly. Try again or contact support.";
+    case "consent_affirmation_required":
+      return "Consent affirmation is required before import. Please tick both boxes and try again.";
     case "reparse_error":
       return "Re-parse failed. Refresh and try again.";
     case "not_found":

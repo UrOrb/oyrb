@@ -101,6 +101,19 @@ export type ClientImport = {
   preview_data: ImportPreviewRow[] | null;
   errors: ImportError[] | null;
   consent_affirmed: boolean;
+  // Audit columns added in migration 053 (PR 5). Null until the pro
+  // clicks through the affirmation modal and the commit succeeds.
+  // consent_affirmed_at is the moment the affirmation was clicked
+  // through; consent_affirmed_by_user_id is who clicked (may differ
+  // from initiated_by_user_id once multi-user pro accounts ship).
+  // consent_affirmation_version pins the legal copy the pro saw — see
+  // src/lib/client-imports/consent-affirmation.ts for the current
+  // version's text. ip + user_agent captured for compliance evidence.
+  consent_affirmed_at: string | null;
+  consent_affirmed_by_user_id: string | null;
+  consent_affirmation_ip: string | null;
+  consent_affirmation_user_agent: string | null;
+  consent_affirmation_version: number | null;
   // Audit columns added in migration 051 (PR 3). Populated by the
   // commit / rollback / cron-sweep routes; null until the relevant
   // transition runs.
