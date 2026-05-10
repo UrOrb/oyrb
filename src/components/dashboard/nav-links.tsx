@@ -9,6 +9,7 @@ import {
   Scissors,
   CalendarDays,
   Users,
+  Upload,
   Clock,
   Mail,
   CreditCard,
@@ -41,6 +42,7 @@ const NAV: NavItem[] = [
   { label: "Trusted Pros", href: "/dashboard/pass-the-torch", icon: Flame, badgeKey: "pendingTrustedPros" },
   { label: "Waitlist", href: "/dashboard/waitlist", icon: Clock },
   { label: "Clients", href: "/dashboard/clients", icon: Users },
+  { label: "Imports", href: "/dashboard/clients/imports", icon: Upload },
   { label: "Marketing", href: "/dashboard/marketing", icon: Mail },
   { label: "Payments", href: "/dashboard/payments", icon: CreditCard },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
@@ -61,6 +63,25 @@ export function DashboardNavLinks({ pendingTrustedPros = 0, onNavigate }: Props)
     pendingTrustedPros,
   };
 
+  // Pick exactly one active item by longest-prefix match, so a
+  // sub-route like /dashboard/clients/imports doesn't simultaneously
+  // light up both "Clients" and "Imports" — only the most-specific
+  // entry wins. Dashboard root is exact-only (any /dashboard/* would
+  // otherwise share its prefix). Sub-routes still highlight their
+  // parent if no more-specific entry matches, which is what keeps
+  // /dashboard/settings/booking-rules under "Settings".
+  const activeHref = (() => {
+    if (pathname === "/dashboard") return "/dashboard";
+    let best: string | null = null;
+    for (const { href } of NAV) {
+      if (href === "/dashboard") continue;
+      if (pathname === href || pathname.startsWith(`${href}/`)) {
+        if (!best || href.length > best.length) best = href;
+      }
+    }
+    return best;
+  })();
+
   const handleHelp = () => {
     dispatchHelpToggle();
     onNavigate?.();
@@ -70,16 +91,7 @@ export function DashboardNavLinks({ pendingTrustedPros = 0, onNavigate }: Props)
     <>
       <nav className="flex flex-col gap-0.5 p-3 flex-1">
         {NAV.map(({ label, href, icon: Icon, badgeKey }) => {
-          // The Dashboard root needs an exact match (otherwise every
-          // /dashboard/* sub-route would also highlight it). All other
-          // items highlight on their route OR any sub-route — this is
-          // what makes Business Brain's Money / Time / Clients tabs
-          // keep the sidebar entry highlighted, and is a UX
-          // improvement for /dashboard/settings/booking-rules etc.
-          const active =
-            href === "/dashboard"
-              ? pathname === "/dashboard"
-              : pathname === href || pathname.startsWith(`${href}/`);
+          const active = href === activeHref;
           const badge = badgeKey ? badges[badgeKey] : 0;
           return (
             <Link
