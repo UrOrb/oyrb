@@ -18,6 +18,15 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
  * { error: "rollback_blocked_bookings_exist", count: N } and the pro
  * goes through support for manual cleanup.
  *
+ * Defensive merge guard (PR 4): if any duplicate rows were committed
+ * with the "merge" action (clients_merged > 0), rollback refuses with
+ * 409 { error: "rollback_blocked_merges_present", count: N }. We
+ * don't snapshot pre-merge client state, so undoing a merge would
+ * either delete a pre-existing client (wrong — they pre-date the
+ * import) or leave the merged data in place with the audit trail
+ * removed (wrong — silently keeps the change). Refusing is the
+ * cleanest defensive choice; pro contacts support for manual undo.
+ *
  * Why 7 days specifically: balances "oh I made a mistake" recovery
  * against "the pro has interacted with these clients now, undoing
  * silently is destructive." Industry-standard soft-undo window.
@@ -41,7 +50,9 @@ export async function POST(
 
   const { data: importRow } = await admin
     .from("client_imports")
-    .select("id, business_id, status, committed_at, businesses(owner_id)")
+    .select(
+      "id, business_id, status, committed_at, clients_merged, businesses(owner_id)",
+    )
     .eq("id", id)
     .maybeSingle();
 
@@ -50,6 +61,7 @@ export async function POST(
     business_id: string;
     status: string;
     committed_at: string | null;
+    clients_merged: number | null;
     businesses: { owner_id: string } | null;
   } | null;
 
@@ -70,6 +82,21 @@ export async function POST(
     return NextResponse.json(
       { error: "rollback_window_expired" },
       { status: 410 },
+    );
+  }
+
+  // Merge guard (PR 4 decision A). Refuse rollback when any rows
+  // were committed via merge — we can't auto-undo merges without
+  // snapshotting pre-merge state. Cheaper than a per-row scan: the
+  // commit route writes clients_merged on success, so a single
+  // column read is enough.
+  if ((row.clients_merged ?? 0) > 0) {
+    return NextResponse.json(
+      {
+        error: "rollback_blocked_merges_present",
+        count: row.clients_merged,
+      },
+      { status: 409 },
     );
   }
 

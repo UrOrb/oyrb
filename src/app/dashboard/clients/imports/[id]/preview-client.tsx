@@ -1,11 +1,22 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, AlertCircle, Loader2, Info, Undo2 } from "lucide-react";
-import type { ClientImport, ImportPreviewRow, ImportTargetField } from "@/lib/client-imports/types";
+import { CheckCircle2, AlertCircle, Loader2, Undo2, RefreshCw } from "lucide-react";
+import type {
+  ClientImport,
+  DuplicateAction,
+  ImportColumnMapping,
+  ImportPreviewRow,
+  ImportTargetField,
+} from "@/lib/client-imports/types";
 
 const ROLLBACK_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+// Per-row duplicate-action saves debounce by 500ms so rapid clicks
+// don't generate a request per click. Picked to match what feels
+// instantaneous to a human (~250ms) plus a buffer for in-flight
+// double-clicks.
+const DUP_ACTION_DEBOUNCE_MS = 500;
 
 const TARGET_FIELDS: Array<{ value: ImportTargetField; label: string }> = [
   { value: "name", label: "Name" },
@@ -13,6 +24,12 @@ const TARGET_FIELDS: Array<{ value: ImportTargetField; label: string }> = [
   { value: "phone", label: "Phone" },
   { value: "notes", label: "Notes" },
   { value: "ignore", label: "Ignore" },
+];
+
+const DUPLICATE_ACTIONS: Array<{ value: DuplicateAction; label: string }> = [
+  { value: "skip", label: "Skip" },
+  { value: "merge", label: "Merge with existing" },
+  { value: "create_anyway", label: "Create new anyway" },
 ];
 
 const STATUS_TINTS: Record<ImportPreviewRow["status"], string> = {
@@ -27,16 +44,22 @@ const STATUS_PILLS: Record<ImportPreviewRow["status"], string> = {
 };
 
 /**
- * Preview surface for a parsed import. Three sections stacked:
+ * Preview surface for a parsed import. Sections stacked top-to-bottom:
  *   - Vendor banner (auto-detect result)
- *   - Column mapping (read-only in PR 2 — editable in PR 4)
+ *   - Column mapping (editable; pro can override + re-parse)
  *   - Sample-row preview table (50-row cap)
  *
  * Footer actions vary by status:
  *   - pending_review → Cancel + Confirm
- *   - committed within 7 days → Undo import (PR 3 rollback)
+ *   - committed within 7 days → Undo import (rollback)
  *   - committed past 7 days → "Rollback window expired" (read-only)
  *   - rolled_back / cancelled / failed → state banner, no action
+ *
+ * Local state vs. server state:
+ *   - Mapping edits are local until "Re-parse with new mapping" is
+ *     clicked. The stored column_mapping on importRow is the truth.
+ *   - Duplicate-action edits PATCH on debounce — local state mirrors
+ *     server state with optimistic update.
  */
 export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) {
   const router = useRouter();
@@ -46,6 +69,8 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
   const [commitError, setCommitError] = useState<string | null>(null);
   const [rolling, setRolling] = useState(false);
   const [rollError, setRollError] = useState<string | null>(null);
+  const [reparsing, setReparsing] = useState(false);
+  const [reparseError, setReparseError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   const previewRows = importRow.preview_data ?? [];
@@ -60,15 +85,8 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
   const isRolledBack = importRow.status === "rolled_back";
   const isFailed = importRow.status === "failed";
 
-  // Rollback affordance is gated on a 7-day window from committed_at.
-  // Mirrors the server-side check in the rollback route — surfacing
-  // the same constraint in the UI keeps the pro from clicking a
-  // button that's about to 410 on them.
-  //
-  // `nowAtMount` is captured once at first render via useState's lazy
-  // init so React's purity rule isn't violated by calling Date.now()
-  // during render. The 7-day window is wide enough that millisecond
-  // drift between mount and the user's eventual click doesn't matter.
+  // Rollback affordance — see PR #50 commentary above for the
+  // useState lazy-init rationale on Date.now().
   const [nowAtMount] = useState(() => Date.now());
   const committedMs = importRow.committed_at
     ? new Date(importRow.committed_at).getTime()
@@ -80,6 +98,170 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
     undoEligible && msSinceCommit !== null
       ? Math.max(1, Math.ceil((ROLLBACK_WINDOW_MS - msSinceCommit) / (24 * 60 * 60 * 1000)))
       : 0;
+
+  // ── Local mapping draft state ──────────────────────────────────
+  // The parent (page.tsx) keys this component by importRow.parsed_at,
+  // so a re-parse causes a fresh mount and the lazy initializer below
+  // re-seeds from the new prop. No prop-sync effect needed.
+  const [mappingDraft, setMappingDraft] = useState<ImportColumnMapping>(
+    () => ({ ...(importRow.column_mapping ?? {}) }),
+  );
+
+  const mappingDirty = useMemo(
+    () => !mappingsEqual(mappingDraft, importRow.column_mapping ?? {}),
+    [mappingDraft, importRow.column_mapping],
+  );
+
+  // ── Local duplicate-action state ───────────────────────────────
+  // Mirrors what's persisted in preview_data; PATCH writes update
+  // both local and server. Re-seeds on remount (see key on parent).
+  const [dupActions, setDupActions] = useState<Map<number, DuplicateAction>>(() => {
+    const m = new Map<number, DuplicateAction>();
+    for (const r of previewRows) {
+      if (r.status === "duplicate") {
+        m.set(r.row_index, r.duplicate_action ?? "skip");
+      }
+    }
+    return m;
+  });
+
+  // Per-row save spinners + debounce timers. Indexed by row_index.
+  const [savingRows, setSavingRows] = useState<Set<number>>(new Set());
+  const debounceTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+  // Track the latest pending action per row so a debounced fire
+  // sends the most recent value, not whichever closure captured first.
+  const pendingActions = useRef<Map<number, DuplicateAction>>(new Map());
+
+  // Cleanup any in-flight debounce timers on unmount so they don't
+  // fire against an unmounted component.
+  useEffect(() => {
+    const timers = debounceTimers.current;
+    return () => {
+      for (const t of timers.values()) clearTimeout(t);
+      timers.clear();
+    };
+  }, []);
+
+  // ── Derived UI state ───────────────────────────────────────────
+  const dupActionCounts = useMemo(() => {
+    let merge = 0;
+    let createAnyway = 0;
+    let skip = 0;
+    for (const action of dupActions.values()) {
+      if (action === "merge") merge += 1;
+      else if (action === "create_anyway") createAnyway += 1;
+      else skip += 1;
+    }
+    return { merge, createAnyway, skip };
+  }, [dupActions]);
+
+  const validToCreate = valid + dupActionCounts.createAnyway;
+  const mergeCount = dupActionCounts.merge;
+  const skipCount = dupActionCounts.skip;
+  const totalToWrite = validToCreate + mergeCount;
+
+  // Re-parse warning condition: mapping is dirty AND at least one
+  // duplicate has a non-skip action queued. The pro is about to
+  // discard those selections.
+  const nonSkipActionsCount = dupActionCounts.merge + dupActionCounts.createAnyway;
+  const showReparseWarning = mappingDirty && nonSkipActionsCount > 0;
+
+  // ── Handlers ───────────────────────────────────────────────────
+
+  const onMappingChange = (header: string, target: ImportTargetField) => {
+    setMappingDraft((prev) => ({ ...prev, [header]: target }));
+  };
+
+  const onResetMapping = () => {
+    setMappingDraft({ ...(importRow.column_mapping ?? {}) });
+  };
+
+  const onReparse = async () => {
+    if (!mappingDirty || reparsing) return;
+    setReparseError(null);
+    setReparsing(true);
+    try {
+      const res = await fetch(`/api/dashboard/clients/imports/${importRow.id}/reparse`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ column_mapping: mappingDraft }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = json?.error === "unknown_header"
+          ? `Column "${json.header}" doesn't exist in your file.`
+          : json?.message ?? errorCopy(json?.error) ?? "Re-parse failed.";
+        throw new Error(msg);
+      }
+      // router.refresh re-runs the server component so the new
+      // preview_data + counts come back via importRow prop. Local
+      // state will re-seed via the useEffects above.
+      startTransition(() => router.refresh());
+    } catch (e) {
+      setReparseError(e instanceof Error ? e.message : "Re-parse failed.");
+    } finally {
+      setReparsing(false);
+    }
+  };
+
+  const onDuplicateActionChange = (rowIndex: number, action: DuplicateAction) => {
+    // Optimistic local update — the UI reflects the new action
+    // immediately, the PATCH lands on debounce.
+    setDupActions((prev) => {
+      const next = new Map(prev);
+      next.set(rowIndex, action);
+      return next;
+    });
+    pendingActions.current.set(rowIndex, action);
+
+    const existingTimer = debounceTimers.current.get(rowIndex);
+    if (existingTimer) clearTimeout(existingTimer);
+
+    const timer = setTimeout(async () => {
+      const finalAction = pendingActions.current.get(rowIndex);
+      if (!finalAction) return;
+      pendingActions.current.delete(rowIndex);
+      debounceTimers.current.delete(rowIndex);
+
+      setSavingRows((prev) => {
+        const next = new Set(prev);
+        next.add(rowIndex);
+        return next;
+      });
+      try {
+        const res = await fetch(
+          `/api/dashboard/clients/imports/${importRow.id}/duplicate-action`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ row_index: rowIndex, action: finalAction }),
+          },
+        );
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error(j?.error ?? "save failed");
+        }
+      } catch (e) {
+        // PATCH failure rolls the local state back to the saved
+        // action so the UI doesn't lie about persisted truth.
+        const previous = previewRows.find((r) => r.row_index === rowIndex);
+        const fallback = previous?.duplicate_action ?? "skip";
+        setDupActions((prev) => {
+          const next = new Map(prev);
+          next.set(rowIndex, fallback);
+          return next;
+        });
+        console.error("duplicate-action PATCH failed:", e);
+      } finally {
+        setSavingRows((prev) => {
+          const next = new Set(prev);
+          next.delete(rowIndex);
+          return next;
+        });
+      }
+    }, DUP_ACTION_DEBOUNCE_MS);
+    debounceTimers.current.set(rowIndex, timer);
+  };
 
   const onCancel = async () => {
     if (!isReviewable) return;
@@ -112,16 +294,10 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        // Server's `error` field is a short identifier; surface a
-        // friendlier message based on the known cases. Fall back to
-        // the raw identifier so the pro can quote it to support.
         const msg =
           json?.message ?? errorCopy(json?.error) ?? "Import failed. Try again.";
         throw new Error(msg);
       }
-      // Refresh the route so the server fetches the new committed
-      // state and re-renders with the Undo button. router.refresh()
-      // re-runs the page's server component without a full nav.
       startTransition(() => router.refresh());
     } catch (e) {
       setCommitError(e instanceof Error ? e.message : "Import failed.");
@@ -142,9 +318,11 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
         const msg =
           json?.error === "rollback_blocked_bookings_exist"
             ? `Rollback blocked: ${json.count} booking(s) reference these clients. Contact support to undo manually.`
-            : json?.error === "rollback_window_expired"
-              ? "The 7-day undo window has expired."
-              : json?.message ?? errorCopy(json?.error) ?? "Undo failed.";
+            : json?.error === "rollback_blocked_merges_present"
+              ? `Rollback blocked: ${json.count} client${json.count === 1 ? " was" : "s were"} merged during commit and can't be auto-undone. Contact support to revert manually.`
+              : json?.error === "rollback_window_expired"
+                ? "The 7-day undo window has expired."
+                : json?.message ?? errorCopy(json?.error) ?? "Undo failed.";
         throw new Error(msg);
       }
       startTransition(() => router.refresh());
@@ -206,25 +384,27 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
         </div>
       </div>
 
-      {/* Column mapping — read-only in PR 2 */}
+      {/* Column mapping — editable in PR 4 when reviewable */}
       <section className="mt-6 overflow-hidden rounded-lg border border-[#E7E5E4] bg-white">
         <header className="border-b border-[#E7E5E4] px-5 py-4">
           <h2 className="font-display text-base font-medium text-[#0A0A0A]">Column mapping</h2>
           <p className="mt-1 text-xs text-[#737373]">
             How each column from your file maps to OYRB&rsquo;s client record.
+            {isReviewable && " Change a value to enable re-parsing with the new mapping."}
           </p>
         </header>
         <div className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2">
-          {Object.entries(importRow.column_mapping ?? {}).map(([source, target]) => (
+          {Object.entries(mappingDraft).map(([source, target]) => (
             <div key={source} className="flex items-center gap-3">
               <span className="flex-1 truncate text-sm text-[#0A0A0A]" title={source}>
                 {source}
               </span>
               <span className="text-[#A3A3A3]">→</span>
               <select
-                disabled
+                disabled={!isReviewable || reparsing}
                 value={target}
-                className="rounded-md border border-[#E7E5E4] bg-[#FAFAF9] px-3 py-1.5 text-sm text-[#525252] disabled:cursor-not-allowed"
+                onChange={(e) => onMappingChange(source, e.target.value as ImportTargetField)}
+                className="rounded-md border border-[#E7E5E4] bg-white px-3 py-1.5 text-sm text-[#0A0A0A] disabled:cursor-not-allowed disabled:bg-[#FAFAF9] disabled:text-[#525252]"
               >
                 {TARGET_FIELDS.map((f) => (
                   <option key={f.value} value={f.value}>
@@ -234,16 +414,51 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
               </select>
             </div>
           ))}
-          {Object.keys(importRow.column_mapping ?? {}).length === 0 && (
+          {Object.keys(mappingDraft).length === 0 && (
             <p className="text-sm text-[#A3A3A3]">No columns detected in this file.</p>
           )}
         </div>
-        <div className="flex items-start gap-2 border-t border-[#E7E5E4] bg-[#FAFAF9] px-5 py-3 text-xs text-[#525252]">
-          <Info size={13} strokeWidth={1.5} className="mt-0.5 shrink-0" />
-          <span>
-            Mapping changes require re-import — full editing coming in next update.
-          </span>
-        </div>
+
+        {isReviewable && mappingDirty && (
+          <div className="border-t border-[#E7E5E4] bg-[#FAFAF9] px-5 py-4">
+            {showReparseWarning && (
+              <div className="mb-3 flex items-start gap-2 rounded-md border border-amber-100 bg-amber-50/60 px-3 py-2 text-xs text-amber-900">
+                <AlertCircle size={13} strokeWidth={1.5} className="mt-0.5 shrink-0" />
+                <span>
+                  Re-parsing will reset duplicate actions you&rsquo;ve selected
+                  for {nonSkipActionsCount} row{nonSkipActionsCount === 1 ? "" : "s"}.
+                </span>
+              </div>
+            )}
+            {reparseError && (
+              <div className="mb-3 flex items-start gap-2 rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-800">
+                <AlertCircle size={13} strokeWidth={1.5} className="mt-0.5 shrink-0" />
+                <span>{reparseError}</span>
+              </div>
+            )}
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+              <button
+                type="button"
+                onClick={onResetMapping}
+                disabled={reparsing}
+                className="text-center text-sm text-[#737373] underline-offset-2 transition-colors hover:text-[#0A0A0A] hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Reset to detected mapping
+              </button>
+              <button
+                type="button"
+                onClick={onReparse}
+                disabled={reparsing}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-[#0A0A0A] px-4 py-2 text-sm text-white transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {reparsing
+                  ? <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />
+                  : <RefreshCw size={14} strokeWidth={1.5} />}
+                {reparsing ? "Re-parsing…" : "Re-parse with new mapping"}
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Preview table */}
@@ -269,7 +484,7 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
           <>
             {/* Desktop / wide table */}
             <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[720px] text-sm">
+              <table className="w-full min-w-[820px] text-sm">
                 <thead className="border-b border-[#E7E5E4] bg-[#FAFAF9] text-xs uppercase text-[#737373]">
                   <tr>
                     <th className="px-3 py-2 text-left font-medium">#</th>
@@ -278,6 +493,7 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
                     <th className="px-3 py-2 text-left font-medium">Email</th>
                     <th className="px-3 py-2 text-left font-medium">Phone</th>
                     <th className="px-3 py-2 text-left font-medium">Notes</th>
+                    <th className="px-3 py-2 text-left font-medium">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E7E5E4]">
@@ -296,13 +512,23 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
                         <td className="px-3 py-2 text-xs text-[#737373]" title={row.notes ?? ""}>
                           {row.notes ? truncate(row.notes, 60) : <Empty />}
                         </td>
+                        <td className="px-3 py-2">
+                          {row.status === "duplicate" && isReviewable
+                            ? <DuplicateActionSelect
+                                value={dupActions.get(row.row_index) ?? "skip"}
+                                onChange={(a) => onDuplicateActionChange(row.row_index, a)}
+                                saving={savingRows.has(row.row_index)}
+                                disabled={reparsing}
+                              />
+                            : null}
+                        </td>
                       </tr>
                     );
                     if (!row.errors || row.errors.length === 0) return [main];
                     return [
                       main,
                       <tr key={`${row.row_index}-err`} className={STATUS_TINTS[row.status]}>
-                        <td colSpan={6} className="px-3 pb-2 text-xs text-rose-700">
+                        <td colSpan={7} className="px-3 pb-2 text-xs text-rose-700">
                           {row.errors.join(" · ")}
                         </td>
                       </tr>,
@@ -336,6 +562,16 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
                   {row.errors && row.errors.length > 0 && (
                     <p className="mt-2 text-xs text-rose-700">{row.errors.join(" · ")}</p>
                   )}
+                  {row.status === "duplicate" && isReviewable && (
+                    <div className="mt-3">
+                      <DuplicateActionSelect
+                        value={dupActions.get(row.row_index) ?? "skip"}
+                        onChange={(a) => onDuplicateActionChange(row.row_index, a)}
+                        saving={savingRows.has(row.row_index)}
+                        disabled={reparsing}
+                      />
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
@@ -343,21 +579,24 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
         )}
       </section>
 
-      {/* State banners for terminal states. Shown ABOVE the action
-          footer (which renders different controls per status), so the
-          pro reads "what happened" before "what they can do next". */}
+      {/* State banners for terminal states. */}
       {isCommitted && (
         <div className="mt-6 flex items-start gap-3 rounded-md border border-emerald-100 bg-emerald-50/50 px-4 py-3 text-sm text-emerald-900">
           <CheckCircle2 size={16} strokeWidth={1.5} className="mt-0.5 shrink-0" />
           <div>
             <p className="font-medium">
               {importRow.clients_created ?? 0} client
-              {importRow.clients_created === 1 ? "" : "s"} added to your list
+              {importRow.clients_created === 1 ? "" : "s"} added
+              {(importRow.clients_merged ?? 0) > 0 && (
+                <>, {importRow.clients_merged} merged into existing records</>
+              )}
             </p>
             <p className="mt-0.5 text-xs">
-              {undoEligible
-                ? `You can undo this import for ${undoDaysRemaining} more day${undoDaysRemaining === 1 ? "" : "s"}.`
-                : "The 7-day undo window has expired."}
+              {(importRow.clients_merged ?? 0) > 0
+                ? "Merged rows can't be auto-rolled-back. Contact support if you need to revert them."
+                : undoEligible
+                  ? `You can undo this import for ${undoDaysRemaining} more day${undoDaysRemaining === 1 ? "" : "s"}.`
+                  : "The 7-day undo window has expired."}
             </p>
           </div>
         </div>
@@ -386,6 +625,9 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
               {(importRow.clients_created ?? 0) > 0 && (
                 <> {importRow.clients_created} client{importRow.clients_created === 1 ? "" : "s"} were added before the failure — visible in your client list with this import as their source.</>
               )}
+              {(importRow.clients_merged ?? 0) > 0 && (
+                <> {importRow.clients_merged} merge{importRow.clients_merged === 1 ? "" : "s"} also completed.</>
+              )}
             </p>
           </div>
         </div>
@@ -403,8 +645,13 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
           the pro scrolls the table. */}
       <div className="sticky bottom-0 z-30 mt-6 flex flex-col-reverse gap-3 border-t border-[#E7E5E4] bg-white/95 py-4 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="text-xs text-[#737373]">
-          {isReviewable && `Confirm to add ${valid} valid row${valid === 1 ? "" : "s"} to your client list.`}
-          {isCommitted && undoEligible && `Undo within ${undoDaysRemaining} day${undoDaysRemaining === 1 ? "" : "s"} if needed.`}
+          {isReviewable && <FooterCounts
+            validToCreate={validToCreate}
+            mergeCount={mergeCount}
+            skipCount={skipCount}
+          />}
+          {isCommitted && undoEligible && (importRow.clients_merged ?? 0) === 0 && `Undo within ${undoDaysRemaining} day${undoDaysRemaining === 1 ? "" : "s"} if needed.`}
+          {isCommitted && undoEligible && (importRow.clients_merged ?? 0) > 0 && "Merged rows block auto-rollback — contact support."}
           {isCommitted && !undoEligible && "Rollback window expired."}
           {isRolledBack && "This import has been undone."}
           {isFailed && "Open a new import to try again."}
@@ -414,7 +661,7 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
             <>
               <button
                 type="button"
-                disabled={cancelling || committing}
+                disabled={cancelling || committing || reparsing}
                 onClick={onCancel}
                 className="inline-flex items-center justify-center gap-2 rounded-md border border-[#E7E5E4] px-4 py-2 text-sm text-[#0A0A0A] transition-colors hover:bg-[#F5F5F4] disabled:cursor-not-allowed disabled:opacity-60"
               >
@@ -423,17 +670,17 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
               </button>
               <button
                 type="button"
-                disabled={committing || cancelling || valid === 0}
+                disabled={committing || cancelling || reparsing || totalToWrite === 0}
                 onClick={onCommit}
-                title={valid === 0 ? "No valid rows to import." : undefined}
+                title={totalToWrite === 0 ? "No rows to import." : undefined}
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-[#0A0A0A] px-4 py-2 text-sm text-white transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {committing && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />}
-                {committing ? `Importing ${valid}…` : `Confirm import (${valid})`}
+                {committing ? `Importing ${totalToWrite}…` : `Confirm import (${totalToWrite})`}
               </button>
             </>
           )}
-          {isCommitted && undoEligible && (
+          {isCommitted && undoEligible && (importRow.clients_merged ?? 0) === 0 && (
             <button
               type="button"
               disabled={rolling}
@@ -452,6 +699,54 @@ export function ImportPreviewClient({ importRow }: { importRow: ClientImport }) 
   );
 }
 
+function FooterCounts({
+  validToCreate,
+  mergeCount,
+  skipCount,
+}: {
+  validToCreate: number;
+  mergeCount: number;
+  skipCount: number;
+}) {
+  const parts: string[] = [];
+  parts.push(`${validToCreate} new`);
+  if (mergeCount > 0) parts.push(`${mergeCount} merge${mergeCount === 1 ? "" : "s"}`);
+  if (skipCount > 0) parts.push(`${skipCount} skipped`);
+  return <span>Confirm to import {parts.join(" + ")}.</span>;
+}
+
+function DuplicateActionSelect({
+  value,
+  onChange,
+  saving,
+  disabled,
+}: {
+  value: DuplicateAction;
+  onChange: (a: DuplicateAction) => void;
+  saving: boolean;
+  disabled: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <select
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value as DuplicateAction)}
+        className="rounded-md border border-[#E7E5E4] bg-white px-2 py-1 text-xs text-[#0A0A0A] disabled:cursor-not-allowed disabled:bg-[#FAFAF9] disabled:text-[#525252]"
+      >
+        {DUPLICATE_ACTIONS.map((a) => (
+          <option key={a.value} value={a.value}>
+            {a.label}
+          </option>
+        ))}
+      </select>
+      {saving && (
+        <Loader2 size={11} strokeWidth={1.5} className="animate-spin text-[#A3A3A3]" />
+      )}
+    </div>
+  );
+}
+
 function errorCopy(code: string | undefined): string | null {
   switch (code) {
     case "invalid_state":
@@ -462,8 +757,12 @@ function errorCopy(code: string | undefined): string | null {
       return "Column mapping was lost. Cancel and re-upload.";
     case "insert_failed":
       return "Some rows failed to insert. Check your client list and contact support if anything looks off.";
+    case "merge_failed":
+      return "A merge update failed mid-commit. Check your client list and contact support if anything looks off.";
     case "commit_failed":
       return "Import failed unexpectedly. Try again or contact support.";
+    case "reparse_error":
+      return "Re-parse failed. Refresh and try again.";
     case "not_found":
       return "Import not found.";
     case "unauthorized":
@@ -532,4 +831,15 @@ function labelForVendor(vendor: string): string {
     case "stylesheat": return "StyleSeat";
     default: return "Custom CSV";
   }
+}
+
+/** Shallow equality on two mappings — enough since values are strings. */
+function mappingsEqual(a: ImportColumnMapping, b: ImportColumnMapping): boolean {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+  for (const k of aKeys) {
+    if (a[k] !== b[k]) return false;
+  }
+  return true;
 }

@@ -153,8 +153,8 @@ export async function POST(
       const phoneKey = candidate.phone ?? null;
 
       const isExistingMatch =
-        (emailKey && existing.emails.has(emailKey)) ||
-        (phoneKey && existing.phones.has(phoneKey));
+        (emailKey && existing.byEmail.has(emailKey)) ||
+        (phoneKey && existing.byPhone.has(phoneKey));
       const isWithinFileDup =
         (emailKey && seenEmails.has(emailKey)) ||
         (phoneKey && seenPhones.has(phoneKey));

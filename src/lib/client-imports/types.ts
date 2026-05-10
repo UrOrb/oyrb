@@ -46,7 +46,24 @@ export type ImportPreviewRow = {
   phone: string | null;
   notes: string | null;
   errors?: string[];
+  // Per-duplicate-row override set by the pro at preview time (PR 4).
+  // Only meaningful when status === "duplicate"; ignored otherwise.
+  // Defaults to "skip" when undefined, matching PR 3's silent-skip
+  // behavior so an old preview_data shape stays interpretable.
+  duplicate_action?: DuplicateAction;
 };
+
+/**
+ * What to do with a row flagged as `duplicate` at commit time.
+ *   - `skip` (default) — drop the row, don't touch the existing client
+ *   - `merge` — UPDATE the existing client, combining values per the
+ *               rules in src/lib/client-imports/merge.ts
+ *   - `create_anyway` — INSERT a new client row regardless of the
+ *                       duplicate match
+ *
+ * Persisted inside ImportPreviewRow.duplicate_action (jsonb).
+ */
+export type DuplicateAction = "skip" | "merge" | "create_anyway";
 
 /**
  * Per-row error captured at parse time and surfaced to the pro in
@@ -89,6 +106,11 @@ export type ClientImport = {
   // transition runs.
   clients_created: number | null;
   clients_deleted: number | null;
+  // Populated by /commit (PR 4) when at least one duplicate row had
+  // its action set to "merge". Separate from clients_created because
+  // merges are UPDATEs, not INSERTs, and behave differently on
+  // rollback (rollback refuses when this is > 0).
+  clients_merged: number | null;
   error_summary: string | null;
   created_at: string;
   parsed_at: string | null;

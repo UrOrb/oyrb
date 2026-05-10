@@ -68,7 +68,12 @@ export default async function ClientImportPreviewPage({ params, searchParams }: 
         </Link>
       </div>
 
-      <ImportPreviewClient importRow={importRow} />
+      {/* `key` keyed to parsed_at forces a fresh mount every time the
+          import gets re-parsed (PR 4). The client component's local
+          state — mapping draft, duplicate-action selections — gets
+          re-seeded naturally from the new importRow without needing
+          effect-based prop sync. */}
+      <ImportPreviewClient key={importRow.parsed_at ?? "initial"} importRow={importRow} />
     </div>
   );
 }

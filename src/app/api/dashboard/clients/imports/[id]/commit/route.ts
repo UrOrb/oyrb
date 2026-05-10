@@ -4,9 +4,15 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import {
   normalizeRow,
   loadExistingContacts,
+  type ExistingClientRow,
   type ParsedRow,
 } from "@/lib/client-imports/row-parser";
-import type { ImportColumnMapping } from "@/lib/client-imports/types";
+import { mergeClientRecord } from "@/lib/client-imports/merge";
+import type {
+  DuplicateAction,
+  ImportColumnMapping,
+  ImportPreviewRow,
+} from "@/lib/client-imports/types";
 
 /**
  * Inserts the previously-parsed import into public.clients. This is
@@ -58,7 +64,9 @@ export async function POST(
   // distinguish between them.
   const { data: importRow } = await admin
     .from("client_imports")
-    .select("id, business_id, status, source_path, column_mapping, businesses(owner_id)")
+    .select(
+      "id, business_id, status, source_path, column_mapping, preview_data, businesses(owner_id)",
+    )
     .eq("id", id)
     .maybeSingle();
 
@@ -68,6 +76,7 @@ export async function POST(
     status: string;
     source_path: string | null;
     column_mapping: ImportColumnMapping | null;
+    preview_data: ImportPreviewRow[] | null;
     businesses: { owner_id: string } | null;
   } | null;
 
@@ -108,6 +117,17 @@ export async function POST(
     const seenEmails = new Set<string>();
     const seenPhones = new Set<string>();
 
+    // Per-row duplicate-action overrides come from preview_data
+    // (PR 4). Only the first 50 rows have entries — beyond the
+    // preview cap, a row flagged as duplicate falls back to the
+    // default "skip" behavior. Documented in the PR description.
+    const duplicateActions = new Map<number, DuplicateAction>();
+    for (const previewRow of row.preview_data ?? []) {
+      if (previewRow.duplicate_action) {
+        duplicateActions.set(previewRow.row_index, previewRow.duplicate_action);
+      }
+    }
+
     type InsertRow = {
       business_id: string;
       name: string;
@@ -118,7 +138,12 @@ export async function POST(
       marketing_opt_in: boolean;
       sms_consent: boolean;
     };
+    type MergeWork = { existingId: string; patch: Record<string, unknown> };
     const toInsert: InsertRow[] = [];
+    const toMerge: MergeWork[] = [];
+
+    // Date stamp embedded in merged notes — see merge.ts for format.
+    const mergedAtIso = new Date().toISOString().slice(0, 10);
 
     for (const candidate of normalized) {
       // Validation errors (per the shared normalizeRow) take precedence
@@ -130,31 +155,53 @@ export async function POST(
       const emailKey = candidate.email ?? null;
       const phoneKey = candidate.phone ?? null;
 
-      const isExistingMatch =
-        (emailKey && existing.emails.has(emailKey)) ||
-        (phoneKey && existing.phones.has(phoneKey));
+      const existingMatch: ExistingClientRow | null =
+        (emailKey ? existing.byEmail.get(emailKey) : null) ??
+        (phoneKey ? existing.byPhone.get(phoneKey) : null) ??
+        null;
       const isWithinFileDup =
         (emailKey && seenEmails.has(emailKey)) ||
         (phoneKey && seenPhones.has(phoneKey));
-      if (isExistingMatch || isWithinFileDup) continue;
+      const isDuplicate = existingMatch !== null || isWithinFileDup;
 
-      if (emailKey) seenEmails.add(emailKey);
-      if (phoneKey) seenPhones.add(phoneKey);
+      if (!isDuplicate) {
+        if (emailKey) seenEmails.add(emailKey);
+        if (phoneKey) seenPhones.add(phoneKey);
+        toInsert.push(buildInsert(row.business_id, id, candidate));
+        continue;
+      }
 
-      toInsert.push({
-        business_id: row.business_id,
-        name: candidate.name,
-        email: candidate.email,
-        phone: candidate.phone,
-        notes: candidate.notes,
-        imported_via_id: id,
-        // Hardcoded false per Phase 7 PR 3 spec — imported clients
-        // never receive marketing/SMS until the pro explicitly toggles
-        // consent on each. PR 5 will add a per-import affirmation
-        // checkbox; this PR keeps consent flags closed.
-        marketing_opt_in: false,
-        sms_consent: false,
-      });
+      // Duplicate row. Default action is "skip" — preserves PR 3's
+      // silent-skip behavior for rows beyond the preview cap and for
+      // rows the pro never touched.
+      const action = duplicateActions.get(candidate.row_index) ?? "skip";
+
+      if (action === "skip") continue;
+
+      if (action === "create_anyway") {
+        // Create regardless of the duplicate. The seen* sets are NOT
+        // updated — the pro asked for both records, so a second
+        // duplicate downstream of this one shouldn't suppress itself.
+        toInsert.push(buildInsert(row.business_id, id, candidate));
+        continue;
+      }
+
+      if (action === "merge") {
+        // Merge into the matching existing row. Within-file
+        // duplicates with no DB match are skipped — there's nothing
+        // to merge into until the prior file row is committed, and
+        // we don't insert and merge in the same pass (would double-
+        // count as both `clients_created` and `clients_merged`).
+        if (!existingMatch) continue;
+        const { patch, hasChanges } = mergeClientRecord(
+          existingMatch,
+          candidate,
+          id,
+          mergedAtIso,
+        );
+        if (!hasChanges) continue;
+        toMerge.push({ existingId: existingMatch.id, patch });
+      }
     }
 
     // Atomic claim BEFORE inserting. Flip pending_review → committed
@@ -177,6 +224,7 @@ export async function POST(
         status: "committed",
         committed_at: claimedAt,
         clients_created: 0,
+        clients_merged: 0,
         // Clear any prior failure metadata in case we're recovering
         // from an earlier failed attempt that's been kept around.
         error_summary: null,
@@ -222,16 +270,52 @@ export async function POST(
       createdTotal += inserted?.length ?? chunk.length;
     }
 
-    // Update clients_created to the real count now that all batches
-    // finished. Status is already 'committed' from the claim above.
+    // Run merge UPDATEs after inserts. supabase-js doesn't have a
+    // "bulk update by id" API, so each merged row is its own round
+    // trip — fine at the typical scale (≤50 duplicates per preview)
+    // but worth revisiting if pros routinely have hundreds of
+    // duplicates flagged for merge.
+    let mergedTotal = 0;
+    for (const m of toMerge) {
+      const { error: updErr } = await admin
+        .from("clients")
+        .update(m.patch)
+        .eq("id", m.existingId);
+      if (updErr) {
+        await markFailed(
+          admin,
+          id,
+          `merge failed for client ${m.existingId}: ${updErr.message}`,
+          createdTotal,
+          mergedTotal,
+        );
+        return NextResponse.json(
+          {
+            error: "merge_failed",
+            message: updErr.message,
+            partial_created: createdTotal,
+            partial_merged: mergedTotal,
+          },
+          { status: 500 },
+        );
+      }
+      mergedTotal += 1;
+    }
+
+    // Update audit counts now that all writes finished. Status is
+    // already 'committed' from the claim above.
     await admin
       .from("client_imports")
-      .update({ clients_created: createdTotal })
+      .update({
+        clients_created: createdTotal,
+        clients_merged: mergedTotal,
+      })
       .eq("id", id);
 
     return NextResponse.json({
       status: "committed",
       clients_created: createdTotal,
+      clients_merged: mergedTotal,
       redirect_to: `/dashboard/clients/imports/${id}`,
     });
   } catch (err) {
@@ -250,6 +334,7 @@ async function markFailed(
   id: string,
   summary: string,
   clientsCreated?: number,
+  clientsMerged?: number,
 ) {
   await admin
     .from("client_imports")
@@ -257,14 +342,55 @@ async function markFailed(
       status: "failed",
       failed_at: new Date().toISOString(),
       error_summary: summary.slice(0, 500),
-      // Preserve the partial-insert count so the UI can show
-      // "imported 312 of 500 before failing" instead of dropping the
-      // count. Only set when the caller actually had a partial number
-      // to report; otherwise leave undefined so the existing value
-      // (typically null) is preserved.
+      // Preserve the partial counts so the UI can show
+      // "imported 312, merged 5 before failing" instead of dropping
+      // the numbers. Only set when the caller actually had a partial
+      // number to report; otherwise leave undefined so the existing
+      // value (typically null) is preserved.
       ...(typeof clientsCreated === "number" ? { clients_created: clientsCreated } : {}),
+      ...(typeof clientsMerged === "number" ? { clients_merged: clientsMerged } : {}),
     })
     .eq("id", id);
+}
+
+/**
+ * Build the clients-table INSERT payload for a parsed row. Same
+ * shape regardless of whether the row was originally `valid` or a
+ * `duplicate` flagged for `create_anyway` — both go through here.
+ *
+ * `marketing_opt_in` and `sms_consent` are hardcoded to false per
+ * the Phase 7 spec; PR 5 will surface a per-import affirmation
+ * checkbox that flips marketing_opt_in to true if the pro confirms.
+ */
+function buildInsert(
+  businessId: string,
+  importId: string,
+  candidate: {
+    name: string | null;
+    email: string | null;
+    phone: string | null;
+    notes: string | null;
+  },
+): {
+  business_id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  imported_via_id: string;
+  marketing_opt_in: boolean;
+  sms_consent: boolean;
+} {
+  return {
+    business_id: businessId,
+    name: candidate.name as string,
+    email: candidate.email,
+    phone: candidate.phone,
+    notes: candidate.notes,
+    imported_via_id: importId,
+    marketing_opt_in: false,
+    sms_consent: false,
+  };
 }
 
 async function fetchSourceFile(
