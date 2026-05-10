@@ -73,7 +73,11 @@ export default async function ClientImportPreviewPage({ params, searchParams }: 
           state — mapping draft, duplicate-action selections — gets
           re-seeded naturally from the new importRow without needing
           effect-based prop sync. */}
-      <ImportPreviewClient key={importRow.parsed_at ?? "initial"} importRow={importRow} />
+      <ImportPreviewClient
+        key={importRow.parsed_at ?? "initial"}
+        importRow={importRow}
+        viewer={{ id: user.id, email: user.email ?? null }}
+      />
     </div>
   );
 }
