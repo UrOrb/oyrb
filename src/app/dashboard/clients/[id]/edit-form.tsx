@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AlertTriangle, Loader2, X } from "lucide-react";
-import { normalizeToE164 } from "@/lib/sms";
+import { normalizeToE164 } from "@/lib/phone";
 
 type InitialFields = {
   name: string;

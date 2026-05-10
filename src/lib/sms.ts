@@ -3,6 +3,14 @@
 // Falls back to no-op if env vars not configured (graceful degrade).
 
 import { logNotification, type LogRecipientType } from "@/lib/notification-log";
+import { normalizeToE164 } from "@/lib/phone";
+
+// Re-exported here so existing server-side callers (route handlers,
+// cron jobs, server actions, the imports row-parser) don't need to
+// update their imports. The function definition lives in phone.ts so
+// client components can import it without dragging in this module's
+// transitive next/headers dependency. See phone.ts for context.
+export { normalizeToE164 };
 
 type SendSmsParams = {
   to: string;
@@ -148,17 +156,8 @@ export async function sendSms(params: SendSmsParams): Promise<{
   }
 }
 
-/**
- * Normalize a US-style phone number to E.164. Returns null if invalid.
- * Exported for use by the inbound SMS handler at
- * /api/twilio/sms/inbound, which normalizes both the inbound `From`
- * field and (for cross-business STOP processing) every clients.phone
- * value against the same shape.
- */
-export function normalizeToE164(raw: string): string | null {
-  const digits = raw.replace(/[^\d+]/g, "");
-  if (digits.startsWith("+")) return digits;
-  if (digits.length === 10) return `+1${digits}`;
-  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
-  return null;
-}
+// normalizeToE164 lives in src/lib/phone.ts (a deps-free file) and is
+// re-exported at the top of this module for back-compat. Client-side
+// callers (e.g. the client edit form's phone-normalization preview)
+// import it from @/lib/phone directly to avoid dragging in this
+// module's notification-log → supabase/server → next/headers chain.
