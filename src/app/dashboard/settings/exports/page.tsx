@@ -1,4 +1,4 @@
-import { Download, Lock } from "lucide-react";
+import { Download } from "lucide-react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusiness } from "@/lib/current-site";
@@ -6,17 +6,16 @@ import { getCurrentBusiness } from "@/lib/current-site";
 /**
  * Phase 8 — Exports landing page.
  *
- * Two live tiles (contacts + booking history) and one placeholder
- * (income, lands in PR 3 against the same data_exports table).
+ * Three live tiles: contacts, booking history, income. Zero
+ * placeholders. The "coming soon" PlaceholderTile that lived here
+ * through PR #55 and PR #56 was deleted when Income shipped (PR #57).
  *
  * Reachable when the dashboard is in past-due or strike-pause state
  * because /dashboard/settings/* sits on the proxy exempt list
  * (src/proxy.ts:18-22). Pros locked out of bookings can still pull
- * their data here.
- *
- * LiveTile and PlaceholderTile are kept local to this file on purpose
- * — promoting them to a shared component before income (PR 3) ships
- * would be N=2 abstraction. Revisit then.
+ * all three CSVs here — billing-pending and strike-paused now point
+ * pros at this page directly (Phase 8 PR 3) so they can choose which
+ * data they need rather than being pre-routed to contacts.
  */
 
 interface Props {
@@ -74,10 +73,26 @@ export default async function ExportsPage({ searchParams }: Props) {
           href={buildHref("/api/dashboard/exports/bookings")}
         />
 
-        <PlaceholderTile
-          title="Income"
-          body="Revenue ledger across confirmed bookings — service, client, gross, deposit, date. Coming after booking history."
-        />
+        <div>
+          <LiveTile
+            title="Income"
+            body="Gross revenue and OYRB-captured payments (deposits + balances) for every booking. One row per booking. Cents shown as USD with two decimals."
+            href={buildHref("/api/dashboard/exports/income")}
+          />
+          {/* Reconciliation note — explains the four always-blank
+              columns (tip, refund, application fee, processing fee)
+              and points the pro at their Stripe 1099-K. Rendered
+              inline next to the tile so pros see it BEFORE clicking
+              download. Not duplicated inside the CSV itself. */}
+          <p className="mt-2 px-1 text-xs leading-relaxed text-[#737373]">
+            Income CSV reports gross revenue and the amounts OYRB captured
+            for you (deposits + balances paid through Stripe Connect).
+            Stripe processing fees, OYRB application fees, refunds, and
+            tips aren&apos;t tracked here — reconcile those against your
+            Stripe 1099-K. This file is your gross sales; your accountant
+            subtracts fees and refunds, and adds tips, to get your net.
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -106,22 +121,6 @@ function LiveTile({
         >
           <Download size={14} /> Download CSV
         </a>
-      </div>
-    </div>
-  );
-}
-
-function PlaceholderTile({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="rounded-lg border border-[#E7E5E4] bg-[#FAFAF9] p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex-1">
-          <h2 className="text-base font-semibold text-[#525252]">{title}</h2>
-          <p className="mt-0.5 text-xs text-[#737373]">{body}</p>
-        </div>
-        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#E7E5E4] bg-white px-3 py-1.5 text-xs font-medium text-[#A3A3A3]">
-          <Lock size={12} /> Coming soon
-        </span>
       </div>
     </div>
   );
