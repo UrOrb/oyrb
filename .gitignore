@@ -43,3 +43,7 @@ next-env.d.ts
 # Claude Code local artifacts
 .claude/
 DOCS_FOR_AI.md
+
+# Local CSV exports downloaded from /dashboard/settings/exports
+oyrb-contacts-*.csv
+oyrb-bookings-*.csv

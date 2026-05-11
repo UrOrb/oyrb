@@ -30,8 +30,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 // ── CSV column order (final spec) ────────────────────────────────────
 // Drives both the header row and the per-row serialization. Keep in
-// sync with COLUMN_HEADERS below.
-const CSV_COLUMNS = [
+// sync with the row objects built below.
+const CONTACTS_COLUMNS = [
   "name",
   "email",
   "phone",
@@ -198,17 +198,20 @@ export async function buildContactsCsv(
     };
   });
 
-  // Papa.unparse emits header + body. Pass columns explicitly so the
-  // header order is locked even if a future caller adds keys to the
-  // row objects in a different order.
-  const csvBody = Papa.unparse(rows, {
-    columns: CSV_COLUMNS as unknown as string[],
+  // Use Papa's `{ fields, data }` object form (not the array form) so
+  // the header row is emitted even when `rows` is empty. The array form
+  // short-circuits to `serialize(null, [], …)` on empty input and skips
+  // the header entirely — see papaparse.js:307. The object form goes
+  // through the fields-aware branch and always emits the header, with
+  // column order locked even if a future caller reorders row keys.
+  const csvBody = Papa.unparse({
+    fields: CONTACTS_COLUMNS as unknown as string[],
+    data: rows,
   });
 
-  // UTF-8 BOM so Excel auto-detects encoding. Empty-state behavior
-  // falls out naturally: Papa.unparse on an empty array emits just
-  // the header row, and we still prepend the BOM + write an audit
-  // row with row_count = 0.
+  // UTF-8 BOM so Excel auto-detects encoding. Zero-client exports emit
+  // a header-only CSV (BOM + the 16-column header line) and still
+  // write an audit row with row_count = 0.
   const csv = "﻿" + csvBody;
   const byteSize = Buffer.byteLength(csv, "utf8");
 
