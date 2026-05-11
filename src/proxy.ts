@@ -9,6 +9,18 @@ import {
 
 const REFERRAL_COOKIE_MAX_AGE_SEC = 60 * 60 * 24; // 24 hours
 
+// Paths exempt from the dashboard access gates (past-due billing,
+// strike-pause). Settings is in here so pros locked out by either gate
+// can still update payment, change plan, or initiate account removal
+// (Phase 8 — Remove Brand lives at /dashboard/settings/remove-brand).
+// Matched by startsWith, so the whole Settings subtree (booking-rules,
+// rebook, etc.) is covered.
+const DASHBOARD_GATE_EXEMPT_PATHS = [
+  "/dashboard/billing-pending",
+  "/dashboard/strike-paused",
+  "/dashboard/settings",
+];
+
 /**
  * Phase 5 — capture referral signals on every storefront visit, set a
  * short-lived cookie, and return early without running the dashboard
@@ -129,8 +141,10 @@ export async function proxy(request: NextRequest) {
   //   1. Phase 1.2 — past-due subscription, grace window expired → /dashboard/billing-pending
   //   2. Phase 2.2 — any owned business strike-paused → /dashboard/strike-paused
   //
-  // Each gate exempts its own redirect target so the destination is
-  // reachable. Billing wins ties (if a pro is both past-due and
+  // Both gates share DASHBOARD_GATE_EXEMPT_PATHS so the redirect
+  // targets are reachable AND so locked-out pros can still reach
+  // Settings to update payment, change plan, or initiate account
+  // removal. Billing wins ties (if a pro is both past-due and
   // strike-paused, billing-pending fires first — they need to fix
   // payment before reputation review can happen).
   //
@@ -140,10 +154,11 @@ export async function proxy(request: NextRequest) {
   // the /strike-paused page show which sites are affected. Matches the
   // billing redirect's per-user shape.
   if (user && request.nextUrl.pathname.startsWith("/dashboard")) {
-    const isBillingPending = request.nextUrl.pathname.startsWith("/dashboard/billing-pending");
-    const isStrikePaused = request.nextUrl.pathname.startsWith("/dashboard/strike-paused");
+    const isExempt = DASHBOARD_GATE_EXEMPT_PATHS.some((p) =>
+      request.nextUrl.pathname.startsWith(p),
+    );
 
-    if (!isBillingPending && !isStrikePaused) {
+    if (!isExempt) {
       const { data: sub } = await supabase
         .from("account_subscriptions")
         .select("status, grace_period_ends_at")
