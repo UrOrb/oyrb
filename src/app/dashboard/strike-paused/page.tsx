@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { AlertCircle, Mail } from "lucide-react";
+import { AlertCircle, Mail, Download } from "lucide-react";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getStrikeStanding } from "@/lib/strikes";
 
@@ -151,6 +151,31 @@ export default async function StrikePausedPage() {
           </div>
         ))}
       </section>
+
+      {/* Phase 8 PR 1 — strike-paused pros can still pull a portable
+          copy of their client list. /dashboard/settings/* and the
+          export API route are exempt from the proxy gate (proxy.ts). */}
+      <div className="mt-6 rounded-2xl border border-[#E7E5E4] bg-white p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex-1">
+            <h2 className="text-sm font-semibold text-[#0A0A0A]">
+              Need a copy of your client list?
+            </h2>
+            <p className="mt-1 text-xs leading-relaxed text-[#737373]">
+              Your data stays on OYRB regardless — but if you want a
+              portable copy of your client list right now, download it
+              as a CSV.
+            </p>
+          </div>
+          <a
+            href="/api/dashboard/exports/contacts"
+            download
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#E7E5E4] bg-white px-3 py-1.5 text-xs font-medium hover:bg-[#F5F5F4]"
+          >
+            <Download size={14} /> Download contacts CSV →
+          </a>
+        </div>
+      </div>
 
       <p className="mt-6 text-xs text-[#737373]">
         Need help? Email{" "}
