@@ -28,9 +28,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * this PR; the shared-helpers extraction lands in PR 3 once N=3.
  */
 
-// 17-column order, locked. Drives the Papa.unparse `columns` option
-// AND the per-row object keys; keep them in sync.
-const CSV_COLUMNS = [
+// 17-column order, locked. Drives the Papa.unparse `fields` AND the
+// per-row object keys; keep them in sync.
+const BOOKINGS_COLUMNS = [
   "booking_date",
   "start_time",
   "end_time",
@@ -168,12 +168,18 @@ export async function buildBookingsCsv(
     };
   });
 
-  const csvBody = Papa.unparse(rows, {
-    columns: CSV_COLUMNS as unknown as string[],
+  // Use Papa's `{ fields, data }` object form (not the array form) so
+  // the header row is emitted even when `rows` is empty. The array form
+  // short-circuits to `serialize(null, [], …)` on empty input and skips
+  // the header entirely — see papaparse.js:307. The object form goes
+  // through the fields-aware branch and always emits the header.
+  const csvBody = Papa.unparse({
+    fields: BOOKINGS_COLUMNS as unknown as string[],
+    data: rows,
   });
 
-  // UTF-8 BOM prepended so Excel auto-detects encoding; empty-state
-  // (zero bookings) falls out as header-only CSV with the BOM intact.
+  // UTF-8 BOM prepended so Excel auto-detects encoding. Zero-booking
+  // exports emit a header-only CSV (BOM + the 17-column header line).
   const csv = "﻿" + csvBody;
   const byteSize = Buffer.byteLength(csv, "utf8");
 
