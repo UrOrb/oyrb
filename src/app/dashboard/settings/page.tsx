@@ -105,6 +105,25 @@ export default async function SettingsPage({ searchParams }: Props) {
         </Link>
       </div>
 
+      {/* Exports — link card. Phase 8 PR 1 ships contacts CSV; bookings
+          and income land in follow-up PRs against the same page. */}
+      <div className="mt-8 flex items-center justify-between gap-4 rounded-lg border border-[#E7E5E4] bg-white p-6">
+        <div>
+          <h2 className="text-base font-semibold">Exports</h2>
+          <p className="mt-0.5 text-xs text-[#737373]">
+            Download your data as portable CSV files — contacts today,
+            bookings and income coming next. Reachable even if billing
+            lapses or your storefront is paused.
+          </p>
+        </div>
+        <Link
+          href="/dashboard/settings/exports"
+          className="shrink-0 rounded-md bg-[#0A0A0A] px-3 py-1.5 text-xs font-medium text-white hover:opacity-85"
+        >
+          Open exports →
+        </Link>
+      </div>
+
       {/* Directory listing — link card */}
       <div className="mt-8 flex items-center justify-between gap-4 rounded-lg border border-[#E7E5E4] bg-white p-6">
         <div>

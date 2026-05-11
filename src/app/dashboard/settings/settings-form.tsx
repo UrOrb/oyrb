@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { updateCustomDomain, deleteAccount } from "./actions";
-import { Check, Globe, Copy, CreditCard, ExternalLink, Download, AlertTriangle } from "lucide-react";
+import { Check, Globe, Copy, CreditCard, ExternalLink, AlertTriangle } from "lucide-react";
 
 type Props = {
   business: {
@@ -259,37 +259,10 @@ export function SettingsForm({ business, userEmail }: Props) {
         )}
       </Section>
 
-      {/* Data Export */}
-      <Section
-        title="Your data"
-        subtitle="Download everything your account contains — clients, bookings, services, and hours. Do this before deleting your account."
-      >
-        <button
-          type="button"
-          onClick={() => downloadExport()}
-          className="inline-flex items-center gap-2 rounded-md border border-[#E7E5E4] bg-white px-4 py-2 text-sm font-medium hover:bg-[#F5F5F4]"
-        >
-          <Download size={14} />
-          Download my data (JSON)
-        </button>
-        <p className="text-xs text-[#737373]">
-          Contains 4 CSV files inside a JSON wrapper: clients.csv, bookings.csv,
-          services.csv, and business_hours.csv. Open the JSON in a text editor —
-          each CSV can be copied into Excel, Google Sheets, or Numbers.
-        </p>
-      </Section>
-
       {/* Delete Account */}
       <DangerZone />
     </div>
   );
-}
-
-function downloadExport() {
-  const a = document.createElement("a");
-  a.href = "/api/dashboard/export";
-  a.download = "";
-  a.click();
 }
 
 function DangerZone() {
