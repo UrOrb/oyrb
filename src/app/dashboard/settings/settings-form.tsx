@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateCustomDomain, deleteAccount } from "./actions";
-import { Check, Globe, Copy, CreditCard, ExternalLink, AlertTriangle } from "lucide-react";
+// `deleteAccount` is intentionally NOT imported here anymore — it
+// was wired to the in-form Danger Zone (now deleted, Phase 8 PR 4).
+// The action itself is kept in actions.ts pending PR 5's repurposing
+// as `finalizeRemoval` (the cron-driven cascade-delete). New
+// destructive flow lives at /dashboard/settings/remove-brand.
+import { updateCustomDomain } from "./actions";
+import { Check, Globe, Copy, CreditCard, ExternalLink } from "lucide-react";
 
 type Props = {
   business: {
@@ -259,94 +264,15 @@ export function SettingsForm({ business, userEmail }: Props) {
         )}
       </Section>
 
-      {/* Delete Account */}
-      <DangerZone />
     </div>
   );
 }
 
-function DangerZone() {
-  const [deletePending, startDelete] = useTransition();
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [confirmText, setConfirmText] = useState("");
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  const handleDelete = (fd: FormData) => {
-    setDeleteError(null);
-    startDelete(async () => {
-      const r = await deleteAccount(fd);
-      if (r?.error) setDeleteError(r.error);
-    });
-  };
-
-  return (
-    <div className="rounded-lg border border-red-200 bg-red-50/50 p-6">
-      <div className="flex items-start gap-3">
-        <AlertTriangle size={18} className="mt-0.5 shrink-0 text-red-600" />
-        <div className="flex-1">
-          <h2 className="font-display text-lg font-medium text-red-900">
-            Delete your account
-          </h2>
-          <p className="mt-1 text-sm text-red-800">
-            This is permanent. Your subscription will be canceled, your business
-            site removed, and all data (clients, bookings, services, photos)
-            deleted from our servers.
-          </p>
-          <p className="mt-2 text-xs text-red-700">
-            We keep <strong>no backup</strong> of your account after deletion. Please
-            download your data first if you want to keep it.
-          </p>
-
-          {!showConfirm ? (
-            <button
-              type="button"
-              onClick={() => setShowConfirm(true)}
-              className="mt-4 rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
-            >
-              Delete my account…
-            </button>
-          ) : (
-            <form action={handleDelete} className="mt-5 space-y-3">
-              <label className="block text-sm font-medium text-red-900">
-                Type <span className="font-mono">DELETE</span> to confirm:
-              </label>
-              <input
-                name="confirm"
-                type="text"
-                value={confirmText}
-                onChange={(e) => setConfirmText(e.target.value)}
-                autoComplete="off"
-                className="block w-full max-w-xs rounded-md border border-red-300 bg-white px-3 py-2 font-mono text-sm focus:border-red-500 focus:outline-none"
-                placeholder="DELETE"
-              />
-              {deleteError && (
-                <p className="text-xs text-red-700">{deleteError}</p>
-              )}
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={confirmText !== "DELETE" || deletePending}
-                  className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-                >
-                  {deletePending ? "Deleting…" : "Permanently delete account"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowConfirm(false);
-                    setConfirmText("");
-                    setDeleteError(null);
-                  }}
-                  disabled={deletePending}
-                  className="rounded-md border border-[#E7E5E4] bg-white px-4 py-2 text-sm hover:bg-[#F5F5F4]"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+// Phase 8 PR 4 — the in-form `DangerZone` component that called
+// deleteAccount() directly was deleted. Its replacement is the
+// Remove Brand link-card at the bottom of /dashboard/settings,
+// which links to /dashboard/settings/remove-brand and uses the
+// new initiateRemoval action (14-day grace, restore-capable). The
+// deleteAccount function in actions.ts is preserved with a
+// deprecation comment pending Phase 8 PR 5's repurposing as
+// finalizeRemoval (cron-driven).

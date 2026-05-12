@@ -7,6 +7,7 @@ import { AvatarMenu } from "./avatar-menu";
 import { HelpPanel } from "./help-panel";
 import { PendingInviteAcceptor } from "./pending-invite-acceptor";
 import { BillingBanner } from "./billing-banner";
+import { RemovalBanner } from "@/components/dashboard/removal-banner";
 import { ToSReacceptanceModal } from "@/components/dashboard/tos-reacceptance-modal";
 import { TOS_VERSION, meetsTosVersion } from "@/lib/tos-version";
 
@@ -121,6 +122,11 @@ export default async function DashboardLayout({
             proxy redirects to /dashboard/billing-pending and the banner no
             longer mounts on this layout. */}
         <BillingBanner />
+        {/* Remove Brand banner (Phase 8 PR 4). Renders only when the
+            user owns a business with removal_initiated_at set. Carries
+            the deletion date + one-click Restore action. Unmounts as
+            soon as restoreRemoval clears the columns. */}
+        <RemovalBanner />
         <main className="flex-1 p-6 md:p-8">{children}</main>
       </div>
 

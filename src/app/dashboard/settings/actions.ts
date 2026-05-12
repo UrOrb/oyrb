@@ -94,6 +94,26 @@ export async function updateCustomDomain(formData: FormData) {
   return { success: true };
 }
 
+/**
+ * @deprecated Phase 8 PR 4 — superseded by `initiateRemoval` in
+ *   `src/lib/remove-brand/actions.ts`. The Settings page no longer
+ *   calls this function; the in-form Danger Zone that used to is
+ *   gone. The new flow is a 14-day grace period instead of an
+ *   immediate cascade-delete.
+ *
+ *   This function is kept here unmodified, NOT deleted, because
+ *   Phase 8 PR 5 will repurpose its cascade-delete logic as
+ *   `finalizeRemoval` — the cron-driven action that fires when
+ *   `removal_scheduled_for < now()`. Removing it in this PR would
+ *   force PR 5 to recreate the same Stripe-cancel + delete-users +
+ *   delete-businesses sequence we already have here, tested in
+ *   production for many months.
+ *
+ *   Do NOT wire any new callers to this function. The only callers
+ *   that should exist are (a) nothing in PR 4, (b) the cron route
+ *   in PR 5 (which will likely rename + relocate this function
+ *   first).
+ */
 export async function deleteAccount(formData: FormData) {
   const confirmText = formData.get("confirm") as string;
   if (confirmText !== "DELETE") {
