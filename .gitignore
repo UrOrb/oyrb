@@ -47,3 +47,4 @@ DOCS_FOR_AI.md
 # Local CSV exports downloaded from /dashboard/settings/exports
 oyrb-contacts-*.csv
 oyrb-bookings-*.csv
+oyrb-income-*.csv

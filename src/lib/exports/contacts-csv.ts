@@ -1,5 +1,5 @@
-import Papa from "papaparse";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { formatCsvWithBom, type CsvOutput } from "./format";
 
 /**
  * Builds the contacts CSV for a single business. Pure(-ish) function:
@@ -18,14 +18,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  *      (single round-trip, same shape as the Clients page)
  *   3. client_imports join via clients.imported_via_id, so the
  *      import_source column can render "<vendor> CSV — <filename>"
- *   4. in-process rollup + Papa.unparse
- *   5. UTF-8 BOM prepended so Excel detects encoding on open
- *
- * UTF-8 BOM: a single ﻿ character before the CSV body. Without it,
- * Excel on Windows interprets the file as the legacy local code page
- * (Windows-1252) and mangles any accent / em-dash / non-ASCII name.
- * Excel on macOS handles UTF-8 with or without the BOM; Numbers, Google
- * Sheets, and LibreOffice all detect it correctly. Cheap insurance.
+ *   4. in-process rollup
+ *   5. formatCsvWithBom — BOM + Papa.unparse object form, shared with
+ *      every other export under src/lib/exports/*
  */
 
 // ── CSV column order (final spec) ────────────────────────────────────
@@ -80,11 +75,7 @@ type ImportLookup = {
   source_filename: string | null;
 };
 
-export type ContactsCsv = {
-  csv: string;
-  rowCount: number;
-  byteSize: number;
-};
+export type ContactsCsv = CsvOutput;
 
 export async function buildContactsCsv(
   supabase: SupabaseClient,
@@ -198,22 +189,5 @@ export async function buildContactsCsv(
     };
   });
 
-  // Use Papa's `{ fields, data }` object form (not the array form) so
-  // the header row is emitted even when `rows` is empty. The array form
-  // short-circuits to `serialize(null, [], …)` on empty input and skips
-  // the header entirely — see papaparse.js:307. The object form goes
-  // through the fields-aware branch and always emits the header, with
-  // column order locked even if a future caller reorders row keys.
-  const csvBody = Papa.unparse({
-    fields: CONTACTS_COLUMNS as unknown as string[],
-    data: rows,
-  });
-
-  // UTF-8 BOM so Excel auto-detects encoding. Zero-client exports emit
-  // a header-only CSV (BOM + the 16-column header line) and still
-  // write an audit row with row_count = 0.
-  const csv = "﻿" + csvBody;
-  const byteSize = Buffer.byteLength(csv, "utf8");
-
-  return { csv, rowCount: rows.length, byteSize };
+  return formatCsvWithBom(CONTACTS_COLUMNS, rows);
 }
