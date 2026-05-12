@@ -1,20 +1,39 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { CheckoutButton } from "@/components/marketing/checkout-button";
-import { Check, ExternalLink, Plus, Pencil, Clock } from "lucide-react";
+import { Check, ExternalLink, Plus, Pencil } from "lucide-react";
 import { CheckoutPoller } from "./checkout-poller";
 import { ApplyPendingTemplate } from "./apply-pending-template";
 import { getAccountSummary } from "@/lib/account";
 import { TIERS, fmtMoney, type BillingCycle } from "@/lib/plans";
 import { getGoalSnapshot } from "@/lib/goal-tracking";
-import { GoalMeter } from "./goal-meter";
 import { getMyListing } from "@/lib/directory";
 import { DirectoryNudge } from "./directory-nudge";
 import { StatsMigrationNotice } from "./stats-migration-notice";
 import { ConnectStatusBanner } from "./connect-status-banner";
 import { deriveStatus } from "@/lib/stripe-connect";
 import { getCurrentBusiness } from "@/lib/current-site";
+import { Clock } from "lucide-react";
+import { getThisWeekData, getWeekRange } from "@/lib/business-brain";
+import { pickGreeting } from "@/lib/greetings";
+import { BentoGrid } from "./_components/bento-grid";
+import { HeroTile } from "./_components/hero-tile";
+import { MoneyTile } from "./_components/tiles/money-tile";
+import { ClientsTile } from "./_components/tiles/clients-tile";
+import { BookingsTile, type UpcomingBooking } from "./_components/tiles/bookings-tile";
+import { MarketingTile, type LastCampaign } from "./_components/tiles/marketing-tile";
+import { ServicesTile, type ServiceTileItem } from "./_components/tiles/services-tile";
+import { WaitlistTile } from "./_components/tiles/waitlist-tile";
+import { TrustedProsTile } from "./_components/tiles/trusted-pros-tile";
+import { GoalTile } from "./_components/tiles/goal-tile";
+
+// Phase 9 PR 3 — Bento layout depends on fresh per-request data
+// (greeting bucket is tz-aware; "today" rolls over at local midnight).
+// getThisWeekData is internally cached via unstable_cache (1h TTL),
+// so the heavy lift is still cached even though the page itself is
+// dynamic.
+export const dynamic = "force-dynamic";
 
 export default async function DashboardPage({
   searchParams,
@@ -128,42 +147,133 @@ export default async function DashboardPage({
     );
   }
 
-  // Load stats
-  const [{ count: bookingCount }, { count: clientCount }, { data: revenueRows }] = await Promise.all([
-    supabase
-      .from("bookings")
-      .select("id", { count: "exact", head: true })
-      .eq("business_id", business.id)
-      .gte("start_at", new Date().toISOString())
-      .neq("status", "cancelled"),
+  // ── Branch C: active subscription — bento dashboard ────────────────
+  //
+  // Every tile's data is fetched in parallel. getThisWeekData is the
+  // heavy one (cached 1h via unstable_cache); the rest are small
+  // indexed COUNT / SELECT queries. Service-role admin client is
+  // used for the cross-cutting counts (pendingTrustedPros, accepted
+  // pros) so RLS doesn't recurse through ownership joins for what's
+  // ultimately a dashboard-owned read.
+  const admin = createAdminClient();
+  const timezone = business.timezone || "America/New_York";
+  const siteUrl = `/s/${business.slug}`;
+  const { weekStart } = getWeekRange(timezone);
+  const todayIso = new Date().toISOString();
+
+  const [
+    thisWeekData,
+    totalClientsRes,
+    newThisWeekRes,
+    upcomingRes,
+    lastCampaignRes,
+    servicesRes,
+    waitlistRes,
+    pendingTrustedRes,
+    acceptedTrustedRes,
+    goalSnapshot,
+    myListing,
+  ] = await Promise.all([
+    getThisWeekData(business.id, timezone),
     supabase
       .from("clients")
       .select("id", { count: "exact", head: true })
       .eq("business_id", business.id),
     supabase
-      .from("bookings")
-      .select("services(price_cents), start_at, status")
+      .from("clients")
+      .select("id", { count: "exact", head: true })
       .eq("business_id", business.id)
-      .eq("status", "completed")
-      .gte("start_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+      .gte("created_at", weekStart.toISOString()),
+    supabase
+      .from("bookings")
+      .select("id, start_at, services(name), clients(name)")
+      .eq("business_id", business.id)
+      .gte("start_at", todayIso)
+      .neq("status", "cancelled")
+      .order("start_at", { ascending: true })
+      .limit(10),
+    supabase
+      .from("email_campaigns")
+      .select("name, sent_at, recipient_count")
+      .eq("business_id", business.id)
+      .order("sent_at", { ascending: false })
+      .limit(1),
+    supabase
+      .from("services")
+      .select("id, name, price_cents")
+      .eq("business_id", business.id)
+      .eq("active", true)
+      .order("created_at", { ascending: false })
+      .limit(3),
+    supabase
+      .from("waitlist")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", business.id),
+    admin
+      .from("pro_referrals")
+      .select("id", { count: "exact", head: true })
+      .eq("receiving_business_id", business.id)
+      .eq("status", "pending"),
+    admin
+      .from("pro_referrals")
+      .select("id", { count: "exact", head: true })
+      .eq("requesting_business_id", business.id)
+      .eq("status", "accepted"),
+    getGoalSnapshot(user.id),
+    getMyListing(user.id),
   ]);
 
-  const monthRevenue = (revenueRows ?? []).reduce((sum: number, b: any) => sum + (b.services?.price_cents ?? 0), 0);
-  const siteUrl = `/s/${business.slug}`;
+  // Bookings tile wants the next 2 AFTER today. The Hero tile already
+  // surfaces today's services; filter them out of the upcoming list
+  // by comparing against the today-window boundary that
+  // getThisWeekData computed.
+  const todayEnd = new Date(thisWeekData.today.getTime() + 24 * 60 * 60 * 1000);
+  type UpcomingRow = {
+    id: string;
+    start_at: string;
+    services: { name: string | null } | null;
+    clients: { name: string | null } | null;
+  };
+  const upcomingRows = ((upcomingRes.data ?? []) as unknown) as UpcomingRow[];
+  const upcomingAfterToday: UpcomingBooking[] = upcomingRows
+    .filter((b) => new Date(b.start_at).getTime() >= todayEnd.getTime())
+    .slice(0, 2)
+    .map((b) => ({
+      id: b.id,
+      startAt: new Date(b.start_at),
+      clientName: b.clients?.name ?? "",
+      serviceName: b.services?.name ?? "(deleted service)",
+    }));
 
-  // Monthly income goal snapshot — computed on the server so the first
-  // paint has the real progress bar width, no flash of empty state.
-  const goalSnapshot = await getGoalSnapshot(user.id);
+  const lastCampaignRow = lastCampaignRes.data?.[0];
+  const lastCampaign: LastCampaign | null = lastCampaignRow
+    ? {
+        name: (lastCampaignRow as { name: string }).name,
+        sentAt: lastCampaignRow.sent_at
+          ? new Date(lastCampaignRow.sent_at as string)
+          : null,
+        recipientCount:
+          (lastCampaignRow as { recipient_count: number }).recipient_count ?? 0,
+      }
+    : null;
 
-  // Is this pro already in the public directory? Used to decide whether to
-  // surface the "Want to be found by new clients?" nudge below.
-  const myListing = await getMyListing(user.id);
+  const services: ServiceTileItem[] = (servicesRes.data ?? []).map((s) => ({
+    id: (s as { id: string }).id,
+    name: (s as { name: string }).name,
+    priceCents: (s as { price_cents: number }).price_cents,
+  }));
+
+  const totalClients = totalClientsRes.count ?? 0;
+  const newThisWeek = newThisWeekRes.count ?? 0;
+  const waitlistCount = waitlistRes.count ?? 0;
+  const pendingTrusted = pendingTrustedRes.count ?? 0;
+  const acceptedTrusted = acceptedTrustedRes.count ?? 0;
+
   const alreadyListed = !!(myListing?.is_listed && myListing.agreement_accepted_at);
 
   // Stats-migration banner: shown once to pros who had free-text
   // stat_*_value entries in template_content before migration 025 AND
-  // haven't acknowledged the change yet. acknowledged column is
-  // stamped when they click Review or Dismiss.
+  // haven't acknowledged the change yet.
   const tc = (business.template_content ?? {}) as Record<string, string>;
   const hasLegacyStatValues = !!(tc["stat_1_value"] || tc["stat_2_value"] || tc["stat_3_value"]);
   const statsMigrationAck =
@@ -171,26 +281,29 @@ export default async function DashboardPage({
       .stats_migration_acknowledged_at ?? null;
   const showStatsNotice = hasLegacyStatValues && !statsMigrationAck;
 
+  // Greeting — deterministic per (user, date-in-tz). See lib/greetings.ts.
+  const greeting = pickGreeting({
+    userId: user.id,
+    timeZone: timezone,
+    fullName: (user.user_metadata?.full_name as string | undefined) ?? null,
+    businessName: business.business_name,
+  });
+
   return (
     <div>
       <ApplyPendingTemplate />
-      <h1 className="font-display text-2xl font-medium tracking-tight">Dashboard</h1>
-      <p className="mt-1 text-sm text-[#737373]">
-        Welcome back, {user.user_metadata?.full_name ?? user.email}.
-      </p>
 
+      {/* ── Page-local banners (all conditional renders, null in
+          common case). Stay above the bento because they're
+          status communication, not insight tiles. */}
       <TrialBanner />
-
-      {/* Stripe Connect setup nudge — null when status === "ready".
-          For multi-site pros, getCurrentBusiness() respects the
-          SiteSwitcher cookie so the banner reflects the site they're
-          currently editing, not always the oldest one. */}
       <ConnectStatusBannerForActiveSite />
-
       {showStatsNotice && <StatsMigrationNotice businessId={business.id} />}
 
-      {/* Site status banner */}
-      <div className={`mt-6 flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-center md:justify-between ${business.is_published ? "border-[#E7E5E4] bg-[#FAFAF9]" : "border-amber-200 bg-amber-50"}`}>
+      {/* Site status banner — published vs not. Lives between
+          status banners and the greeting; orients the pro to
+          the most-important state of their site. */}
+      <div className={`mt-2 flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-center md:justify-between ${business.is_published ? "border-[#E7E5E4] bg-[#FAFAF9]" : "border-amber-200 bg-amber-50"}`}>
         <div>
           <p className="text-sm font-semibold">
             {business.is_published ? "Your site is live ✦" : "Publish your site to start taking bookings"}
@@ -211,18 +324,45 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      {/* Dismissible nudge: shown only after site is published and only if
-          the pro hasn't already opted into the directory. */}
+      {/* Dismissible directory nudge — published + not in /find only. */}
       <DirectoryNudge
         sitePublished={business.is_published}
         alreadyListed={alreadyListed}
       />
 
-      {/* ── Your sites ──
-          One card per business the user owns. Each card embeds a live iframe
-          of /s/<slug> as a real-render thumbnail (lazy-loaded, click-through
-          disabled so the parent anchor catches the tap). */}
+      {/* ── Greeting + bento ──────────────────────────────────── */}
       <div className="mt-8">
+        <BentoGrid>
+          <HeroTile
+            greeting={greeting}
+            todayServices={thisWeekData.todayServices}
+            isPublished={business.is_published}
+            siteUrl={siteUrl}
+          />
+          <MoneyTile
+            grossThisWeekCents={thisWeekData.trend.grossThisWeekCents}
+            grossLastWeekCents={thisWeekData.trend.grossLastWeekCents}
+          />
+          <ClientsTile totalClients={totalClients} newThisWeek={newThisWeek} />
+          <BookingsTile upcoming={upcomingAfterToday} />
+          <MarketingTile lastCampaign={lastCampaign} />
+          <GoalTile snapshot={goalSnapshot} />
+          <ServicesTile services={services} />
+          <WaitlistTile count={waitlistCount} />
+          <TrustedProsTile
+            acceptedCount={acceptedTrusted}
+            pendingCount={pendingTrusted}
+          />
+        </BentoGrid>
+      </div>
+
+      {/* ── Your sites ──
+          Lives below the bento as its own labeled section. Each card
+          embeds a live iframe of /s/<slug> as a real-render thumbnail
+          (lazy-loaded; pointer-events disabled so the parent anchor
+          catches taps). Kept outside the bento because multi-site
+          iframe thumbnails don't compress into a tile cleanly. */}
+      <div className="mt-12">
         <h2 className="text-sm font-semibold text-[#525252]">Your sites</h2>
         <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {(businesses ?? []).map((b) => (
@@ -230,8 +370,6 @@ export default async function DashboardPage({
           ))}
         </div>
 
-        {/* Add-new-site row — its own row below the thumbnails, no matter how
-            many sites exist. */}
         <div className="mt-4">
           <Link
             href="/dashboard/site/new"
@@ -249,41 +387,6 @@ export default async function DashboardPage({
             <span className="text-xs text-[#A3A3A3]">→</span>
           </Link>
         </div>
-      </div>
-
-      {/* Monthly income goal meter. Rendered below the site cards so it
-          sits near the user's active workspace. Hidden entirely when the
-          user has toggled show_on_dashboard off (the component returns null). */}
-      <div className="mt-6">
-        <GoalMeter snapshot={goalSnapshot} />
-      </div>
-
-      <div className="mt-8 grid gap-4 md:grid-cols-3">
-        {[
-          { label: "Upcoming bookings", value: String(bookingCount ?? 0) },
-          { label: "This month revenue", value: `$${(monthRevenue / 100).toFixed(0)}` },
-          { label: "Total clients", value: String(clientCount ?? 0) },
-        ].map((stat) => (
-          <div key={stat.label} className="rounded-lg border border-[#E7E5E4] p-6">
-            <p className="text-sm text-[#737373]">{stat.label}</p>
-            <p className="font-display mt-1 text-3xl font-medium">{stat.value}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-8 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-        <a href="/dashboard/services" className="rounded-lg border border-[#E7E5E4] bg-white p-5 hover:border-[#B8896B]">
-          <p className="text-sm font-semibold">Manage services</p>
-          <p className="mt-1 text-xs text-[#737373]">What you offer, pricing, and duration.</p>
-        </a>
-        <a href="/dashboard/bookings" className="rounded-lg border border-[#E7E5E4] bg-white p-5 hover:border-[#B8896B]">
-          <p className="text-sm font-semibold">View bookings</p>
-          <p className="mt-1 text-xs text-[#737373]">All upcoming and past appointments.</p>
-        </a>
-        <a href="/dashboard/reviews" className="rounded-lg border border-[#E7E5E4] bg-white p-5 hover:border-[#B8896B]">
-          <p className="text-sm font-semibold">Reviews</p>
-          <p className="mt-1 text-xs text-[#737373]">Star rating updates as new reviews come in — you can&rsquo;t edit it.</p>
-        </a>
       </div>
     </div>
   );
@@ -361,15 +464,6 @@ function SiteCard({ business }: { business: { id: string; business_name: string;
     <div className="overflow-hidden rounded-lg border border-[#E7E5E4] bg-white transition-colors hover:border-[#B8896B]">
       <a href={siteUrl} target="_blank" rel="noreferrer" className="group block" aria-label={`View ${business.business_name} live`}>
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#FAFAF9]">
-          {/*
-            Iframe thumbnail: render 4× the container width/height (so the
-            iframe boots a desktop-sized viewport that loads the real site
-            layout), then scale down to 25% to fit the card exactly. This
-            approach is resolution-independent — the iframe fills cleanly
-            at 300px (mobile) AND 600px+ (desktop) without stretching or
-            empty bars. Previously a fixed 1200×900 / scale(0.3) combo
-            gave a 360×270 footprint that was too small on desktop cards.
-          */}
           <iframe
             src={siteUrl}
             title={`${business.business_name} preview`}
