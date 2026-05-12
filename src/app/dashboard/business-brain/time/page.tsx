@@ -50,6 +50,21 @@ export default async function TimeTabPage({ searchParams }: Props) {
   const timeZone = business.timezone ?? "UTC";
   const data = await getTimeData(business.id, timeZone);
 
+  // getTimeData is unstable_cache-wrapped (1h TTL). On cache hit the
+  // Date fields come back as ISO strings — TypeScript still says Date,
+  // but the runtime value isn't. StartedNotStoppedCard calls
+  // .toLocaleDateString() on serviceStartedAt + startAt which throws
+  // on a string. Re-hydrate at the consumer boundary; same pattern
+  // as PR #62.
+  const stuck = {
+    ...data.stuck,
+    visible: data.stuck.visible.map((b) => ({
+      ...b,
+      serviceStartedAt: new Date(b.serviceStartedAt),
+      startAt: new Date(b.startAt),
+    })),
+  };
+
   return (
     <BentoGrid>
       <div className="col-span-2 sm:col-span-2 lg:col-span-2 lg:row-span-2">
@@ -65,7 +80,7 @@ export default async function TimeTabPage({ searchParams }: Props) {
         <DayOfWeekPatternsCard data={data.dayOfWeek} />
       </div>
       <div className="col-span-2 sm:col-span-2 lg:col-span-3">
-        <StartedNotStoppedCard data={data.stuck} />
+        <StartedNotStoppedCard data={stuck} />
       </div>
     </BentoGrid>
   );

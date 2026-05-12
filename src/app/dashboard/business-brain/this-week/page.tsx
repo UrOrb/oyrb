@@ -49,6 +49,20 @@ export default async function ThisWeekTabPage({ searchParams }: Props) {
     detectAnomalies(business.id, timeZone),
   ]);
 
+  // getThisWeekData is unstable_cache-wrapped (1h TTL). On cache hit
+  // the Date fields come back as ISO strings — TypeScript still says
+  // Date, but the runtime value isn't. TodayServicesCard calls
+  // Intl.DateTimeFormat.format(s.startAt) which throws on a string.
+  // Re-hydrate at the consumer boundary; mirrors the PR #62 fix in
+  // src/app/dashboard/page.tsx.
+  const todayServices = data.todayServices.map((s) => ({
+    ...s,
+    startAt: new Date(s.startAt),
+    endAt: new Date(s.endAt),
+    serviceStartedAt: s.serviceStartedAt ? new Date(s.serviceStartedAt) : null,
+    serviceEndedAt: s.serviceEndedAt ? new Date(s.serviceEndedAt) : null,
+  }));
+
   return (
     <BentoGrid>
       <div className="col-span-2 sm:col-span-4 lg:col-span-6">
@@ -58,7 +72,7 @@ export default async function ThisWeekTabPage({ searchParams }: Props) {
         <ScheduleDensityCard density={data.density} />
       </div>
       <div className="col-span-2 sm:col-span-4 lg:col-span-2">
-        <TodayServicesCard services={data.todayServices} timeZone={timeZone} />
+        <TodayServicesCard services={todayServices} timeZone={timeZone} />
       </div>
       <div className="col-span-2 sm:col-span-2 lg:col-span-3">
         <MoneyThisWeekCard money={data.money} />

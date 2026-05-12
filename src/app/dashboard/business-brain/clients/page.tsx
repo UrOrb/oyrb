@@ -49,19 +49,40 @@ export default async function ClientsTabPage({ searchParams }: Props) {
   const timeZone = business.timezone ?? "UTC";
   const data = await getClientsData(business.id, timeZone);
 
+  // getClientsData is unstable_cache-wrapped (1h TTL). On cache hit
+  // the Date fields come back as ISO strings — TypeScript still says
+  // Date, but the runtime value isn't. TopClientsByLTVCard and
+  // DriftingClientsCard both call .toLocaleDateString() on
+  // lastBookingAt which throws on a string. Re-hydrate at the
+  // consumer boundary; same pattern as PR #62.
+  const topByLTV = {
+    ...data.topByLTV,
+    rows: data.topByLTV.rows.map((r) => ({
+      ...r,
+      lastBookingAt: new Date(r.lastBookingAt),
+    })),
+  };
+  const drifting = {
+    ...data.drifting,
+    rows: data.drifting.rows.map((r) => ({
+      ...r,
+      lastBookingAt: new Date(r.lastBookingAt),
+    })),
+  };
+
   return (
     <BentoGrid>
       <div className="col-span-2 sm:col-span-2 lg:col-span-2">
         <RepeatClientOverviewCard data={data.repeatOverview} />
       </div>
       <div className="col-span-2 sm:col-span-4 lg:col-span-4">
-        <TopClientsByLTVCard data={data.topByLTV} />
+        <TopClientsByLTVCard data={topByLTV} />
       </div>
       <div className="col-span-2 sm:col-span-4 lg:col-span-4">
         <NewClientsTrendAreaCard trend={data.newClientsTrend} />
       </div>
       <div className="col-span-2 sm:col-span-4 lg:col-span-2">
-        <DriftingClientsCard data={data.drifting} />
+        <DriftingClientsCard data={drifting} />
       </div>
       <div className="col-span-2 sm:col-span-4 lg:col-span-6">
         <ClientRetentionCard data={data.retention} />
