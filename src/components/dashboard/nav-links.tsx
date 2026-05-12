@@ -24,6 +24,14 @@ import { dispatchHelpToggle } from "@/app/dashboard/help-panel";
 // `Sidebar` and the mobile `MobileNav` drawer render through this
 // component, so the item list, active-state logic, badge handling,
 // and Help/Contact bottom block can never drift between surfaces.
+//
+// Sidebar nav is grouped by usage frequency:
+//   Today  — daily-use pages (Dashboard, Bookings, Clients)
+//   Grow   — growth-thinking pages (Business Brain, Services, Site, etc.)
+//   Manage — platform housekeeping (Payments, Settings)
+// Adding a new item means picking a group. If in doubt, default to Grow —
+// that section absorbs the long tail. Do not re-flatten NAV_GROUPS into
+// a single array; the visual hierarchy depends on the grouped shape.
 
 type NavItem = {
   label: string;
@@ -33,19 +41,43 @@ type NavItem = {
   badgeKey?: "pendingTrustedPros";
 };
 
-const NAV: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Business Brain", href: "/dashboard/business-brain", icon: LineChart },
-  { label: "Site", href: "/dashboard/site", icon: Globe },
-  { label: "Services", href: "/dashboard/services", icon: Scissors },
-  { label: "Bookings", href: "/dashboard/bookings", icon: CalendarDays },
-  { label: "Trusted Pros", href: "/dashboard/pass-the-torch", icon: Flame, badgeKey: "pendingTrustedPros" },
-  { label: "Waitlist", href: "/dashboard/waitlist", icon: Clock },
-  { label: "Clients", href: "/dashboard/clients", icon: Users },
-  { label: "Imports", href: "/dashboard/clients/imports", icon: Upload },
-  { label: "Marketing", href: "/dashboard/marketing", icon: Mail },
-  { label: "Payments", href: "/dashboard/payments", icon: CreditCard },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings },
+type NavGroup = {
+  label: string;
+  id: "today" | "grow" | "manage";
+  items: NavItem[];
+};
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: "Today",
+    id: "today",
+    items: [
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Bookings", href: "/dashboard/bookings", icon: CalendarDays },
+      { label: "Clients", href: "/dashboard/clients", icon: Users },
+    ],
+  },
+  {
+    label: "Grow",
+    id: "grow",
+    items: [
+      { label: "Business Brain", href: "/dashboard/business-brain", icon: LineChart },
+      { label: "Services", href: "/dashboard/services", icon: Scissors },
+      { label: "Site", href: "/dashboard/site", icon: Globe },
+      { label: "Trusted Pros", href: "/dashboard/pass-the-torch", icon: Flame, badgeKey: "pendingTrustedPros" },
+      { label: "Waitlist", href: "/dashboard/waitlist", icon: Clock },
+      { label: "Imports", href: "/dashboard/clients/imports", icon: Upload },
+      { label: "Marketing", href: "/dashboard/marketing", icon: Mail },
+    ],
+  },
+  {
+    label: "Manage",
+    id: "manage",
+    items: [
+      { label: "Payments", href: "/dashboard/payments", icon: CreditCard },
+      { label: "Settings", href: "/dashboard/settings", icon: Settings },
+    ],
+  },
 ];
 
 type Props = {
@@ -73,10 +105,12 @@ export function DashboardNavLinks({ pendingTrustedPros = 0, onNavigate }: Props)
   const activeHref = (() => {
     if (pathname === "/dashboard") return "/dashboard";
     let best: string | null = null;
-    for (const { href } of NAV) {
-      if (href === "/dashboard") continue;
-      if (pathname === href || pathname.startsWith(`${href}/`)) {
-        if (!best || href.length > best.length) best = href;
+    for (const group of NAV_GROUPS) {
+      for (const { href } of group.items) {
+        if (href === "/dashboard") continue;
+        if (pathname === href || pathname.startsWith(`${href}/`)) {
+          if (!best || href.length > best.length) best = href;
+        }
       }
     }
     return best;
@@ -90,33 +124,49 @@ export function DashboardNavLinks({ pendingTrustedPros = 0, onNavigate }: Props)
   return (
     <>
       <nav className="flex flex-col gap-0.5 p-3 flex-1">
-        {NAV.map(({ label, href, icon: Icon, badgeKey }) => {
-          const active = href === activeHref;
-          const badge = badgeKey ? badges[badgeKey] : 0;
-          return (
-            <Link
-              key={href}
-              href={href}
-              onClick={onNavigate}
-              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                active
-                  ? "bg-[#F5F5F4] font-medium text-[#0A0A0A]"
-                  : "text-[#525252] hover:bg-[#F5F5F4] hover:text-[#0A0A0A]"
-              }`}
-            >
-              <Icon size={16} strokeWidth={1.5} />
-              <span className="flex-1">{label}</span>
-              {badge > 0 && (
-                <span
-                  aria-label={`${badge} pending`}
-                  className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#B8896B] px-1.5 text-[11px] font-semibold text-white"
+        {NAV_GROUPS.map((group) => (
+          <div
+            key={group.id}
+            role="group"
+            aria-label={group.label}
+            className="flex flex-col gap-0.5"
+          >
+            {/* Section label. Mirrors the existing OYRB section-label
+                idiom (e.g. site-switcher.tsx:70) — text-[10px] uppercase
+                tracking-wider on the lightest gray. Pure visual / a11y
+                label, no interactivity. */}
+            <p className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wider text-[#A3A3A3]">
+              {group.label}
+            </p>
+            {group.items.map(({ label, href, icon: Icon, badgeKey }) => {
+              const active = href === activeHref;
+              const badge = badgeKey ? badges[badgeKey] : 0;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={onNavigate}
+                  className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                    active
+                      ? "bg-[#F5F5F4] font-medium text-[#0A0A0A]"
+                      : "text-[#525252] hover:bg-[#F5F5F4] hover:text-[#0A0A0A]"
+                  }`}
                 >
-                  {badge > 9 ? "9+" : badge}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+                  <Icon size={16} strokeWidth={1.5} />
+                  <span className="flex-1">{label}</span>
+                  {badge > 0 && (
+                    <span
+                      aria-label={`${badge} pending`}
+                      className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#B8896B] px-1.5 text-[11px] font-semibold text-white"
+                    >
+                      {badge > 9 ? "9+" : badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* Help + Contact Support — bottom block, separated from the
