@@ -44,7 +44,7 @@ export function NewClientsTrendAreaCard({
           data={data}
           xKey="label"
           yKey="count"
-          formatY={(v) => `${v}`}
+          format="number"
           height={140}
           ariaLabel="Monthly new clients"
         />

@@ -9,6 +9,7 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
+import { formatterFor, type ValueFormat } from "./format";
 
 /**
  * Horizontal bar chart primitive — Phase 9 PR 6.
@@ -18,16 +19,21 @@ import {
  * along X. Labels truncate via Recharts' tick prop max-width;
  * tooltip exposes the full label on hover.
  *
- * Used by TopEarningServices, TopClientsByLTV, and any future
- * ranked-list visualization.
+ * Used by TopEarningServices and any future ranked-list visualization.
+ *
+ * Value formatting is controlled via a serializable `format` string
+ * (not a function — server components can't pass functions to client
+ * components in Next 16 / React 19). Callers convert cents → dollars
+ * BEFORE passing data when they want currency display.
  */
 
 type Datum = { label: string; value: number };
 
 type Props = {
   data: Datum[];
-  /** Format the value tick + tooltip (e.g. dollars). */
-  formatValue?: (v: number) => string;
+  /** Serializable format hint for the value tick + tooltip. Default
+   *  "number". See ./format.ts. */
+  format?: ValueFormat;
   height?: number;
   ariaLabel?: string;
 };
@@ -38,10 +44,14 @@ const TICK = "#737373";
 
 export function HorizontalBar({
   data,
-  formatValue,
+  format = "number",
   height = 200,
   ariaLabel,
 }: Props) {
+  const formatValue = formatterFor(format);
+  const labelTickFormatter = (v: string) =>
+    v.length > 14 ? `${v.slice(0, 13)}…` : v;
+
   return (
     <div className="w-full" style={{ height }} aria-label={ariaLabel}>
       <ResponsiveContainer width="100%" height="100%">
@@ -61,7 +71,7 @@ export function HorizontalBar({
             tick={{ fontSize: 11, fill: TICK }}
             tickLine={false}
             axisLine={{ stroke: GRID }}
-            tickFormatter={formatValue}
+            tickFormatter={(v: number) => formatValue(v)}
           />
           <YAxis
             type="category"
@@ -70,8 +80,7 @@ export function HorizontalBar({
             tickLine={false}
             axisLine={{ stroke: GRID }}
             width={100}
-            // Truncate long labels; tooltip carries the full text.
-            tickFormatter={(v: string) => (v.length > 14 ? `${v.slice(0, 13)}…` : v)}
+            tickFormatter={labelTickFormatter}
           />
           <Tooltip
             cursor={{ fill: "#FAFAF9" }}
@@ -85,11 +94,7 @@ export function HorizontalBar({
             }}
             labelStyle={{ color: "#0A0A0A", fontWeight: 600 }}
             formatter={(value) => [
-              typeof value === "number"
-                ? formatValue
-                  ? formatValue(value)
-                  : value.toLocaleString("en-US")
-                : String(value),
+              typeof value === "number" ? formatValue(value) : String(value),
               "",
             ]}
           />

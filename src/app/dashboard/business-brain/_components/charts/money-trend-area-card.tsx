@@ -23,9 +23,14 @@ export function MoneyTrendAreaCard({ trend }: { trend: MoneyTrend }) {
   }
 
   const total = trend.points.reduce((s, p) => s + p.grossCents, 0);
+  // Pre-convert cents → whole dollars before handing to the chart;
+  // <AreaChart> can't take a formatter function across the server →
+  // client boundary (Next.js 16 / React 19 serializability rule), so
+  // it accepts a `format="currency"` hint and trusts the caller to
+  // pass dollar-shaped numbers.
   const data = trend.points.map((p) => ({
     label: p.label,
-    cents: p.grossCents,
+    dollars: p.grossCents / 100,
   }));
 
   return (
@@ -43,10 +48,8 @@ export function MoneyTrendAreaCard({ trend }: { trend: MoneyTrend }) {
         <AreaChart
           data={data}
           xKey="label"
-          yKey="cents"
-          formatY={(v) =>
-            `$${(v / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`
-          }
+          yKey="dollars"
+          format="currency"
           height={140}
           ariaLabel="Weekly revenue trend"
         />

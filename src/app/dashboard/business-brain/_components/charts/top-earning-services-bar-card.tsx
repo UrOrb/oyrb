@@ -40,11 +40,13 @@ export function TopEarningServicesBarCard({
           <HorizontalBar
             data={services.map((s) => ({
               label: s.name,
-              value: s.totalRevenueCents,
+              // Pre-convert cents → dollars; <HorizontalBar> takes a
+              // `format="currency"` hint and trusts the caller to pass
+              // dollar-shaped numbers. (Server components can't pass
+              // formatter functions to client components.)
+              value: s.totalRevenueCents / 100,
             }))}
-            formatValue={(v) =>
-              `$${(v / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`
-            }
+            format="currency"
             height={Math.max(120, services.length * 36)}
             ariaLabel="Top earning services"
           />

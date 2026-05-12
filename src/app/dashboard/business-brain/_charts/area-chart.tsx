@@ -9,6 +9,7 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
+import { formatterFor, type ValueFormat } from "./format";
 
 /**
  * Spline area chart primitive — Phase 9 PR 6.
@@ -24,17 +25,20 @@ import {
  *
  * Axis + grid use OYRB's neutral border tone #E7E5E4 so the chart
  * never competes with the data line for attention.
+ *
+ * Value formatting is controlled via a serializable `format` string
+ * (not a function — functions can't cross the server/client boundary
+ * in Next.js 16 / React 19). Callers convert cents → dollars BEFORE
+ * passing data when they want currency display.
  */
 
 type Props<K extends string> = {
   data: Array<Record<K, string | number>>;
   xKey: K;
   yKey: K;
-  /** Custom formatter for the y-axis tick labels (e.g. dollars). */
-  formatY?: (v: number) => string;
-  /** Custom formatter for tooltip value. Default: formatY when set,
-   *  otherwise toLocaleString. */
-  formatTooltip?: (v: number) => string;
+  /** Serializable format hint for the y-axis tick labels and the
+   *  tooltip value. Default "number". See ./format.ts for the union. */
+  format?: ValueFormat;
   /** Fixed pixel height. 128px (8rem) by default; bento hero tiles
    *  pass 160-200. */
   height?: number;
@@ -51,17 +55,15 @@ export function AreaChart<K extends string>({
   data,
   xKey,
   yKey,
-  formatY,
-  formatTooltip,
+  format = "number",
   height = 128,
   ariaLabel,
 }: Props<K>) {
-  const tooltipFormatter = (value: unknown) => {
-    if (typeof value !== "number") return String(value);
-    if (formatTooltip) return formatTooltip(value);
-    if (formatY) return formatY(value);
-    return value.toLocaleString("en-US");
-  };
+  const formatValue = formatterFor(format);
+  const tickFormatter = (v: number) => formatValue(v);
+  const tooltipFormatter = (value: unknown) =>
+    typeof value === "number" ? formatValue(value) : String(value);
+
   return (
     <div className="w-full" style={{ height }} aria-label={ariaLabel}>
       <ResponsiveContainer width="100%" height="100%">
@@ -85,7 +87,7 @@ export function AreaChart<K extends string>({
             tick={{ fontSize: 11, fill: TICK }}
             tickLine={false}
             axisLine={{ stroke: GRID }}
-            tickFormatter={formatY}
+            tickFormatter={tickFormatter}
             width={36}
             tickCount={4}
           />
