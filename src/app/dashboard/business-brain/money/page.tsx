@@ -7,6 +7,8 @@ import { TopEarningServicesCard } from "../_components/top-earning-services-card
 import { ProfitPerMinuteCard } from "../_components/profit-per-minute-card";
 import { DepositVsPayInFullCard } from "../_components/deposit-vs-pay-in-full-card";
 import { MoneyTrendCard } from "../_components/money-trend-card";
+// Smoke-test (Phase 9 PR 6 commit 1) — removed in commit 2.
+import { SmokeTestChart } from "../_charts/__smoke-test";
 
 export const metadata = { title: "Money — Business Brain" };
 export const dynamic = "force-dynamic";
@@ -46,6 +48,7 @@ export default async function MoneyTabPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-4">
+      <SmokeTestChart />
       <RevenueOverviewCard
         windows={data.windows}
         passTheTorch90={data.passTheTorch90}
