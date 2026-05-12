@@ -83,20 +83,36 @@ export function AvatarMenu({
         )}
       </button>
 
-      {open && (
+      {/* Always-mounted overlay so the open/close transitions can run
+          on the same DOM nodes. `inert={!open}` removes the backdrop +
+          panel from the tab order and AT tree while closed; the outer
+          wrapper's pointer-events flip prevents the invisible backdrop
+          from swallowing clicks. Pattern mirrors mobile-nav.tsx. */}
+      <div
+        className={`fixed inset-0 z-50 ${open ? "pointer-events-auto" : "pointer-events-none"}`}
+        aria-hidden={!open}
+        inert={!open}
+      >
+        {/* Backdrop. Fades with the panel. Click-to-close. */}
         <div
-          className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm"
           onClick={close}
           aria-hidden="true"
+          className={`absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-150 ease-out motion-reduce:duration-0 motion-reduce:transition-none ${
+            open ? "opacity-100" : "opacity-0"
+          }`}
+        />
+        <div
+          ref={panelRef}
+          tabIndex={-1}
+          role="menu"
+          aria-label="Profile menu"
+          onClick={(e) => e.stopPropagation()}
+          className={`absolute right-4 top-4 w-[280px] rounded-xl border border-[#E7E5E4] bg-white shadow-2xl outline-none transition duration-150 ease-out motion-reduce:duration-0 motion-reduce:transition-none ${
+            open
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 -translate-y-1"
+          }`}
         >
-          <div
-            ref={panelRef}
-            tabIndex={-1}
-            role="menu"
-            aria-label="Profile menu"
-            onClick={(e) => e.stopPropagation()}
-            className="absolute right-4 top-4 w-[280px] rounded-xl border border-[#E7E5E4] bg-white shadow-2xl outline-none"
-          >
             {/* Header with avatar + close button */}
             <div className="flex items-start justify-between gap-3 border-b border-[#E7E5E4] px-4 py-3">
               <div className="flex min-w-0 items-center gap-3">
@@ -175,9 +191,8 @@ export function AvatarMenu({
                 </button>
               </form>
             </div>
-          </div>
         </div>
-      )}
+      </div>
     </>
   );
 }

@@ -62,11 +62,20 @@ export function SiteSwitcher({ sites, activeId, pushQuery = true }: Props) {
         <span className="max-w-[160px] truncate">{active.business_name}</span>
         <ChevronDown size={12} className="opacity-60" />
       </button>
-      {open && (
-        <div
-          role="listbox"
-          className="absolute right-0 z-50 mt-1 w-64 overflow-hidden rounded-md border border-[#E7E5E4] bg-white shadow-lg"
-        >
+      {/* Always-mounted so open/close transitions run on the same DOM
+          nodes. `inert={!open}` removes from tab order + AT tree while
+          closed. No backdrop here (mirrors how dropdowns dismiss via
+          the existing outside-click handler in useEffect above). */}
+      <div
+        role="listbox"
+        aria-hidden={!open}
+        inert={!open}
+        className={`absolute right-0 z-50 mt-1 w-64 overflow-hidden rounded-md border border-[#E7E5E4] bg-white shadow-lg transition duration-150 ease-out motion-reduce:duration-0 motion-reduce:transition-none ${
+          open
+            ? "opacity-100 translate-y-0 pointer-events-auto"
+            : "opacity-0 -translate-y-1 pointer-events-none"
+        }`}
+      >
           <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[#A3A3A3]">
             Your sites
           </p>
@@ -104,8 +113,7 @@ export function SiteSwitcher({ sites, activeId, pushQuery = true }: Props) {
               ← All sites
             </Link>
           </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
