@@ -223,11 +223,29 @@ export default async function DashboardPage({
     getMyListing(user.id),
   ]);
 
+  // getThisWeekData is wrapped in unstable_cache, which JSON-
+  // serializes the result for storage. On a cache hit, the Date
+  // fields (today, weekStart, weekEnd, and every Date inside
+  // todayServices) come back as ISO strings — the TypeScript type
+  // says Date, but the runtime value isn't. Re-hydrate at the
+  // consumer boundary so downstream code can rely on real Date
+  // instances regardless of whether this was a fresh compute or a
+  // cache hit. new Date(value) handles both Date and string inputs
+  // (and ignores the prototype check), so this is safe either way.
+  const todayDate = new Date(thisWeekData.today);
+  const todayServices = thisWeekData.todayServices.map((s) => ({
+    ...s,
+    startAt: new Date(s.startAt),
+    endAt: new Date(s.endAt),
+    serviceStartedAt: s.serviceStartedAt ? new Date(s.serviceStartedAt) : null,
+    serviceEndedAt: s.serviceEndedAt ? new Date(s.serviceEndedAt) : null,
+  }));
+
   // Bookings tile wants the next 2 AFTER today. The Hero tile already
   // surfaces today's services; filter them out of the upcoming list
   // by comparing against the today-window boundary that
   // getThisWeekData computed.
-  const todayEnd = new Date(thisWeekData.today.getTime() + 24 * 60 * 60 * 1000);
+  const todayEnd = new Date(todayDate.getTime() + 24 * 60 * 60 * 1000);
   type UpcomingRow = {
     id: string;
     start_at: string;
@@ -335,7 +353,7 @@ export default async function DashboardPage({
         <BentoGrid>
           <HeroTile
             greeting={greeting}
-            todayServices={thisWeekData.todayServices}
+            todayServices={todayServices}
             isPublished={business.is_published}
             siteUrl={siteUrl}
           />
