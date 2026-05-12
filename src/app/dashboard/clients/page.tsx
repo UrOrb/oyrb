@@ -6,6 +6,7 @@ import { getCurrentBusiness } from "@/lib/current-site";
 import { formatCents } from "@/lib/types";
 import { defaultIntervalFor } from "@/lib/rebook-intervals";
 import { ClientRowActions } from "./row-actions";
+import { ClientAvatar } from "@/components/ui/client-avatar";
 
 interface Props {
   searchParams: Promise<{ siteId?: string }>;
@@ -190,15 +191,20 @@ export default async function ClientsPage({ searchParams }: Props) {
                   return (
                     <tr key={c.id} className="hover:bg-[#FAFAF9]">
                       <td className="px-4 py-3">
-                        <Link
-                          href={`/dashboard/clients/${c.id}`}
-                          className="font-medium text-[#0A0A0A] underline-offset-2 hover:text-[#B8896B] hover:underline"
-                        >
-                          {c.name}
-                        </Link>
-                        <p className="text-xs text-[#A3A3A3]">
-                          Since {new Date(c.created_at).toLocaleDateString()}
-                        </p>
+                        <div className="flex items-center gap-3">
+                          <ClientAvatar name={c.name} size="sm" />
+                          <div className="min-w-0">
+                            <Link
+                              href={`/dashboard/clients/${c.id}`}
+                              className="font-medium text-[#0A0A0A] underline-offset-2 hover:text-[#B8896B] hover:underline"
+                            >
+                              {c.name}
+                            </Link>
+                            <p className="text-xs text-[#A3A3A3]">
+                              Since {new Date(c.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-[#525252]">
                         <div className="space-y-0.5">
@@ -282,8 +288,9 @@ export default async function ClientsPage({ searchParams }: Props) {
                       className="absolute inset-0 z-0"
                     />
                     <div className="relative z-10 flex flex-col gap-3 p-4 pointer-events-none">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
+                      <div className="flex items-start gap-3">
+                        <ClientAvatar name={c.name} size="md" />
+                        <div className="min-w-0 flex-1">
                           <p className="truncate font-medium text-[#0A0A0A]">{c.name}</p>
                           <p className="text-[11px] text-[#A3A3A3]">
                             Since {new Date(c.created_at).toLocaleDateString()}
