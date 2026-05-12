@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       id, business_id, service_id, start_at, end_at, status,
       services(name, duration_minutes, price_cents),
       clients(name, email),
-      businesses(business_name, slug, contact_email, phone, owner_id, break_between_appointments_minutes, daily_break_blocks)
+      businesses(business_name, slug, contact_email, phone, owner_id, break_between_appointments_minutes, daily_break_blocks, removal_initiated_at, removal_scheduled_for)
     `)
     .eq("id", resolved.bookingId)
     .maybeSingle();
@@ -85,6 +85,9 @@ export async function POST(request: NextRequest) {
       owner_id: string;
       break_between_appointments_minutes: number | null;
       daily_break_blocks: DailyBreakBlock[] | null;
+      // Phase 8 PR 4 — Remove Brand grace-period gating.
+      removal_initiated_at: string | null;
+      removal_scheduled_for: string | null;
     } | null;
   } | null;
 
@@ -93,6 +96,33 @@ export async function POST(request: NextRequest) {
   }
   if (booking.status === "cancelled") {
     return NextResponse.json({ error: "Booking is cancelled" }, { status: 409 });
+  }
+
+  // Phase 8 PR 4 — Remove Brand grace-period gate. If the pro has
+  // initiated removal, clients can still reschedule WITHIN the
+  // grace window, but not BEYOND `removal_scheduled_for` (the date
+  // the account deletes). Lets a client move a booking up by a few
+  // days while the pro finishes their grace, but blocks bookings
+  // that would outlive the account itself.
+  if (
+    booking.businesses.removal_initiated_at &&
+    booking.businesses.removal_scheduled_for
+  ) {
+    const removalDate = new Date(booking.businesses.removal_scheduled_for);
+    if (newStart.getTime() >= removalDate.getTime()) {
+      const dateLabel = removalDate.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      return NextResponse.json(
+        {
+          error: `This pro is no longer accepting bookings on or after ${dateLabel}. Please pick an earlier date.`,
+        },
+        { status: 409 },
+      );
+    }
   }
 
   const oldStart = new Date(booking.start_at);

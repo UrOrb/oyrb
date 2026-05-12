@@ -173,6 +173,36 @@ export default async function SettingsPage({ searchParams }: Props) {
           <GoalForm initial={goalSettings} />
         </div>
       </div>
+
+      {/* Remove Brand (Phase 8 PR 4) — link-card with neutral
+          treatment, amber-on-hover. Replaces the in-form Danger Zone
+          that previously called deleteAccount directly. The destructive
+          moment lives on its own page so Settings stays calm. mt-16
+          (not mt-8) puts deliberate distance between this and Goal
+          Tracking — physical distance does part of the demotion. */}
+      <div className="mt-16 rounded-lg border border-[#E7E5E4] bg-white p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex-1">
+            <h2 className="text-base font-semibold text-[#525252]">
+              Remove your brand
+            </h2>
+            <p className="mt-0.5 text-xs leading-relaxed text-[#737373]">
+              Start a 14-day removal window. Your storefront comes down
+              today; your account deletes after 14 days. Restorable any
+              time before then.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/settings/remove-brand"
+            className="group inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#E7E5E4] bg-white px-3 py-1.5 text-xs font-medium text-[#525252] hover:border-[#A3A3A3] hover:text-[#0A0A0A]"
+          >
+            <span className="group-hover:underline group-hover:decoration-amber-700 group-hover:underline-offset-4">
+              Remove brand
+            </span>
+            <span aria-hidden>→</span>
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

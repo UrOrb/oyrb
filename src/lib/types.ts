@@ -67,6 +67,24 @@ export type Business = {
    *  storefront. False by default (migration 042). The storefront only
    *  renders the card when this is true. */
   public_stats_enabled?: boolean;
+  // ── Remove Brand grace-period (migration 055, Phase 8 PR 4) ─────
+  // NULL when the brand is not in a removal grace period (the
+  // common case). Set together when initiateRemoval fires; cleared
+  // together by restoreRemoval. The PR 5 cron sweeps rows where
+  // removal_scheduled_for < now() and finalizes the cascade-delete.
+  removal_initiated_at: string | null;
+  removal_initiated_by_user_id: string | null;
+  removal_scheduled_for: string | null;
+  removal_grace_period_days: number | null;
+  removal_initiated_ip: string | null;
+  removal_initiated_user_agent: string | null;
+  removal_confirmation_version: number | null;
+  /** Snapshot of `is_published` at initiation time, so restore can
+   *  revert visibility to the exact pre-state (a pro who was
+   *  intentionally unpublished isn't republished on restore). */
+  removal_pre_initiation_is_published: boolean | null;
+  /** Snapshot of `directory_listings.is_listed` at initiation time. */
+  removal_pre_initiation_is_listed: boolean | null;
   created_at: string;
 };
 
