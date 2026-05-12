@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusiness } from "@/lib/current-site";
 import { getReferralData, getViewsData } from "@/lib/business-brain";
-import { AcquisitionMixCard } from "../_components/acquisition-mix-card";
+import { BentoGrid } from "../../_components/bento-grid";
 import { BookingOriginCard } from "../_components/booking-origin-card";
 import { TopSourcesCard } from "../_components/top-sources-card";
 import { SourceRevenueCard } from "../_components/source-revenue-card";
@@ -12,6 +12,7 @@ import { StorefrontViewsCard } from "../_components/storefront-views-card";
 import { ConversionRateCard } from "../_components/conversion-rate-card";
 import { ConversionBySourceCard } from "../_components/conversion-by-source-card";
 import { WhatWeDontTrackCard } from "../_components/what-we-dont-track-card";
+import { AcquisitionMixDonutCard } from "../_components/charts/acquisition-mix-donut-card";
 
 export const metadata = { title: "Where They Come From — Business Brain" };
 export const dynamic = "force-dynamic";
@@ -21,36 +22,19 @@ interface Props {
 }
 
 /**
- * Where They Come From tab. Phase 4.5 shipped 3 sample-data cards;
- * Phase 5 PR #35 added UTM + classified referrer; Phase 5 PR #36
- * added Pass the Torch persistence; Phase 5 closer (this PR) adds
- * storefront view tracking + view-to-booking conversion analytics.
+ * Where They Come From tab — Phase 9 PR 6 bento + charts.
  *
- * Cards (in render order):
- *   1. Acquisition mix          — new vs returning client bookings
- *   2. Storefront views         — Phase 5 closer; total + 8-week trend
- *   3. Conversion rate          — Phase 5 closer; views → bookings
- *   4. Conversion by source     — Phase 5 closer; per-source funnel
- *   5. Pass the Torch           — platform-internal referrals
- *   6. Top sources              — classified-source breakdown
- *   7. Revenue by source        — same buckets ranked by collected revenue
- *   8. UTM campaigns            — explicit campaign tags
- *   9. Booking origin           — public widget vs manual
- *  10. What we don't track      — "How did you hear" survey field only
- *                                  (view tracking removed — this PR ships it)
+ * One card replaced with Recharts: AcquisitionMix → donut. The other
+ * 9 cards on this tab stay text/list-based — chartifying more would
+ * exceed the 7-chart cap and inflate scope. Several are bar-chart
+ * candidates (TopSources, SourceRevenue, UtmCampaigns) for a future PR.
  *
- * Source attribution priority for source-bucketed cards (defined
- * in src/lib/business-brain.ts attributeSource):
- *   1. Pass the Torch       referrer_business_id IS NOT NULL —
- *                            highest priority, most explicit signal
- *   2. utm_source           explicit URL tagging
- *   3. classified referrer  hostname-based bucket
- *   4. "Direct"             public_widget with no UTM/referrer
- *   5. "Unknown"            legacy or manual bookings
- *
- * The same priority applies to BOTH bookings and views — single
- * source of truth so view-to-booking conversion math by source
- * uses consistent bucketing.
+ * Layout (desktop, 6 cols × N rows):
+ *   Row 1: Acquisition mix donut (3) | Storefront views (3)
+ *   Row 2: Conversion rate (2) | Conversion by source (4)
+ *   Row 3: Top sources (3) | Source revenue (3)
+ *   Row 4: Booking origin (3) | UTM campaigns (3)
+ *   Row 5: Pass the Torch (3) | What we don't track (3)
  */
 export default async function WhereTheyComeFromTabPage({ searchParams }: Props) {
   const supabase = await createClient();
@@ -74,17 +58,37 @@ export default async function WhereTheyComeFromTabPage({ searchParams }: Props) 
   ]);
 
   return (
-    <div className="space-y-4">
-      <AcquisitionMixCard data={data.acquisition} />
-      <StorefrontViewsCard data={viewsData} />
-      <ConversionRateCard data={viewsData} />
-      <ConversionBySourceCard data={viewsData.bySource} />
-      <PassTheTorchCard data={data.passTheTorch} />
-      <TopSourcesCard data={data.topSources} />
-      <SourceRevenueCard data={data.sourceRevenue} />
-      <UtmCampaignsCard data={data.utmCampaigns} />
-      <BookingOriginCard data={data.origin} />
-      <WhatWeDontTrackCard />
-    </div>
+    <BentoGrid>
+      <div className="col-span-2 sm:col-span-2 lg:col-span-3">
+        <AcquisitionMixDonutCard mix={data.acquisition} />
+      </div>
+      <div className="col-span-2 sm:col-span-2 lg:col-span-3">
+        <StorefrontViewsCard data={viewsData} />
+      </div>
+      <div className="col-span-2 sm:col-span-2 lg:col-span-2">
+        <ConversionRateCard data={viewsData} />
+      </div>
+      <div className="col-span-2 sm:col-span-4 lg:col-span-4">
+        <ConversionBySourceCard data={viewsData.bySource} />
+      </div>
+      <div className="col-span-2 sm:col-span-2 lg:col-span-3">
+        <TopSourcesCard data={data.topSources} />
+      </div>
+      <div className="col-span-2 sm:col-span-2 lg:col-span-3">
+        <SourceRevenueCard data={data.sourceRevenue} />
+      </div>
+      <div className="col-span-2 sm:col-span-2 lg:col-span-3">
+        <BookingOriginCard data={data.origin} />
+      </div>
+      <div className="col-span-2 sm:col-span-2 lg:col-span-3">
+        <UtmCampaignsCard data={data.utmCampaigns} />
+      </div>
+      <div className="col-span-2 sm:col-span-2 lg:col-span-3">
+        <PassTheTorchCard data={data.passTheTorch} />
+      </div>
+      <div className="col-span-2 sm:col-span-2 lg:col-span-3">
+        <WhatWeDontTrackCard />
+      </div>
+    </BentoGrid>
   );
 }

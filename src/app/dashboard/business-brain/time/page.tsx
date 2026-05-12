@@ -2,11 +2,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusiness } from "@/lib/current-site";
 import { getTimeData } from "@/lib/business-brain";
-import { ScheduleAccuracyCard } from "../_components/schedule-accuracy-card";
+import { BentoGrid } from "../../_components/bento-grid";
 import { ByServiceTimingCard } from "../_components/by-service-timing-card";
-import { TimeOfDayPatternsCard } from "../_components/time-of-day-patterns-card";
 import { DayOfWeekPatternsCard } from "../_components/day-of-week-patterns-card";
 import { StartedNotStoppedCard } from "../_components/started-not-stopped-card";
+import { ScheduleAccuracyRingCard } from "../_components/charts/schedule-accuracy-ring-card";
+import { TimeOfDayHeatmapCard } from "../_components/charts/time-of-day-heatmap-card";
 
 export const metadata = { title: "Time — Business Brain" };
 export const dynamic = "force-dynamic";
@@ -16,21 +17,20 @@ interface Props {
 }
 
 /**
- * Phase 4.3 — Time tab. Five cards in a vertical stack, all driven
- * by getTimeData() which caches for 1 hour per businessId + timeZone.
+ * Time tab — Phase 9 PR 6 bento + charts.
  *
- * Cards 1, 2, and 5 depend on Phase 3 timing pings (PR #28):
- *   - Schedule Accuracy + By-service Timing need BOTH Start AND Stop
- *     pings on a booking.
- *   - Started-but-not-stopped needs ONLY the Start ping (and a
- *     completed-status booking with NULL Stop) — distinct
- *     "single-tap" pattern.
+ * Two cards replaced with Recharts / SVG:
+ *   ScheduleAccuracy  → progress ring (donut, RadialBarChart)
+ *   TimeOfDayPatterns → 7×24 SVG heatmap (with mobile fallback)
  *
- * Cards 3 and 4 (Time-of-day, Day-of-week patterns) have no Phase 3
- * dependency — they just bucket start_at.
+ * Day-of-week stays as-is (existing bar chart card). By-service
+ * timing and Started-not-stopped are text/list surfaces — no chart
+ * candidates.
  *
- * Each card handles its own empty state, so pros without timing data
- * see graceful explainers, not broken UIs.
+ * Layout (desktop):
+ *   Row 1: Schedule accuracy ring (2) | Time-of-day heatmap (4 × 2)
+ *   Row 2: By-service timing (2)
+ *   Row 3: Day-of-week (3) | Started-not-stopped (3)
  */
 export default async function TimeTabPage({ searchParams }: Props) {
   const supabase = await createClient();
@@ -51,12 +51,22 @@ export default async function TimeTabPage({ searchParams }: Props) {
   const data = await getTimeData(business.id, timeZone);
 
   return (
-    <div className="space-y-4">
-      <ScheduleAccuracyCard data={data.scheduleAccuracy} />
-      <ByServiceTimingCard data={data.byService} />
-      <TimeOfDayPatternsCard data={data.timeOfDay} />
-      <DayOfWeekPatternsCard data={data.dayOfWeek} />
-      <StartedNotStoppedCard data={data.stuck} />
-    </div>
+    <BentoGrid>
+      <div className="col-span-2 sm:col-span-2 lg:col-span-2 lg:row-span-2">
+        <ScheduleAccuracyRingCard accuracy={data.scheduleAccuracy} />
+      </div>
+      <div className="col-span-2 sm:col-span-4 lg:col-span-4 lg:row-span-2">
+        <TimeOfDayHeatmapCard hourByDay={data.hourByDay} />
+      </div>
+      <div className="col-span-2 sm:col-span-4 lg:col-span-6">
+        <ByServiceTimingCard data={data.byService} />
+      </div>
+      <div className="col-span-2 sm:col-span-2 lg:col-span-3">
+        <DayOfWeekPatternsCard data={data.dayOfWeek} />
+      </div>
+      <div className="col-span-2 sm:col-span-2 lg:col-span-3">
+        <StartedNotStoppedCard data={data.stuck} />
+      </div>
+    </BentoGrid>
   );
 }

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusiness } from "@/lib/current-site";
 import { getThisWeekData, detectAnomalies } from "@/lib/business-brain";
+import { BentoGrid } from "../../_components/bento-grid";
 import { HeadsUpCard } from "../_components/heads-up-card";
 import { ScheduleDensityCard } from "../_components/schedule-density-card";
 import { TodayServicesCard } from "../_components/today-services-card";
@@ -16,19 +17,16 @@ interface Props {
 }
 
 /**
- * Phase 4.1 — This Week tab. Five cards in a vertical stack, all
- * driven by getThisWeekData() + detectAnomalies(). Both helpers
- * cache for 1 hour per businessId so multiple visits in an hour
- * see consistent data.
+ * This Week tab — Phase 9 PR 6 bento layout.
  *
- * Empty-state behavior: every card handles its own zero-data case
- * with a friendly empty message. New pros (no bookings) see five
- * empty states, not five broken UIs.
+ * No card replacements on this tab — the existing 5 cards are alert /
+ * list / state surfaces, not chart candidates. Each card is wrapped
+ * in a col-span div to slot into the 6-col bento grid.
  *
- * Auth: standard pattern — getCurrentBusiness resolves the active
- * site from cookie/searchParam and returns null when the user
- * has no business. Non-owners can't reach this page because
- * getCurrentBusiness only returns sites they own.
+ * Layout (desktop):
+ *   Row 1: Heads-up (6 — full-width alert banner)
+ *   Row 2: Schedule density (4) | Today's services (2)
+ *   Row 3: Money this week (3) | Trend compare (3)
  */
 export default async function ThisWeekTabPage({ searchParams }: Props) {
   const supabase = await createClient();
@@ -45,23 +43,29 @@ export default async function ThisWeekTabPage({ searchParams }: Props) {
     );
   }
 
-  // Pro's local week. businesses.timezone has a sensible default of
-  // 'America/New_York' (migration 003) so this is always populated.
   const timeZone = business.timezone ?? "UTC";
-
-  // Two cached aggregations in parallel.
   const [data, anomalies] = await Promise.all([
     getThisWeekData(business.id, timeZone),
     detectAnomalies(business.id, timeZone),
   ]);
 
   return (
-    <div className="space-y-4">
-      <HeadsUpCard result={anomalies} />
-      <ScheduleDensityCard density={data.density} />
-      <TodayServicesCard services={data.todayServices} timeZone={timeZone} />
-      <MoneyThisWeekCard money={data.money} />
-      <TrendCompareCard trend={data.trend} />
-    </div>
+    <BentoGrid>
+      <div className="col-span-2 sm:col-span-4 lg:col-span-6">
+        <HeadsUpCard result={anomalies} />
+      </div>
+      <div className="col-span-2 sm:col-span-4 lg:col-span-4">
+        <ScheduleDensityCard density={data.density} />
+      </div>
+      <div className="col-span-2 sm:col-span-4 lg:col-span-2">
+        <TodayServicesCard services={data.todayServices} timeZone={timeZone} />
+      </div>
+      <div className="col-span-2 sm:col-span-2 lg:col-span-3">
+        <MoneyThisWeekCard money={data.money} />
+      </div>
+      <div className="col-span-2 sm:col-span-2 lg:col-span-3">
+        <TrendCompareCard trend={data.trend} />
+      </div>
+    </BentoGrid>
   );
 }

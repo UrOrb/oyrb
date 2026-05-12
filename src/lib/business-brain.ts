@@ -1265,6 +1265,26 @@ export type DayOfWeekPatterns = {
   days: Array<{ label: string; count: number }>;
 };
 
+/**
+ * Hour-by-day booking histogram for the Phase 9 PR 6 heatmap.
+ * 7×24 grid: rows are Mon..Sun (0..6, matching DayOfWeekPatterns'
+ * todayWeekdayIndex convention), columns are local hour 0..23 in the
+ * pro's timezone. Each cell is the booking count for that
+ * (weekday, hour) cell across the same TIME_WINDOW_DAYS window the
+ * 3-bucket timeOfDay aggregation uses.
+ *
+ * Shares the same loop pass as timeOfDay and dayOfWeek inside
+ * computeTimeData — no extra query, no extra parse cost.
+ */
+export type HourByDayHistogram = {
+  hasEnoughData: boolean;
+  totalBookings: number;
+  /** [day 0..6][hour 0..23] = count */
+  grid: number[][];
+  /** Max cell value across the grid — convenient for color-scaling. */
+  maxCell: number;
+};
+
 export type StuckBookingRow = {
   id: string;
   serviceStartedAt: Date;
@@ -1287,6 +1307,9 @@ export type TimeData = {
   byService: ByServiceTimingResult;
   timeOfDay: TimeOfDayPatterns;
   dayOfWeek: DayOfWeekPatterns;
+  /** Phase 9 PR 6 — 7×24 booking heatmap. Extension of the same
+   *  loop that computes timeOfDay + dayOfWeek; no new query. */
+  hourByDay: HourByDayHistogram;
   stuck: StartedNotStopped;
 };
 
@@ -1479,6 +1502,13 @@ async function computeTimeData(
     timeZone,
     weekday: "short",
   });
+  // 7×24 grid for the Phase 9 PR 6 heatmap, populated in the same
+  // pass. Mon=0..Sun=6 to match dowCounts.
+  const hourByDayGrid: number[][] = Array.from({ length: 7 }, () =>
+    new Array<number>(24).fill(0),
+  );
+  let hourByDayMax = 0;
+
   for (const r of allRows) {
     const d = new Date(r.start_at);
     const hour = Number.parseInt(hourFmt.format(d), 10) % 24;
@@ -1487,7 +1517,12 @@ async function computeTimeData(
     else todBuckets.evening += 1;
 
     const idx = dowMap[weekdayFmt.format(d)];
-    if (idx !== undefined) dowCounts[idx] += 1;
+    if (idx !== undefined) {
+      dowCounts[idx] += 1;
+      const cellNext = hourByDayGrid[idx][hour] + 1;
+      hourByDayGrid[idx][hour] = cellNext;
+      if (cellNext > hourByDayMax) hourByDayMax = cellNext;
+    }
   }
 
   const totalForPatterns = allRows.length;
@@ -1510,6 +1545,13 @@ async function computeTimeData(
       label,
       count: dowCounts[i],
     })),
+  };
+
+  const hourByDay: HourByDayHistogram = {
+    hasEnoughData: patternsHaveEnough,
+    totalBookings: totalForPatterns,
+    grid: hourByDayGrid,
+    maxCell: hourByDayMax,
   };
 
   // ── Started-but-not-stopped (last 30 days) ─────────────────────────
@@ -1553,6 +1595,7 @@ async function computeTimeData(
     },
     timeOfDay,
     dayOfWeek,
+    hourByDay,
     stuck,
   };
 }

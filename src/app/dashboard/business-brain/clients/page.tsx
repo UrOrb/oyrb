@@ -2,11 +2,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusiness } from "@/lib/current-site";
 import { getClientsData } from "@/lib/business-brain";
+import { BentoGrid } from "../../_components/bento-grid";
 import { RepeatClientOverviewCard } from "../_components/repeat-client-overview-card";
 import { TopClientsByLTVCard } from "../_components/top-clients-by-ltv-card";
 import { DriftingClientsCard } from "../_components/drifting-clients-card";
-import { NewClientsTrendCard } from "../_components/new-clients-trend-card";
 import { ClientRetentionCard } from "../_components/client-retention-card";
+import { NewClientsTrendAreaCard } from "../_components/charts/new-clients-trend-area-card";
 
 export const metadata = { title: "Clients — Business Brain" };
 export const dynamic = "force-dynamic";
@@ -16,16 +17,19 @@ interface Props {
 }
 
 /**
- * Phase 4.4 — Clients tab. Five cards in a vertical stack, all
- * driven by getClientsData() which caches for 1 hour per
- * businessId + timeZone.
+ * Clients tab — Phase 9 PR 6 bento + charts.
  *
- * Read-only analytics. The operational client list (filter / search
- * / edit / contact details) lives at /dashboard/clients. The
- * Drifting Clients card has a footer link bridging the two surfaces.
+ * One card replaced with Recharts:
+ *   NewClientsTrend → spline area chart
  *
- * Privacy: cards display client NAMES only — no email/phone. Pros
- * who want contact details click through to /dashboard/clients.
+ * RepeatClientOverview and TopClientsByLTV are chart candidates (flagged
+ * in discovery §2) but stay text-based in this PR — the 7-chart cap was
+ * tight enough already. A follow-up could convert them.
+ *
+ * Layout (desktop):
+ *   Row 1: Repeat overview (2) | Top clients by LTV (4)
+ *   Row 2: New clients trend area (4) | Drifting clients (2)
+ *   Row 3: Client retention (6) — full width
  */
 export default async function ClientsTabPage({ searchParams }: Props) {
   const supabase = await createClient();
@@ -46,12 +50,22 @@ export default async function ClientsTabPage({ searchParams }: Props) {
   const data = await getClientsData(business.id, timeZone);
 
   return (
-    <div className="space-y-4">
-      <RepeatClientOverviewCard data={data.repeatOverview} />
-      <TopClientsByLTVCard data={data.topByLTV} />
-      <DriftingClientsCard data={data.drifting} />
-      <NewClientsTrendCard data={data.newClientsTrend} />
-      <ClientRetentionCard data={data.retention} />
-    </div>
+    <BentoGrid>
+      <div className="col-span-2 sm:col-span-2 lg:col-span-2">
+        <RepeatClientOverviewCard data={data.repeatOverview} />
+      </div>
+      <div className="col-span-2 sm:col-span-4 lg:col-span-4">
+        <TopClientsByLTVCard data={data.topByLTV} />
+      </div>
+      <div className="col-span-2 sm:col-span-4 lg:col-span-4">
+        <NewClientsTrendAreaCard trend={data.newClientsTrend} />
+      </div>
+      <div className="col-span-2 sm:col-span-4 lg:col-span-2">
+        <DriftingClientsCard data={data.drifting} />
+      </div>
+      <div className="col-span-2 sm:col-span-4 lg:col-span-6">
+        <ClientRetentionCard data={data.retention} />
+      </div>
+    </BentoGrid>
   );
 }

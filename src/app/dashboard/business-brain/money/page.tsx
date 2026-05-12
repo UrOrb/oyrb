@@ -2,13 +2,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusiness } from "@/lib/current-site";
 import { getMoneyData } from "@/lib/business-brain";
+import { BentoGrid } from "../../_components/bento-grid";
 import { RevenueOverviewCard } from "../_components/revenue-overview-card";
-import { TopEarningServicesCard } from "../_components/top-earning-services-card";
 import { ProfitPerMinuteCard } from "../_components/profit-per-minute-card";
-import { DepositVsPayInFullCard } from "../_components/deposit-vs-pay-in-full-card";
-import { MoneyTrendCard } from "../_components/money-trend-card";
-// Smoke-test (Phase 9 PR 6 commit 1) — removed in commit 2.
-import { SmokeTestChart } from "../_charts/__smoke-test";
+import { MoneyTrendAreaCard } from "../_components/charts/money-trend-area-card";
+import { TopEarningServicesBarCard } from "../_components/charts/top-earning-services-bar-card";
+import { PaymentMixDonutCard } from "../_components/charts/payment-mix-donut-card";
 
 export const metadata = { title: "Money — Business Brain" };
 export const dynamic = "force-dynamic";
@@ -18,15 +17,17 @@ interface Props {
 }
 
 /**
- * Phase 4.2 — Money tab. Five cards in a vertical stack, all driven
- * by getMoneyData() which caches for 1 hour per businessId.
+ * Money tab — Phase 9 PR 6 bento + charts.
  *
- * Each card handles its own zero-data / sample-size empty state, so
- * new pros (no bookings) and pros without Phase 3 timing data see
- * graceful empty messages, not broken UIs.
+ * Three cards replaced with Recharts:
+ *   MoneyTrend       → spline area chart (hero of the tab)
+ *   TopEarningSvcs   → horizontal bar chart
+ *   DepositVsPayIn   → payment mix donut
  *
- * Auth: standard pattern via getCurrentBusiness — only the pro who
- * owns the site gets data here.
+ * Layout (desktop):
+ *   Row 1: Revenue trend area (4 × 2) | Revenue overview (2 × 2)
+ *   Row 2: Top earning services (3) | Payment mix donut (3)
+ *   Row 3: Profit per minute (6) — wide stat
  */
 export default async function MoneyTabPage({ searchParams }: Props) {
   const supabase = await createClient();
@@ -47,19 +48,28 @@ export default async function MoneyTabPage({ searchParams }: Props) {
   const data = await getMoneyData(business.id, timeZone);
 
   return (
-    <div className="space-y-4">
-      <SmokeTestChart />
-      <RevenueOverviewCard
-        windows={data.windows}
-        passTheTorch90={data.passTheTorch90}
-      />
-      <TopEarningServicesCard
-        services={data.topServices}
-        hasEnoughData={data.topServicesHasEnoughData}
-      />
-      <ProfitPerMinuteCard data={data.profitPerMinute} />
-      <DepositVsPayInFullCard mix={data.paymentMix} />
-      <MoneyTrendCard trend={data.trend} />
-    </div>
+    <BentoGrid>
+      <div className="col-span-2 sm:col-span-4 lg:col-span-4 lg:row-span-2">
+        <MoneyTrendAreaCard trend={data.trend} />
+      </div>
+      <div className="col-span-2 sm:col-span-4 lg:col-span-2 lg:row-span-2">
+        <RevenueOverviewCard
+          windows={data.windows}
+          passTheTorch90={data.passTheTorch90}
+        />
+      </div>
+      <div className="col-span-2 sm:col-span-2 lg:col-span-3">
+        <TopEarningServicesBarCard
+          services={data.topServices}
+          hasEnoughData={data.topServicesHasEnoughData}
+        />
+      </div>
+      <div className="col-span-2 sm:col-span-2 lg:col-span-3">
+        <PaymentMixDonutCard mix={data.paymentMix} />
+      </div>
+      <div className="col-span-2 sm:col-span-4 lg:col-span-6">
+        <ProfitPerMinuteCard data={data.profitPerMinute} />
+      </div>
+    </BentoGrid>
   );
 }
