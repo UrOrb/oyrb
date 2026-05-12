@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AlertTriangle, Loader2, X } from "lucide-react";
@@ -19,6 +19,17 @@ type Props = {
   /** Current sms_consent value — drives the "phone change requires
    *  re-opt-in" confirmation modal. */
   smsConsent: boolean;
+  /** Optional callback invoked when Cancel is clicked OR a successful
+   *  save completes. When present, the form treats itself as embedded
+   *  in a parent modal: Cancel becomes a button that calls onClose
+   *  (instead of a Link to /dashboard/clients), and successful saves
+   *  call onClose after the router.refresh(). When absent (legacy
+   *  page-level usage), Cancel is a Link as before. */
+  onClose?: () => void;
+  /** Which field gets initial focus on mount. Default "name" — matches
+   *  pre-PR-5 behavior. The Notes tile passes "notes" so clicking it
+   *  opens the modal with the textarea already focused. */
+  initialFocus?: "name" | "notes";
 };
 
 const inputCls =
@@ -41,16 +52,33 @@ const inputCls =
  *   normalized form below the input. Cosmetic — backend re-normalizes
  *   and rejects unparseable values with 400 invalid_phone.
  */
-export function ClientEditForm({ clientId, initial, smsConsent }: Props) {
+export function ClientEditForm({
+  clientId,
+  initial,
+  smsConsent,
+  onClose,
+  initialFocus = "name",
+}: Props) {
   const router = useRouter();
   const [name, setName] = useState(initial.name);
   const [email, setEmail] = useState(initial.email);
   const [phone, setPhone] = useState(initial.phone);
   const [notes, setNotes] = useState(initial.notes);
 
+  const nameRef = useRef<HTMLInputElement | null>(null);
+  const notesRef = useRef<HTMLTextAreaElement | null>(null);
+
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [showConsentModal, setShowConsentModal] = useState(false);
+
+  // Initial focus — fires once on mount. notes is the only other
+  // focusable target today; expand the union if a future tile wants
+  // to deep-link into email/phone.
+  useEffect(() => {
+    if (initialFocus === "notes") notesRef.current?.focus();
+    else nameRef.current?.focus();
+  }, [initialFocus]);
 
   const dirty =
     name !== initial.name ||
@@ -117,6 +145,13 @@ export function ClientEditForm({ clientId, initial, smsConsent }: Props) {
         // router.refresh re-runs the server component so the consent
         // strip + last-visit metadata reflect the new values.
         router.refresh();
+        // When embedded in a parent modal, close it after a successful
+        // save. The brief flash of the "Saved." message before close
+        // is intentional acknowledgement.
+        if (onClose) {
+          // Give router.refresh a tick to start before unmounting.
+          setTimeout(() => onClose(), 0);
+        }
       } catch (e) {
         setMsg({ type: "err", text: e instanceof Error ? e.message : "Network error" });
       }
@@ -153,6 +188,7 @@ export function ClientEditForm({ clientId, initial, smsConsent }: Props) {
         <label className="sm:col-span-2">
           <span className="text-xs font-medium text-[#0A0A0A]">Name</span>
           <input
+            ref={nameRef}
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -202,6 +238,7 @@ export function ClientEditForm({ clientId, initial, smsConsent }: Props) {
             Notes <span className="font-normal text-[#A3A3A3]">(only you see these)</span>
           </span>
           <textarea
+            ref={notesRef}
             rows={4}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -233,12 +270,23 @@ export function ClientEditForm({ clientId, initial, smsConsent }: Props) {
         )}
 
         <div className="sm:col-span-2 flex flex-col-reverse gap-3 border-t border-[#E7E5E4] pt-4 sm:flex-row sm:items-center sm:justify-end">
-          <Link
-            href="/dashboard/clients"
-            className="inline-flex items-center justify-center rounded-md border border-[#E7E5E4] bg-white px-4 py-2 text-sm text-[#525252] transition-colors hover:bg-[#F5F5F4]"
-          >
-            Cancel
-          </Link>
+          {onClose ? (
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={pending}
+              className="inline-flex items-center justify-center rounded-md border border-[#E7E5E4] bg-white px-4 py-2 text-sm text-[#525252] transition-colors hover:bg-[#F5F5F4] disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          ) : (
+            <Link
+              href="/dashboard/clients"
+              className="inline-flex items-center justify-center rounded-md border border-[#E7E5E4] bg-white px-4 py-2 text-sm text-[#525252] transition-colors hover:bg-[#F5F5F4]"
+            >
+              Cancel
+            </Link>
+          )}
           <button
             type="submit"
             disabled={pending || !dirty}
