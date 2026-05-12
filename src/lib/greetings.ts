@@ -15,6 +15,8 @@
 // even when the pro never set a display name). Final fallback drops
 // the comma entirely.
 
+import { pickIndex } from "./hash";
+
 export type TimeOfDay = "morning" | "afternoon" | "evening";
 
 const GREETINGS: Record<TimeOfDay, readonly string[]> = {
@@ -76,19 +78,6 @@ function dateKeyInTz(timeZone: string, now: Date = new Date()): string {
     month: "2-digit",
     day: "2-digit",
   }).format(now);
-}
-
-/**
- * Tiny deterministic hash — userId + date key → variation index.
- * djb2 is overkill for "pick one of 4," but it's fast, dependency-free,
- * and the distribution across 4 buckets is even enough for our use.
- */
-function pickIndex(seed: string, modulo: number): number {
-  let hash = 5381;
-  for (let i = 0; i < seed.length; i++) {
-    hash = ((hash << 5) + hash + seed.charCodeAt(i)) | 0;
-  }
-  return Math.abs(hash) % modulo;
 }
 
 /**
