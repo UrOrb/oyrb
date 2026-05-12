@@ -30,12 +30,22 @@ import { formatCsvWithBom, type CsvOutput } from "./format";
  *   gross               = services.price_cents          (sticker)
  *   deposit_collected   = deposit_paid ? services.deposit_cents : ""
  *   balance_collected   = paid_in_full_at ? paid_amount_cents  : ""
- *   total_oyrb          = deposit_collected + balance_collected
+ *   total_oyrb          = "" if BOTH legs are blank,
+ *                         else deposit_collected + balance_collected
+ *
+ * The total goes blank (not 0.00) when there is no payment data on
+ * either leg — preserves the "" vs 0.00 distinction ("not applicable"
+ * vs "zero collected") that the deposit/balance cells use. A booking
+ * priced at 0 that was paid through Stripe still shows 0.00 in the
+ * total — meaningful zero, not missing data.
  *
  * paid_amount_cents semantics (mig 020): for a deposit-then-balance
  * booking it is the BALANCE only; for a fully-upfront booking it is
  * the FULL price. Either way, total_oyrb = deposit + balance is
  * correct because deposit is zero in the upfront case.
+ *
+ * payment_method values: see derivePaymentMethod below — five-way
+ * union (gift_card_redeemed | stripe | mixed | manual | unpaid).
  *
  * appointment_date/_time formatted in the pro's timezone
  * (businesses.timezone, fallback America/New_York). Audit timestamps
@@ -109,14 +119,26 @@ const DEFAULT_TZ = "America/New_York";
 /**
  * Derives the payment_method column value for one booking row.
  *
- *   gift_card_redeemed — booking id appears in gift_cards.redeemed_booking_id
+ * Priority order (each branch wins over later ones):
+ *
+ *   gift_card_redeemed — booking id appears in
+ *                        gift_cards.redeemed_booking_id
  *   stripe             — both deposit_paid AND paid_in_full_at fired
- *   mixed              — exactly one of deposit_paid / paid_in_full_at fired
- *                        (e.g. deposit-only, or a pay-in-full with no prior
- *                        deposit row — the second case is the upfront flow)
- *   manual             — no Stripe payment state observed (cash, Venmo,
- *                        a future series child of a deposit-paid parent,
- *                        or a pro-typed manual booking)
+ *   mixed              — exactly one of deposit_paid / paid_in_full_at
+ *                        fired (deposit-only, or upfront pay-in-full
+ *                        without a prior deposit)
+ *   manual             — booking_source = 'manual' (pro typed this in
+ *                        from /dashboard/bookings, so the assumption
+ *                        is they're collecting payment offline)
+ *   unpaid             — booking exists, no Stripe payment captured,
+ *                        not a manual entry. Public-widget bookings
+ *                        that never paid a deposit (free services, or
+ *                        pros using OYRB for scheduling and collecting
+ *                        elsewhere) and series children of a
+ *                        deposit-paid parent both land here. The
+ *                        prior version of this helper labelled these
+ *                        rows `manual`, which was misleading next to
+ *                        booking_source=public_widget.
  *
  * Exported for testability / future re-use; pure function.
  */
@@ -124,14 +146,16 @@ export function derivePaymentMethod(
   bookingId: string,
   depositPaid: boolean | null,
   paidInFullAt: string | null,
+  bookingSource: string | null,
   giftCardRedeemedIds: Set<string>,
-): "gift_card_redeemed" | "stripe" | "mixed" | "manual" {
+): "gift_card_redeemed" | "stripe" | "mixed" | "manual" | "unpaid" {
   if (giftCardRedeemedIds.has(bookingId)) return "gift_card_redeemed";
   const hadDeposit = !!depositPaid;
   const hadBalance = !!paidInFullAt;
   if (hadDeposit && hadBalance) return "stripe";
   if (hadDeposit !== hadBalance) return "mixed";
-  return "manual";
+  if (bookingSource === "manual") return "manual";
+  return "unpaid";
 }
 
 function centsToUsd(cents: number | null | undefined): string {
@@ -219,18 +243,24 @@ export async function buildIncomeCsv(
     const depositUsd = depositPaid ? centsToUsd(depositCents) : "";
     const balanceUsd = balancePaid ? centsToUsd(b.paid_amount_cents) : "";
 
-    // Total is the sum of whatever OYRB captured — zero when
-    // neither leg paid. Always emit a number here (not blank)
-    // because "0.00 collected" is a real, meaningful value for a
-    // cash / manual booking and helps the pro's spreadsheet math.
-    const totalCollectedCents =
-      (depositPaid ? depositCents : 0) +
-      (balancePaid ? (b.paid_amount_cents ?? 0) : 0);
+    // Total: blank when both legs are blank ("not applicable"),
+    // otherwise the sum (which may legitimately be 0 if a service
+    // priced at 0 was paid through Stripe — meaningful zero, not
+    // "no data"). Matches the "" vs 0.00 convention for the
+    // deposit/balance cells.
+    const totalCollectedUsd =
+      depositUsd === "" && balanceUsd === ""
+        ? ""
+        : centsToUsd(
+            (depositPaid ? depositCents : 0) +
+              (balancePaid ? (b.paid_amount_cents ?? 0) : 0),
+          );
 
     const paymentMethod = derivePaymentMethod(
       b.id,
       b.deposit_paid,
       b.paid_in_full_at,
+      b.booking_source,
       giftCardRedeemedIds,
     );
 
@@ -255,7 +285,7 @@ export async function buildIncomeCsv(
       deposit_collected_at: depositCollectedAt,
       balance_collected_usd: balanceUsd,
       balance_collected_at: b.paid_in_full_at ?? "",
-      total_oyrb_collected_usd: centsToUsd(totalCollectedCents),
+      total_oyrb_collected_usd: totalCollectedUsd,
       // Always-blank columns — see surface copy on Exports page for
       // reconciliation guidance.
       tip_amount_usd: "",
