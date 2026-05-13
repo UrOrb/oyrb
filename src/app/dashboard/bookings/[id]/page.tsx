@@ -81,7 +81,7 @@ export default async function BookingDetailPage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: bookingRaw } = await supabase
+  const { data: bookingRaw, error: bookingErr } = await supabase
     .from("bookings")
     .select(
       `id, business_id, status, start_at, end_at, created_at, cancelled_at,
@@ -93,6 +93,19 @@ export default async function BookingDetailPage({ params }: Props) {
     )
     .eq("id", id)
     .maybeSingle();
+
+  // TEMP DIAGNOSTIC — debug/booking-detail-404. Remove before merge.
+  console.error("booking-detail-debug", {
+    id,
+    user_id: user.id,
+    has_row: !!bookingRaw,
+    pg_error: bookingErr ? { code: bookingErr.code, message: bookingErr.message } : null,
+    booking_business_id: (bookingRaw as { business_id?: string } | null)?.business_id,
+    has_businesses_embed: !!(bookingRaw as { businesses?: unknown } | null)?.businesses,
+    business_owner_id: (bookingRaw as { businesses?: { owner_id?: string } | null } | null)?.businesses?.owner_id,
+    has_services: !!(bookingRaw as { services?: unknown } | null)?.services,
+    has_clients: !!(bookingRaw as { clients?: unknown } | null)?.clients,
+  });
 
   if (!bookingRaw) notFound();
   const booking = bookingRaw as unknown as BookingDetail;
