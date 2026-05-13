@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       paid_in_full_at,
       services(name, price_cents, deposit_cents),
       clients(name, email),
-      businesses(business_name, slug)
+      businesses!business_id(business_name, slug)
     `)
     .eq("id", resolved.bookingId)
     .maybeSingle();

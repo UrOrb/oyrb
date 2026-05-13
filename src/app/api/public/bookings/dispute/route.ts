@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     .select(`
       id, business_id, status,
       clients(id, name, email),
-      businesses(id, owner_id, business_name, contact_email)
+      businesses!business_id(id, owner_id, business_name, contact_email)
     `)
     .eq("id", resolved.bookingId)
     .maybeSingle();

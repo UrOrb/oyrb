@@ -56,7 +56,7 @@ export default async function PayBookingPage({ params }: Props) {
       id, start_at, status, deposit_paid, paid_in_full_at, paid_amount_cents,
       services(name, price_cents, deposit_cents),
       clients(name, email),
-      businesses(
+      businesses!business_id(
         business_name, slug,
         stripe_connect_account_id,
         stripe_connect_charges_enabled,

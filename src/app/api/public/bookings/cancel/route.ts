@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     .from("bookings")
     .select(`
       id, status, start_at, business_id,
-      businesses(business_name, slug, contact_email, phone, owner_id),
+      businesses!business_id(business_name, slug, contact_email, phone, owner_id),
       services(name),
       clients(name, email)
     `)

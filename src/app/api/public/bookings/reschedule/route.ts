@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       id, business_id, service_id, start_at, end_at, status,
       services(name, duration_minutes, price_cents),
       clients(name, email),
-      businesses(business_name, slug, contact_email, phone, owner_id, break_between_appointments_minutes, daily_break_blocks, removal_initiated_at, removal_scheduled_for)
+      businesses!business_id(business_name, slug, contact_email, phone, owner_id, break_between_appointments_minutes, daily_break_blocks, removal_initiated_at, removal_scheduled_for)
     `)
     .eq("id", resolved.bookingId)
     .maybeSingle();

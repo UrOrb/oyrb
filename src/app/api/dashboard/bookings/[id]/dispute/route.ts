@@ -78,7 +78,7 @@ export async function POST(
     .select(`
       id, business_id, status,
       clients(id, name, email),
-      businesses(id, owner_id, business_name)
+      businesses!business_id(id, owner_id, business_name)
     `)
     .eq("id", bookingId)
     .maybeSingle();

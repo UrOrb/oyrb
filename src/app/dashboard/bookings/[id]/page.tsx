@@ -81,7 +81,14 @@ export default async function BookingDetailPage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: bookingRaw, error: bookingErr } = await supabase
+  // The bookings → businesses relationship is ambiguous to PostgREST
+  // because mig 046 added bookings.referrer_business_id alongside the
+  // original bookings.business_id, both referencing public.businesses.
+  // Without disambiguation the embed errors with PGRST201 and the row
+  // comes back null — so qualify with `!business_id` to pick the
+  // intended FK. Same fix applies at every bookings → businesses
+  // embed call site across the app.
+  const { data: bookingRaw } = await supabase
     .from("bookings")
     .select(
       `id, business_id, status, start_at, end_at, created_at, cancelled_at,
@@ -89,23 +96,10 @@ export default async function BookingDetailPage({ params }: Props) {
        age_is_minor, guardian_name, service_started_at, service_ended_at,
        services(name, description, duration_minutes, price_cents),
        clients(id, name, email, phone, notes, sms_consent),
-       businesses(id, slug, owner_id, business_name)`,
+       businesses!business_id(id, slug, owner_id, business_name)`,
     )
     .eq("id", id)
     .maybeSingle();
-
-  // TEMP DIAGNOSTIC — debug/booking-detail-404. Remove before merge.
-  console.error("booking-detail-debug", {
-    id,
-    user_id: user.id,
-    has_row: !!bookingRaw,
-    pg_error: bookingErr ? { code: bookingErr.code, message: bookingErr.message } : null,
-    booking_business_id: (bookingRaw as { business_id?: string } | null)?.business_id,
-    has_businesses_embed: !!(bookingRaw as { businesses?: unknown } | null)?.businesses,
-    business_owner_id: (bookingRaw as { businesses?: { owner_id?: string } | null } | null)?.businesses?.owner_id,
-    has_services: !!(bookingRaw as { services?: unknown } | null)?.services,
-    has_clients: !!(bookingRaw as { clients?: unknown } | null)?.clients,
-  });
 
   if (!bookingRaw) notFound();
   const booking = bookingRaw as unknown as BookingDetail;
