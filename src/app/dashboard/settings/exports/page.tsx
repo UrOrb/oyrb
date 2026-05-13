@@ -55,7 +55,7 @@ export default async function ExportsPage({ searchParams }: Props) {
         Exports
       </h1>
       <p className="mt-1 text-sm text-[#737373]">
-        Download your data as portable CSV files. Your data stays on OYRB
+        Download your data as portable files. Your data stays on OYRB
         regardless — these exports are for your own records, migration to
         another platform, or pre-deletion backup.
       </p>
@@ -63,21 +63,24 @@ export default async function ExportsPage({ searchParams }: Props) {
       <div className="mt-8 space-y-4">
         <LiveTile
           title="Contacts"
-          body="Your full client list — name, contact info, notes, booking count, last visit, marketing and SMS consent status, and import source. One row per client."
+          body="Your full client list — name, contact info, notes, booking count, last visit, marketing and SMS consent status, and import source. One row per client. Opens in Excel as a filterable table."
           href={buildHref("/api/dashboard/exports/contacts")}
+          format="xlsx"
         />
 
         <LiveTile
           title="Booking history"
-          body="Every appointment you've had — service, client, status, and cancellation history. Times are in your timezone. One row per booking."
+          body="Every appointment you've had — service, client, status, and cancellation history. Times are in your timezone. One row per booking. Opens in Excel as a filterable table."
           href={buildHref("/api/dashboard/exports/bookings")}
+          format="xlsx"
         />
 
         <div>
           <LiveTile
             title="Income"
-            body="Gross revenue and OYRB-captured payments (deposits + balances) for every booking. One row per booking. Cents shown as USD with two decimals."
+            body="Gross revenue and OYRB-captured payments (deposits + balances) for every booking. One row per booking, USD-formatted. Opens in Excel as a filterable table."
             href={buildHref("/api/dashboard/exports/income")}
+            format="xlsx"
           />
           {/* Reconciliation note — explains the four always-blank
               columns (tip, refund, application fee, processing fee)
@@ -85,7 +88,7 @@ export default async function ExportsPage({ searchParams }: Props) {
               inline next to the tile so pros see it BEFORE clicking
               download. Not duplicated inside the CSV itself. */}
           <p className="mt-2 px-1 text-xs leading-relaxed text-[#737373]">
-            Income CSV reports gross revenue and the amounts OYRB captured
+            Income export reports gross revenue and the amounts OYRB captured
             for you (deposits + balances paid through Stripe Connect).
             Stripe processing fees, OYRB application fees, refunds, and
             tips aren&apos;t tracked here — reconcile those against your
@@ -102,11 +105,14 @@ function LiveTile({
   title,
   body,
   href,
+  format,
 }: {
   title: string;
   body: string;
   href: string;
+  format: "csv" | "xlsx";
 }) {
+  const label = format === "xlsx" ? "Download Excel" : "Download CSV";
   return (
     <div className="rounded-lg border border-[#E7E5E4] bg-white p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -119,7 +125,7 @@ function LiveTile({
           download
           className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-[#0A0A0A] px-3 py-1.5 text-xs font-medium text-white hover:opacity-85"
         >
-          <Download size={14} /> Download CSV
+          <Download size={14} /> {label}
         </a>
       </div>
     </div>

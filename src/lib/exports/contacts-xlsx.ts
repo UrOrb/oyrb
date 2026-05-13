@@ -1,16 +1,21 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { formatCsvWithBom, type CsvOutput } from "./format";
+import { formatXlsxTable, type XlsxOutput } from "./xlsx";
 
 /**
- * Builds the contacts CSV for a single business. Pure(-ish) function:
- * takes a Supabase client (caller decides whether that's anon-scoped
- * or service-role) plus a business_id, returns the serialized CSV
- * along with the row count and byte size for the audit row.
+ * Contacts XLSX builder. Pure(-ish) function: takes a Supabase client
+ * (caller decides whether that's anon-scoped or service-role) plus a
+ * business_id, returns the workbook buffer along with the row count
+ * and byte size for the audit row.
  *
  * Aggregation logic mirrors src/app/dashboard/clients/page.tsx:56-91
  * verbatim — the same `status != 'cancelled'` filter on bookings —
- * so what lands in the CSV matches what the pro already sees on the
- * Clients page (booking count, last visit).
+ * so what lands in the workbook matches what the pro already sees on
+ * the Clients page (booking count, last visit).
+ *
+ * Boolean columns (loyalty_reward_available, marketing_opt_in,
+ * sms_consent) emit real booleans so Excel renders TRUE/FALSE and the
+ * autofilter offers two clean buckets. Counts are typed as numbers so
+ * SUM/AVG and column sort work natively.
  *
  * Order of operations:
  *   1. clients query (one round-trip, full row)
@@ -19,13 +24,10 @@ import { formatCsvWithBom, type CsvOutput } from "./format";
  *   3. client_imports join via clients.imported_via_id, so the
  *      import_source column can render "<vendor> CSV — <filename>"
  *   4. in-process rollup
- *   5. formatCsvWithBom — BOM + Papa.unparse object form, shared with
- *      every other export under src/lib/exports/*
+ *   5. formatXlsxTable — ListObject + autofilter, shared with every
+ *      other export under src/lib/exports/*
  */
 
-// ── CSV column order (final spec) ────────────────────────────────────
-// Drives both the header row and the per-row serialization. Keep in
-// sync with the row objects built below.
 const CONTACTS_COLUMNS = [
   "name",
   "email",
@@ -44,6 +46,13 @@ const CONTACTS_COLUMNS = [
   "sms_consent_source",
   "import_source",
 ] as const;
+
+type ContactsColumn = (typeof CONTACTS_COLUMNS)[number];
+
+const CONTACTS_COLUMN_FORMATS: Partial<Record<ContactsColumn, string>> = {
+  total_bookings: "0",
+  visit_count: "0",
+};
 
 type ClientRow = {
   id: string;
@@ -75,12 +84,12 @@ type ImportLookup = {
   source_filename: string | null;
 };
 
-export type ContactsCsv = CsvOutput;
+export type ContactsXlsx = XlsxOutput;
 
-export async function buildContactsCsv(
+export async function buildContactsXlsx(
   supabase: SupabaseClient,
   businessId: string,
-): Promise<ContactsCsv> {
+): Promise<ContactsXlsx> {
   // ── 1. Clients ─────────────────────────────────────────────────────
   // Select only the columns we serialize. sms_consent_ip and
   // sms_consent_user_agent are excluded by design (sensitive legal-
@@ -114,7 +123,7 @@ export async function buildContactsCsv(
   // ── 2. Bookings rollup ─────────────────────────────────────────────
   // Mirrors clients/page.tsx:56-91. One round-trip; in-process group
   // by client_id. Filter to status != 'cancelled' when computing
-  // last-visit and total-booking-count so the CSV matches the
+  // last-visit and total-booking-count so the workbook matches the
   // dashboard counts the pro already sees.
   const clientIds = clients.map((c) => c.id);
   const bookingsByClient = new Map<string, BookingForRollup[]>();
@@ -154,8 +163,6 @@ export async function buildContactsCsv(
   }
 
   // ── 4. Per-row serialization ───────────────────────────────────────
-  // Build plain objects keyed by CSV_COLUMNS; Papa.unparse handles
-  // header generation, quoting, and escaping for us.
   const rows = clients.map((c) => {
     const bs = bookingsByClient.get(c.id) ?? [];
     const confirmed = bs.filter((b) => b.status !== "cancelled");
@@ -178,16 +185,20 @@ export async function buildContactsCsv(
       last_booked_at: last ? last.toISOString() : "",
       total_bookings: confirmed.length,
       visit_count: c.visit_count ?? 0,
-      loyalty_reward_available: c.loyalty_reward_available ? "true" : "false",
-      marketing_opt_in: c.marketing_opt_in ? "true" : "false",
+      loyalty_reward_available: !!c.loyalty_reward_available,
+      marketing_opt_in: !!c.marketing_opt_in,
       marketing_opt_in_at: c.marketing_opt_in_at ?? "",
       marketing_opt_in_source: c.marketing_opt_in_source ?? "",
-      sms_consent: c.sms_consent ? "true" : "false",
+      sms_consent: !!c.sms_consent,
       sms_consent_at: c.sms_consent_at ?? "",
       sms_consent_source: c.sms_consent_source ?? "",
       import_source: importSource,
-    };
+    } satisfies Record<ContactsColumn, unknown>;
   });
 
-  return formatCsvWithBom(CONTACTS_COLUMNS, rows);
+  return formatXlsxTable(CONTACTS_COLUMNS, rows, {
+    sheetName: "Contacts",
+    tableName: "Contacts",
+    columnFormats: CONTACTS_COLUMN_FORMATS,
+  });
 }

@@ -1,8 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { formatCsvWithBom, type CsvOutput } from "./format";
+import { formatXlsxTable, type XlsxOutput } from "./xlsx";
 
 /**
- * Phase 8 PR 3 — Income CSV builder.
+ * Income XLSX builder.
  *
  * Booking-level granularity (Scope B from the discovery report):
  *   gross + deposit collected + balance collected, plus four
@@ -13,52 +13,27 @@ import { formatCsvWithBom, type CsvOutput } from "./format";
  *
  * Includes ALL statuses (pending / confirmed / cancelled / completed).
  * Cancelled bookings with paid non-refunded deposits ARE revenue;
- * filtering happens in Excel, not here. Mirrors the bookings CSV
- * convention from PR #56.
+ * filtering happens in Excel, not here.
+ *
+ * USD columns emit numbers (not strings) so Excel SUM/AVG and column
+ * sort work natively; the worksheet applies a currency numFmt so the
+ * cells render with $ + thousands separators. Empty cells stay empty
+ * — distinguishes "not applicable" from "$0.00" in the spreadsheet.
  *
  * Two queries, in-memory merge:
- *
- *   1. bookings + services + clients embed — same shape as bookings-csv.ts
- *   2. gift_cards by business_id, scoped to rows where
- *      redeemed_booking_id is not null — looked up to flag bookings
- *      that were paid via a redeemed gift card (payment_method =
- *      gift_card_redeemed). Gift card SALES themselves are out of
- *      scope here (deferred to an optional 4th tile in Phase 8.5);
- *      this lookup is purely to label redemption rows correctly.
- *
- * Per-booking revenue math mirrors lib/business-brain.ts:862-869:
- *   gross               = services.price_cents          (sticker)
- *   deposit_collected   = deposit_paid ? services.deposit_cents : ""
- *   balance_collected   = paid_in_full_at ? paid_amount_cents  : ""
- *   total_oyrb          = deposit_collected + balance_collected
- *
- * paid_amount_cents semantics (mig 020): for a deposit-then-balance
- * booking it is the BALANCE only; for a fully-upfront booking it is
- * the FULL price. Either way, total_oyrb = deposit + balance is
- * correct because deposit is zero in the upfront case.
- *
- * appointment_date/_time formatted in the pro's timezone
- * (businesses.timezone, fallback America/New_York). Audit timestamps
- * stay ISO 8601 UTC, matching the bookings CSV.
- *
- * USD formatting: (cents/100).toFixed(2), no $, no commas. Empty
- * string "" for "not applicable" — distinguishes "no data" from
- * "zero." Always-blank columns emit "" forever (or until a Phase 8.5
- * webhook/migration backfills them).
+ *   1. bookings + services + clients embed
+ *   2. gift_cards by business_id, scoped to redeemed_booking_id IS NOT
+ *      NULL — used only to label rows that were paid via a redeemed
+ *      gift card (payment_method = gift_card_redeemed).
  */
 
-// ── 23 columns, locked order ─────────────────────────────────────────
-// Drives the Papa.unparse `fields` AND the per-row object keys.
-// Keep them in sync.
 const INCOME_COLUMNS = [
-  // Appointment identity
   "appointment_date",
   "appointment_time",
   "client_name",
   "service_name",
   "status",
   "booking_source",
-  // Money — what we know
   "gross_amount_usd",
   "payment_method",
   "deposit_collected_usd",
@@ -66,21 +41,33 @@ const INCOME_COLUMNS = [
   "balance_collected_usd",
   "balance_collected_at",
   "total_oyrb_collected_usd",
-  // Money — honest gaps (always blank in this PR; surface copy on
-  // /dashboard/settings/exports explains why and how to reconcile).
   "tip_amount_usd",
   "refund_amount_usd",
   "application_fee_usd",
   "processing_fee_usd",
   "net_to_pro_usd",
-  // Cross-references
   "stripe_payment_intent_id",
   "booking_id",
-  // Audit timestamps (UTC)
   "created_at",
   "completed_at",
   "cancelled_at",
 ] as const;
+
+type IncomeColumn = (typeof INCOME_COLUMNS)[number];
+
+const USD_FORMAT = '"$"#,##0.00';
+
+const INCOME_COLUMN_FORMATS: Partial<Record<IncomeColumn, string>> = {
+  gross_amount_usd: USD_FORMAT,
+  deposit_collected_usd: USD_FORMAT,
+  balance_collected_usd: USD_FORMAT,
+  total_oyrb_collected_usd: USD_FORMAT,
+  tip_amount_usd: USD_FORMAT,
+  refund_amount_usd: USD_FORMAT,
+  application_fee_usd: USD_FORMAT,
+  processing_fee_usd: USD_FORMAT,
+  net_to_pro_usd: USD_FORMAT,
+};
 
 type BookingRow = {
   id: string;
@@ -102,7 +89,7 @@ type GiftCardLookup = {
   redeemed_booking_id: string;
 };
 
-export type IncomeCsv = CsvOutput;
+export type IncomeXlsx = XlsxOutput;
 
 const DEFAULT_TZ = "America/New_York";
 
@@ -112,13 +99,7 @@ const DEFAULT_TZ = "America/New_York";
  *   gift_card_redeemed — booking id appears in gift_cards.redeemed_booking_id
  *   stripe             — both deposit_paid AND paid_in_full_at fired
  *   mixed              — exactly one of deposit_paid / paid_in_full_at fired
- *                        (e.g. deposit-only, or a pay-in-full with no prior
- *                        deposit row — the second case is the upfront flow)
- *   manual             — no Stripe payment state observed (cash, Venmo,
- *                        a future series child of a deposit-paid parent,
- *                        or a pro-typed manual booking)
- *
- * Exported for testability / future re-use; pure function.
+ *   manual             — no Stripe payment state observed
  */
 export function derivePaymentMethod(
   bookingId: string,
@@ -134,21 +115,18 @@ export function derivePaymentMethod(
   return "manual";
 }
 
-function centsToUsd(cents: number | null | undefined): string {
+function centsToUsd(cents: number | null | undefined): number | "" {
   if (cents == null) return "";
-  return (cents / 100).toFixed(2);
+  return cents / 100;
 }
 
-export async function buildIncomeCsv(
+export async function buildIncomeXlsx(
   supabase: SupabaseClient,
   businessId: string,
   timezone: string | null,
-): Promise<IncomeCsv> {
+): Promise<IncomeXlsx> {
   const tz = timezone && timezone.trim().length > 0 ? timezone : DEFAULT_TZ;
 
-  // Pre-built formatters — one allocation per request, not per row.
-  // en-CA gives YYYY-MM-DD; en-GB gives 24h HH:mm without AM/PM.
-  // Same convention as bookings-csv.ts.
   const dateFmt = new Intl.DateTimeFormat("en-CA", {
     timeZone: tz,
     year: "numeric",
@@ -162,7 +140,6 @@ export async function buildIncomeCsv(
     hour12: false,
   });
 
-  // ── 1. Bookings ────────────────────────────────────────────────────
   const { data: bookingsData } = await supabase
     .from("bookings")
     .select(
@@ -187,11 +164,6 @@ export async function buildIncomeCsv(
 
   const bookings = (bookingsData ?? []) as unknown as BookingRow[];
 
-  // ── 2. Gift-card redemption lookup ─────────────────────────────────
-  // Only the redeemed_booking_id is needed — the gift card's amount,
-  // buyer, and code are out of scope for this PR. Scoped to this
-  // business to avoid leaking across tenants (the RLS policy on
-  // gift_cards is pro-only-reads, but we still filter explicitly).
   const giftCardRedeemedIds = new Set<string>();
   const { data: giftCards } = await supabase
     .from("gift_cards")
@@ -202,7 +174,6 @@ export async function buildIncomeCsv(
     if (gc.redeemed_booking_id) giftCardRedeemedIds.add(gc.redeemed_booking_id);
   }
 
-  // ── 3. Per-row serialization ───────────────────────────────────────
   const rows = bookings.map((b) => {
     const start = new Date(b.start_at);
     const priceCents = b.services?.price_cents ?? 0;
@@ -211,18 +182,9 @@ export async function buildIncomeCsv(
     const depositPaid = !!b.deposit_paid;
     const balancePaid = !!b.paid_in_full_at;
 
-    // Empty string for "not applicable" — distinguishes "no data"
-    // from "zero." A deposit that was paid is the deposit_cents on
-    // the service at booking time (service can be deleted later;
-    // we emit 0 when the embedded service is null, matching the
-    // bookings CSV's "(deleted service)" convention).
     const depositUsd = depositPaid ? centsToUsd(depositCents) : "";
     const balanceUsd = balancePaid ? centsToUsd(b.paid_amount_cents) : "";
 
-    // Total is the sum of whatever OYRB captured — zero when
-    // neither leg paid. Always emit a number here (not blank)
-    // because "0.00 collected" is a real, meaningful value for a
-    // cash / manual booking and helps the pro's spreadsheet math.
     const totalCollectedCents =
       (depositPaid ? depositCents : 0) +
       (balancePaid ? (b.paid_amount_cents ?? 0) : 0);
@@ -234,12 +196,6 @@ export async function buildIncomeCsv(
       giftCardRedeemedIds,
     );
 
-    // deposit_collected_at: we don't store a precise deposit
-    // capture timestamp — the deposit Checkout completes inside
-    // /api/public/bookings/confirm and the booking row is inserted
-    // immediately after, so created_at is the best proxy. Pro can
-    // cross-reference stripe_payment_intent_id in their Stripe
-    // dashboard for the exact charge time if it matters.
     const depositCollectedAt = depositPaid ? b.created_at : "";
 
     return {
@@ -256,8 +212,6 @@ export async function buildIncomeCsv(
       balance_collected_usd: balanceUsd,
       balance_collected_at: b.paid_in_full_at ?? "",
       total_oyrb_collected_usd: centsToUsd(totalCollectedCents),
-      // Always-blank columns — see surface copy on Exports page for
-      // reconciliation guidance.
       tip_amount_usd: "",
       refund_amount_usd: "",
       application_fee_usd: "",
@@ -268,8 +222,12 @@ export async function buildIncomeCsv(
       created_at: b.created_at,
       completed_at: b.completed_at ?? "",
       cancelled_at: b.cancelled_at ?? "",
-    };
+    } satisfies Record<IncomeColumn, unknown>;
   });
 
-  return formatCsvWithBom(INCOME_COLUMNS, rows);
+  return formatXlsxTable(INCOME_COLUMNS, rows, {
+    sheetName: "Income",
+    tableName: "Income",
+    columnFormats: INCOME_COLUMN_FORMATS,
+  });
 }

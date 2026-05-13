@@ -1,36 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getCurrentBusiness } from "@/lib/current-site";
-import { buildIncomeCsv } from "@/lib/exports/income-csv";
+import { buildIncomeXlsx } from "@/lib/exports/income-xlsx";
+import { XLSX_CONTENT_TYPE } from "@/lib/exports/xlsx";
 import { ipFromRequest } from "@/lib/rate-limit";
 
 /**
- * Phase 8 PR 3 — Income CSV export.
+ * Income XLSX export.
  *
  * GET /api/dashboard/exports/income?siteId=<uuid>
  *
- * Returns a UTF-8 CSV of every booking with its money columns
- * (gross + collected breakdown), all statuses included
- * (pending / confirmed / cancelled / completed), most recent first.
- * Audit row writes to public.data_exports with export_type = 'income'.
+ * Returns an Excel workbook containing one ListObject (Table) of every
+ * booking with its money columns (gross + collected breakdown). All
+ * statuses included (pending / confirmed / cancelled / completed),
+ * most recent first. Audit row writes to public.data_exports with
+ * export_type = 'income'.
  *
- * Same structural pattern as the contacts and bookings routes. The
- * BOM + Papa.unparse boilerplate now lives in src/lib/exports/format.ts,
- * shared across all three exports (extracted at N=3 per the PR #56
- * plan).
- *
- * Audit ordering: insert AFTER successful CSV generation, BEFORE the
- * response. Insert failures log but never block the download. Lost
- * audit rows can be backfilled from logs; a 500 to the pro cannot
- * be undone.
- *
- * No migration required: data_exports.export_type is free-text and
- * 'income' has been in EXPORT_TYPES (src/lib/exports/types.ts) since
- * the table shipped in migration 054.
- *
- * Reachable while the dashboard is in past-due or strike-pause state
- * (the /api path itself isn't proxy-gated; this only matters for the
- * in-app links that surface it).
+ * Audit ordering: insert AFTER successful workbook generation, BEFORE
+ * the response. Insert failures log but never block the download.
  */
 
 export async function GET(request: NextRequest) {
@@ -48,17 +35,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "No business found" }, { status: 404 });
   }
 
-  // businesses.timezone defaults to 'America/New_York' (mig 003) so
-  // this is always populated in practice. The builder applies its
-  // own DEFAULT_TZ fallback as defense in depth.
-  const { csv, rowCount, byteSize } = await buildIncomeCsv(
+  const { buffer, rowCount, byteSize } = await buildIncomeXlsx(
     supabase,
     business.id,
     business.timezone,
   );
 
-  // Audit row insert via service-role. Best-effort: any insert
-  // failure is logged but does not block the response.
   try {
     const admin = createAdminClient();
     const { error: auditError } = await admin.from("data_exports").insert({
@@ -88,13 +70,14 @@ export async function GET(request: NextRequest) {
   }
 
   const today = new Date().toISOString().slice(0, 10);
-  const filename = `oyrb-income-${business.slug}-${today}.csv`;
+  const filename = `oyrb-income-${business.slug}-${today}.xlsx`;
 
-  return new NextResponse(csv, {
+  return new NextResponse(new Uint8Array(buffer), {
     status: 200,
     headers: {
-      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Type": XLSX_CONTENT_TYPE,
       "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Length": String(byteSize),
       "Cache-Control": "no-store, max-age=0",
     },
   });

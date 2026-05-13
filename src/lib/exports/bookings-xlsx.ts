@@ -1,20 +1,22 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { formatCsvWithBom, type CsvOutput } from "./format";
+import { formatXlsxTable, type XlsxOutput } from "./xlsx";
 
 /**
- * Phase 8 PR 2 — Booking history CSV builder.
+ * Booking history XLSX builder.
  *
  * Pure function: caller supplies a Supabase client (anon-scoped under
  * the pro's session) and the business id + timezone; we return the
- * serialized CSV plus row count + byte size for the audit row.
+ * Excel workbook buffer plus row count + byte size for the audit row.
  *
  * Times-of-day are formatted in the pro's timezone (businesses.timezone,
- * fallback America/New_York applied by the caller). Audit timestamps
- * — created_at, cancelled_at, rescheduled_at, previous_start_at — stay
- * in ISO 8601 UTC, mirroring the contacts CSV convention. The pro can
- * use the human-readable booking_date/start_time/end_time triple for
- * day-to-day reading and the ISO columns for spreadsheets that re-parse
- * timestamps.
+ * fallback America/New_York applied here as defense in depth). Audit
+ * timestamps — created_at, cancelled_at, rescheduled_at,
+ * previous_start_at — stay in ISO 8601 UTC. The pro can use the
+ * human-readable booking_date/start_time/end_time triple for day-to-day
+ * reading and the ISO columns for spreadsheets that re-parse timestamps.
+ *
+ * deposit_paid is emitted as a real boolean so Excel renders TRUE/FALSE
+ * and the autofilter offers two clean buckets.
  *
  * One round-trip via PostgREST embed — services(name) and
  * clients(name, email, phone) ride along on the bookings select. Both
@@ -22,13 +24,8 @@ import { formatCsvWithBom, type CsvOutput } from "./format";
  * so embedded objects come back null for orphaned bookings: deleted
  * service → service_name renders "(deleted service)"; deleted client
  * → name/email/phone render as empty strings.
- *
- * Serialization (BOM + Papa.unparse object form) is delegated to
- * formatCsvWithBom in ./format, shared with every other export.
  */
 
-// 17-column order, locked. Drives the Papa.unparse `fields` AND the
-// per-row object keys; keep them in sync.
 const BOOKINGS_COLUMNS = [
   "booking_date",
   "start_time",
@@ -49,11 +46,12 @@ const BOOKINGS_COLUMNS = [
   "previous_start_at",
 ] as const;
 
-// Hand-narrowed shape of the embedded select. The Supabase TS client
-// can't infer nullable embedded objects reliably across versions, so
-// we cast through `unknown` at the boundary and trust the runtime
-// shape that mig 001 (and the existing /dashboard/bookings query at
-// page.tsx:33) prove.
+type BookingsColumn = (typeof BOOKINGS_COLUMNS)[number];
+
+const BOOKINGS_COLUMN_FORMATS: Partial<Record<BookingsColumn, string>> = {
+  duration_minutes: "0",
+};
+
 type BookingRow = {
   id: string;
   start_at: string;
@@ -67,7 +65,6 @@ type BookingRow = {
   cancel_reason: string | null;
   rescheduled_at: string | null;
   previous_start_at: string | null;
-  // Embedded — null when the FK is null (orphaned by ON DELETE SET NULL).
   services: { name: string | null } | null;
   clients: {
     name: string | null;
@@ -76,21 +73,17 @@ type BookingRow = {
   } | null;
 };
 
-export type BookingsCsv = CsvOutput;
+export type BookingsXlsx = XlsxOutput;
 
 const DEFAULT_TZ = "America/New_York";
 
-export async function buildBookingsCsv(
+export async function buildBookingsXlsx(
   supabase: SupabaseClient,
   businessId: string,
   timezone: string | null,
-): Promise<BookingsCsv> {
+): Promise<BookingsXlsx> {
   const tz = timezone && timezone.trim().length > 0 ? timezone : DEFAULT_TZ;
 
-  // Pre-built formatters — Intl.DateTimeFormat is allocation-heavy, so
-  // we want one instance per request, not one per row. en-CA gives
-  // YYYY-MM-DD for the date formatter; the time formatters use en-GB
-  // for 24-hour HH:mm without AM/PM.
   const dateFmt = new Intl.DateTimeFormat("en-CA", {
     timeZone: tz,
     year: "numeric",
@@ -135,11 +128,6 @@ export async function buildBookingsCsv(
     const durationMs = end.getTime() - start.getTime();
     const durationMinutes = Math.max(0, Math.round(durationMs / 60000));
 
-    // Deleted service → embedded `services` is null. Distinguish that
-    // from "service intentionally absent" (currently impossible per the
-    // insert paths, but defensive) by emitting "(deleted service)" only
-    // when we'd otherwise have no name signal. Both render the same in
-    // the CSV.
     const serviceName = b.services?.name ?? "(deleted service)";
 
     return {
@@ -153,15 +141,19 @@ export async function buildBookingsCsv(
       client_phone: b.clients?.phone ?? "",
       status: b.status,
       booking_source: b.booking_source ?? "",
-      deposit_paid: b.deposit_paid ? "true" : "false",
+      deposit_paid: !!b.deposit_paid,
       created_at: b.created_at,
       cancelled_at: b.cancelled_at ?? "",
       cancelled_by: b.cancelled_by ?? "",
       cancel_reason: b.cancel_reason ?? "",
       rescheduled_at: b.rescheduled_at ?? "",
       previous_start_at: b.previous_start_at ?? "",
-    };
+    } satisfies Record<BookingsColumn, unknown>;
   });
 
-  return formatCsvWithBom(BOOKINGS_COLUMNS, rows);
+  return formatXlsxTable(BOOKINGS_COLUMNS, rows, {
+    sheetName: "Bookings",
+    tableName: "Bookings",
+    columnFormats: BOOKINGS_COLUMN_FORMATS,
+  });
 }
