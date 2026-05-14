@@ -33,7 +33,7 @@ export default async function LeaveReviewPage({ params }: Props) {
       id, end_at, status,
       services(name),
       clients(name, email),
-      businesses(business_name, slug)
+      businesses!business_id(business_name, slug)
     `)
     .eq("id", resolved.bookingId)
     .maybeSingle();

@@ -87,7 +87,7 @@ export async function handlePayInFullCompleted(
       id, business_id, start_at, deposit_paid,
       services(name, price_cents, deposit_cents),
       clients(name, email),
-      businesses(business_name, slug, contact_email, owner_id)
+      businesses!business_id(business_name, slug, contact_email, owner_id)
     `)
     .eq("id", bookingId)
     .maybeSingle();

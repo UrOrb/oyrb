@@ -41,7 +41,7 @@ export default async function PaySuccessPage({ params, searchParams }: Props) {
     .select(`
       id, paid_in_full_at, paid_amount_cents,
       services(name),
-      businesses(business_name, slug)
+      businesses!business_id(business_name, slug)
     `)
     .eq("id", resolved.bookingId)
     .maybeSingle();

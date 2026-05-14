@@ -60,7 +60,7 @@ export default async function BookingTokenPage({ params }: Props) {
       id, business_id, start_at, end_at, status, deposit_paid, cancelled_at,
       services(name, price_cents, description),
       clients(name, email, phone, sms_consent),
-      businesses(business_name, slug, contact_email, phone)
+      businesses!business_id(business_name, slug, contact_email, phone)
     `)
     .eq("id", resolved.bookingId)
     .maybeSingle();

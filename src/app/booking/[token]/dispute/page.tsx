@@ -27,7 +27,7 @@ export default async function DisputeFilingPage({ params }: Props) {
     .from("bookings")
     .select(`
       id, status,
-      businesses(business_name)
+      businesses!business_id(business_name)
     `)
     .eq("id", resolved.bookingId)
     .maybeSingle();

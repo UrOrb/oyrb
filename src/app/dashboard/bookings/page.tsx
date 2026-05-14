@@ -65,20 +65,6 @@ export default async function BookingsPage({ searchParams }: Props) {
 
   const view: "week" | "list" = viewRaw === "list" ? "list" : "week";
 
-  // TEMP DIAGNOSTIC — confirms which branch the server picks when a
-  // mobile-Safari report says the LIST view is showing on /dashboard/
-  // bookings. Logs viewRaw so we can tell whether the URL carries
-  // ?view=list (sticky state) or some other path is at fault. Remove
-  // after the mobile bug is confirmed resolved.
-  console.error("bookings-page-debug", {
-    user_id: user.id,
-    view_resolved: view,
-    view_raw: viewRaw,
-    raw_search_param_keys: Object.keys(sp),
-    has_week_param: !!weekParam,
-    has_day_param: !!dayParam,
-  });
-
   // siteId is forwarded into every nav link so the visible business
   // doesn't flip when the pro paginates weeks.
   const baseQueryParts: string[] = [];
@@ -111,7 +97,7 @@ export default async function BookingsPage({ searchParams }: Props) {
     const baseQueryList = baseQueryParts.join("&");
 
     return (
-      <div data-view-mode="list">
+      <div>
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="font-display text-2xl font-medium tracking-tight">Bookings</h1>
@@ -209,7 +195,7 @@ export default async function BookingsPage({ searchParams }: Props) {
   })();
 
   return (
-    <div data-view-mode="week">
+    <div>
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-medium tracking-tight">Bookings</h1>
@@ -229,7 +215,7 @@ export default async function BookingsPage({ searchParams }: Props) {
       </div>
 
       {/* Desktop week grid — hidden below md breakpoint (768px). */}
-      <div data-week-grid className="mt-6 hidden md:block">
+      <div className="mt-6 hidden md:block">
         <WeekView
           weekStartYmd={weekStartYmd}
           todayYmd={todayYmd}
@@ -239,7 +225,7 @@ export default async function BookingsPage({ searchParams }: Props) {
       </div>
 
       {/* Mobile day-tab fallback — visible below md breakpoint (768px). */}
-      <div data-day-view className="mt-6 block md:hidden">
+      <div className="mt-6 block md:hidden">
         <DayView
           weekStartYmd={weekStartYmd}
           todayYmd={todayYmd}

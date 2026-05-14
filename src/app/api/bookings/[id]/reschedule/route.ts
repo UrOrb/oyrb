@@ -67,7 +67,7 @@ export async function POST(
       id, business_id, service_id, start_at, end_at, status,
       services(name, duration_minutes, price_cents),
       clients(id, name, email, phone, sms_consent),
-      businesses(id, owner_id, business_name, slug, contact_email, phone, subscription_tier, break_between_appointments_minutes, daily_break_blocks)
+      businesses!business_id(id, owner_id, business_name, slug, contact_email, phone, subscription_tier, break_between_appointments_minutes, daily_break_blocks)
     `)
     .eq("id", id)
     .maybeSingle();

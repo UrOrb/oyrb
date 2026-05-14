@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       business_id,
       services(name, price_cents),
       clients(name, email, phone, sms_consent),
-      businesses(id, business_name, slug, phone, subscription_tier)
+      businesses!business_id(id, business_name, slug, phone, subscription_tier)
     `)
     .eq("status", "confirmed")
     .is("reminder_sent_at", null)
@@ -176,7 +176,7 @@ export async function GET(request: NextRequest) {
       id, end_at, review_request_sent_at, business_id,
       services(name),
       clients(name, email),
-      businesses(business_name, slug)
+      businesses!business_id(business_name, slug)
     `)
     .eq("status", "confirmed")
     .is("review_request_sent_at", null)

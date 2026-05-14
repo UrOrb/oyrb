@@ -48,7 +48,7 @@ export default async function ReschedulePage({ params }: Props) {
       id, business_id, service_id, start_at, end_at, status,
       services(id, name, duration_minutes, price_cents),
       clients(name, email),
-      businesses(id, business_name, slug, contact_email, phone)
+      businesses!business_id(id, business_name, slug, contact_email, phone)
     `)
     .eq("id", resolved.bookingId)
     .maybeSingle();
