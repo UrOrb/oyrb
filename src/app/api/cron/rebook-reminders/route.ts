@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       id, end_at, rebook_reminder_sent_at, business_id,
       services(name),
       clients(name, email),
-      businesses(business_name, slug, service_category, owner_id)
+      businesses!business_id(business_name, slug, service_category, owner_id)
     `)
     .eq("status", "confirmed")
     .is("rebook_reminder_sent_at", null)

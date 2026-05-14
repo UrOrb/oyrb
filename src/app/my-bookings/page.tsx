@@ -25,7 +25,7 @@ export default async function MyBookingsPage() {
     .select(`
       id, start_at, end_at, status, deposit_paid, series_id, series_interval_weeks,
       services(name, duration_minutes, price_cents, deposit_cents),
-      businesses(business_name, slug, phone, contact_email, loyalty_enabled, loyalty_threshold, loyalty_reward_text),
+      businesses!business_id(business_name, slug, phone, contact_email, loyalty_enabled, loyalty_threshold, loyalty_reward_text),
       clients!inner(id, email, visit_count, loyalty_reward_available)
     `)
     .eq("clients.email", email)

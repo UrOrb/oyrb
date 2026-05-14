@@ -19,7 +19,7 @@ export async function GET(
     .select(`
       id, start_at, end_at, status,
       services(name, description),
-      businesses(business_name, slug, phone)
+      businesses!business_id(business_name, slug, phone)
     `)
     .eq("id", resolved.bookingId)
     .maybeSingle();

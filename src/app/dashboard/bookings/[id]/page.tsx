@@ -81,6 +81,13 @@ export default async function BookingDetailPage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // The bookings → businesses relationship is ambiguous to PostgREST
+  // because mig 046 added bookings.referrer_business_id alongside the
+  // original bookings.business_id, both referencing public.businesses.
+  // Without disambiguation the embed errors with PGRST201 and the row
+  // comes back null — so qualify with `!business_id` to pick the
+  // intended FK. Same fix applies at every bookings → businesses
+  // embed call site across the app.
   const { data: bookingRaw } = await supabase
     .from("bookings")
     .select(
@@ -89,7 +96,7 @@ export default async function BookingDetailPage({ params }: Props) {
        age_is_minor, guardian_name, service_started_at, service_ended_at,
        services(name, description, duration_minutes, price_cents),
        clients(id, name, email, phone, notes, sms_consent),
-       businesses(id, slug, owner_id, business_name)`,
+       businesses!business_id(id, slug, owner_id, business_name)`,
     )
     .eq("id", id)
     .maybeSingle();
