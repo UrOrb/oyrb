@@ -90,18 +90,40 @@ export async function notifyWaitlistOnCancellation(params: {
       }
     }
 
-    // SMS — only if opt-in + tier allows
+    // SMS — only with DOCUMENTED consent + tier allows. The waitlist
+    // form itself doesn't capture TCPA consent, so we only text numbers
+    // that match a clients row where this business already holds a
+    // recorded sms_consent opt-in. Texting without that is a TCPA
+    // violation ($500-$1,500/message) and exactly the kind of complaint
+    // that gets a Twilio campaign suspended.
     if (
       entry.client_phone &&
       tierAllowsSms(biz.subscription_tier)
     ) {
-      await sendSms({
-        to: entry.client_phone,
-        body: `${biz.business_name}: A spot just opened — ${whenLabel}. Book now: ${siteUrl}`,
-        businessId: biz.id,
-        purpose: "waitlist_alert",
-        recipientType: "client",
-      });
+      let consented = false;
+      try {
+        const { data: consentRows } = await supabase
+          .from("clients")
+          .select("id, phone")
+          .eq("business_id", businessId)
+          .eq("sms_consent", true)
+          .not("phone", "is", null);
+        const target = String(entry.client_phone).replace(/\D/g, "").slice(-10);
+        consented = (consentRows ?? []).some(
+          (c) => String(c.phone ?? "").replace(/\D/g, "").slice(-10) === target,
+        );
+      } catch {
+        consented = false;
+      }
+      if (consented) {
+        await sendSms({
+          to: entry.client_phone,
+          body: `${biz.business_name}: A spot just opened — ${whenLabel}. Book now: ${siteUrl} Reply STOP to opt out.`,
+          businessId: biz.id,
+          purpose: "waitlist_alert",
+          recipientType: "client",
+        });
+      }
     }
 
     await supabase

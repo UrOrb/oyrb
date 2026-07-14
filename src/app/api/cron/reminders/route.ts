@@ -147,7 +147,10 @@ export async function GET(request: NextRequest) {
       client.sms_consent &&
       tierAllowsSms(biz.subscription_tier)
     ) {
-      const smsBody = `${biz.business_name}: Reminder — ${svc.name} tomorrow at ${whenLabel}. Reply to this text to reschedule.`;
+      // Carrier compliance: every recurring message carries opt-out
+      // language, and we don't invite replies we can't answer (the
+      // inbound handler only responds to STOP/HELP).
+      const smsBody = `${biz.business_name}: Reminder — ${svc.name} tomorrow at ${whenLabel}. Reply STOP to opt out, HELP for help.`;
       const r = await sendSms({
         to: client.phone,
         body: smsBody,
