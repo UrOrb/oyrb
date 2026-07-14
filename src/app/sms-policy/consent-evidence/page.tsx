@@ -43,7 +43,7 @@ export default function SmsConsentEvidencePage() {
               The consent checkbox on the live booking widget reads: <em>&quot;Optional: I consent to receive automated SMS appointment reminders from [Business Name] at [phone number]. Message frequency varies. Message and data rates may apply. Consent is not a condition of any purchase. Reply STOP to unsubscribe, HELP for help. View our SMS Policy.&quot;</em>
             </p>
             <p>
-              The screenshot below shows OYRB&apos;s booking confirmation step, captured from a live storefront. The consent checkbox wording has since been refined to the exact language quoted above; the placement, optional labeling, and unchecked-by-default behavior are unchanged.
+              The screenshot below shows OYRB&apos;s actual booking confirmation step as it appears to clients today, captured from a live storefront on July 14, 2026.
             </p>
             <p>
               <strong>Verify the live flow directly:</strong> reviewers can observe the consent step themselves at{" "}
@@ -59,15 +59,15 @@ export default function SmsConsentEvidencePage() {
             <figure className="mt-4 overflow-hidden rounded-lg border border-[#E7E5E4] bg-white">
               <Image
                 src="/sms-consent-evidence.png"
-                alt="OYRB booking widget confirmation step. The page shows booking details, required consents (age confirmation, terms, authorization), and at the bottom an optional SMS consent checkbox. The SMS line reads: 'Optional: I agree to receive SMS appointment reminders at [phone number]. Message frequency varies. Message and data rates may apply. Reply STOP to unsubscribe. View our SMS Policy.' The checkbox is unchecked by default."
-                width={2000}
-                height={1189}
+                alt="OYRB booking widget confirmation step on a live storefront. The page shows booking details, required consents (age confirmation, policies, terms, authorization), an optional 'How did you hear about us' dropdown, and near the bottom an optional SMS consent checkbox. The SMS line reads: 'Optional: I consent to receive automated SMS appointment reminders from [Business Name] at [phone number]. Message frequency varies. Message and data rates may apply. Consent is not a condition of any purchase. Reply STOP to unsubscribe, HELP for help. View our SMS Policy.' The checkbox is unchecked by default, and a separate optional marketing-email checkbox sits below it."
+                width={3476}
+                height={1918}
                 priority
                 className="h-auto w-full"
                 sizes="(max-width: 768px) 100vw, 720px"
               />
               <figcaption className="border-t border-[#E7E5E4] bg-[#FAFAF9] px-4 py-3 text-xs text-[#525252]">
-                OYRB&apos;s booking confirmation step. The SMS consent checkbox sits at the bottom of the page, marked <strong>Optional</strong> and unchecked by default. The full TCPA-required disclosure language is displayed beside the checkbox, including message frequency, data rate disclosure, opt-out instructions, and a link to the full SMS Policy.
+                OYRB&apos;s booking confirmation step, captured July 14, 2026. The SMS consent checkbox sits near the bottom of the page, marked <strong>Optional</strong> and unchecked by default. The full TCPA-required disclosure language is displayed beside the checkbox: message frequency, data rate disclosure, &quot;Consent is not a condition of any purchase,&quot; STOP/HELP instructions, and a link to the full SMS Policy.
               </figcaption>
             </figure>
           </section>
