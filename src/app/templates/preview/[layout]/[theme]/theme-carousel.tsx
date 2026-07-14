@@ -309,7 +309,7 @@ export function ThemeCarousel({ layout: initialLayout, initialThemeId, themeIds 
               className="ml-1 inline-flex items-center gap-1 text-[10px] text-white/50 hover:text-white"
               title="What's the difference between a layout and a theme?"
             >
-              <HelpCircle size={12} /> <span className="hidden sm:inline">What's the difference?</span>
+              <HelpCircle size={12} /> <span className="hidden sm:inline">What&apos;s the difference?</span>
             </button>
           </div>
 

@@ -38,7 +38,7 @@ export default async function GiftCardSuccessPage({ params, searchParams }: Prop
     .eq("stripe_session_id", session_id)
     .maybeSingle();
 
-  let code = data?.code ?? null;
+  const code = data?.code ?? null;
   let amountCents = data?.amount_cents ?? null;
   let isPaid = !!data;
 

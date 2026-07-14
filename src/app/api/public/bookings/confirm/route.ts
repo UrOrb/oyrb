@@ -90,12 +90,28 @@ export async function POST(request: NextRequest) {
   const { data: business } = await supabase
     .from("businesses")
     .select(
-      "id, business_name, slug, contact_email, owner_id, subscription_tier, break_between_appointments_minutes, daily_break_blocks",
+      "id, business_name, slug, contact_email, owner_id, subscription_tier, stripe_connect_account_id, break_between_appointments_minutes, daily_break_blocks",
     )
     .eq("id", businessId)
     .maybeSingle();
   if (!business) {
     return NextResponse.json({ error: "Business not found" }, { status: 404 });
+  }
+
+  // Deposits are always charged on THIS business's connected account
+  // (deposit-checkout refuses to open a session otherwise). Without this
+  // check, anyone with their own connected account could craft a paid
+  // session there with forged metadata pointing at another pro's
+  // business_id and get a confirmed, "deposit paid" booking on the
+  // victim's calendar while the money settled in their own account.
+  if (
+    !connectedAccountId ||
+    connectedAccountId !== business.stripe_connect_account_id
+  ) {
+    return NextResponse.json(
+      { error: "Session does not belong to this business" },
+      { status: 403 },
+    );
   }
 
   const { data: service } = await supabase
@@ -105,6 +121,19 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
   if (!service) {
     return NextResponse.json({ error: "Service not found" }, { status: 404 });
+  }
+
+  // The session must have actually collected at least the deposit this
+  // service requires (tips make it larger, never smaller). Guards against
+  // a hand-crafted low-amount session on the right account.
+  if (
+    (service.deposit_cents ?? 0) > 0 &&
+    (session.amount_total ?? 0) < service.deposit_cents
+  ) {
+    return NextResponse.json(
+      { error: "Payment amount does not cover the deposit" },
+      { status: 402 },
+    );
   }
 
   const endAt = new Date(startAt.getTime() + service.duration_minutes * 60_000);
@@ -274,6 +303,17 @@ export async function POST(request: NextRequest) {
     .select("id, series_id, series_interval_weeks")
     .single();
 
+  // Must run BEFORE the series loop and the loyalty counter below —
+  // otherwise a failed insert still increments visit_count (and every
+  // retry from the booking-confirmed page inflates it again, since the
+  // idempotency lookup only matches once a booking row exists).
+  if (bookingErr || !booking) {
+    return NextResponse.json(
+      { error: bookingErr?.message ?? "Failed to create booking" },
+      { status: 500 }
+    );
+  }
+
   // Create future series bookings (no additional deposit)
   if (booking?.series_id) {
     const n = parseInt(session.metadata?.series_occurrences ?? "1", 10);
@@ -344,13 +384,6 @@ export async function POST(request: NextRequest) {
     } catch {
       // Silent fallback if columns not yet migrated
     }
-  }
-
-  if (bookingErr || !booking) {
-    return NextResponse.json(
-      { error: bookingErr?.message ?? "Failed to create booking" },
-      { status: 500 }
-    );
   }
 
   const origin = new URL(request.url).origin;

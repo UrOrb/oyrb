@@ -122,10 +122,13 @@ export default async function ReschedulePage({ params }: Props) {
     dailyBreakBlocks: rulesData.daily_break_blocks ?? [],
   };
 
-  // 2) Load the next 30 days of confirmed bookings on this pro's calendar
+  // 2) Load the next 35 days of confirmed bookings on this pro's calendar
   //    — excluding this booking itself so the client can pick its current
-  //    slot back if they change their mind.
-  const rangeEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  //    slot back if they change their mind. 35, not 30: availableDays()
+  //    scans up to maxCount+14 = 35 days ahead for sparse schedules, and
+  //    days beyond the busy-fetch horizon would offer slots that collide
+  //    with real bookings (client only finds out via a 409 after submit).
+  const rangeEnd = new Date(now.getTime() + 35 * 24 * 60 * 60 * 1000);
   const { data: busyRows } = await supabase
     .from("bookings")
     .select("id, start_at, end_at")

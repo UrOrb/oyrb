@@ -63,7 +63,7 @@ export default async function AdminStrikesPage() {
   // Aggregate by business_id. A business with strikes appears once;
   // its weighted total sums weights across the window.
   const byBiz = new Map<string, StrikeRow>();
-  for (const d of (disputes ?? []) as Array<{
+  for (const d of (disputes ?? []) as unknown as Array<{
     business_id: string;
     weight: number;
     businesses: {

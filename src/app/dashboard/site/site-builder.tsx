@@ -7,6 +7,7 @@ import { DAY_NAMES, type Business, type BusinessHours } from "@/lib/types";
 import { ImageUpload, GalleryUpload } from "@/components/dashboard/image-upload";
 import { StockPicker } from "@/components/dashboard/stock-picker";
 import { updateSite } from "./actions";
+import { cheer } from "@/lib/cheer";
 import { TemplatePreview } from "./template-preview";
 import {
   STAT_TYPES,
@@ -410,6 +411,10 @@ export function SiteBuilder({ business, hours, services, origin }: Props) {
 
   const handleSave = () => {
     setMsg(null);
+    // Compare against the last-saved state (not `business`, which is stale
+    // after the first save) so Gigi only cheers the not-published →
+    // published transition, not every save while the box stays checked.
+    const justPublished = !saved.is_published && draft.is_published;
     start(async () => {
       const fd = draftToFormData(draft);
       const r = await updateSite(fd);
@@ -421,6 +426,7 @@ export function SiteBuilder({ business, hours, services, origin }: Props) {
         setDraft(nextDraft);
         setSaved(nextDraft);
         setMsg({ type: "ok", text: "Saved." });
+        if (justPublished) cheer("Your site is LIVE! Go bestie! 🎉");
       }
     });
   };

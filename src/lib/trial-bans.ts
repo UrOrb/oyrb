@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
+import { escapeIlike } from "@/lib/utils";
 
 export type BanTrigger =
   | "duplicate_phone"
@@ -29,7 +30,7 @@ export async function addBan(input: {
     const { data: existing } = await admin
       .from("trial_ban_list")
       .select("id")
-      .ilike("email", email)
+      .ilike("email", escapeIlike(email))
       .maybeSingle();
     if (existing) return { inserted: false, reason: "email_already_banned" };
   }

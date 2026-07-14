@@ -89,7 +89,7 @@ export default async function StrikePausedPage() {
             manual only — pauses lift after an OYRB review of your case.
           </p>
           <p>
-            <strong className="text-[#0A0A0A]">What's affected:</strong> your public booking site
+            <strong className="text-[#0A0A0A]">What&apos;s affected:</strong> your public booking site
             returns 404 to new visitors. Existing bookings keep their appointments — clients
             can still see their booking, reschedule, cancel via their magic-link page, and you
             can still see and manage every booking from this dashboard.
@@ -109,7 +109,7 @@ export default async function StrikePausedPage() {
         </a>
 
         <p className="mt-4 text-xs text-[#737373]">
-          Opens an email to OYRB Support. Tell us your side — we'll review the resolved Dispute
+          Opens an email to OYRB Support. Tell us your side — we&apos;ll review the resolved Dispute
           Inquiries together and decide whether to lift the pause.
         </p>
       </div>

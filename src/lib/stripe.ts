@@ -1,8 +1,21 @@
 import Stripe from "stripe";
 import type { Tier, BillingCycle } from "@/lib/plans";
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-03-25.dahlia",
+// Lazily constructed on first property access. Constructing eagerly at
+// module scope crashes `next build` ("Neither apiKey nor config.
+// authenticator provided") in any environment without STRIPE_SECRET_KEY
+// (CI, local builds) because Next imports route modules while collecting
+// page data. Deferring keeps the fail-loudly-at-request-time behavior
+// without making the build depend on secrets.
+let _stripe: Stripe | null = null;
+export const stripe: Stripe = new Proxy({} as Stripe, {
+  get(_target, prop) {
+    _stripe ??= new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: "2026-03-25.dahlia",
+    });
+    const value = _stripe[prop as keyof Stripe];
+    return typeof value === "function" ? value.bind(_stripe) : value;
+  },
 });
 
 export type PriceTier = Tier;

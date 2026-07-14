@@ -951,7 +951,7 @@ export async function sendPaymentFailed(params: {
       from: getFromAddress(EmailPurpose.PAYMENT),
       replyTo: DEFAULT_REPLY_TO,
       to,
-      subject: `Payment didn&apos;t go through — please update your card`,
+      subject: `Payment didn't go through — please update your card`,
       html: `
         <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
           <p style="color:#B45309;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Payment failed</p>

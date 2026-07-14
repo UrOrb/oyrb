@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
+import { escapeIlike } from "@/lib/utils";
 
 export type TrialEligibility =
   | { ok: true; normalizedEmail: string; normalizedPhone: string }
@@ -68,11 +69,14 @@ export async function checkTrialEligibility(input: {
     return { ok: false, reason: "phone_unverified", message: FRIENDLY.phone_unverified };
   }
 
-  // Run all four checks in parallel.
+  // Run all four checks in parallel. Emails are escaped because ilike
+  // treats `_`/`%` as wildcards — john_doe@gmail.com would otherwise
+  // match johnadoe@gmail.com and falsely block a brand-new signup.
+  const emailPattern = escapeIlike(email);
   const [historyEmail, historyPhone, banEmail, banPhone] = await Promise.all([
-    admin.from("trial_history").select("id").ilike("email", email).maybeSingle(),
+    admin.from("trial_history").select("id").ilike("email", emailPattern).maybeSingle(),
     admin.from("trial_history").select("id").eq("phone", phone).maybeSingle(),
-    admin.from("trial_ban_list").select("id").ilike("email", email).maybeSingle(),
+    admin.from("trial_ban_list").select("id").ilike("email", emailPattern).maybeSingle(),
     admin.from("trial_ban_list").select("id").eq("phone", phone).maybeSingle(),
   ]);
 
@@ -112,7 +116,7 @@ export async function recordTrialStart(input: {
   stripeSubscriptionId: string;
 }): Promise<void> {
   const admin = createAdminClient();
-  await admin.from("trial_history").insert({
+  const { error } = await admin.from("trial_history").insert({
     user_id: input.userId,
     email: normEmail(input.email),
     phone: normPhone(input.phone),
@@ -120,6 +124,11 @@ export async function recordTrialStart(input: {
     billing_cycle: input.billingCycle,
     stripe_subscription_id: input.stripeSubscriptionId,
   });
+  // supabase-js returns errors rather than throwing — swallowing this
+  // silently loses the no-second-trial record for the user.
+  if (error) {
+    console.error("[trial] recordTrialStart insert failed:", error.message);
+  }
   await logAttempt(
     admin,
     { email: normEmail(input.email), phone: normPhone(input.phone) },

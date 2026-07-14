@@ -23,9 +23,13 @@ export async function GET(request: NextRequest) {
 
   const supabase = createAdminClient();
   const now = new Date();
-  // Daily cron runs once at 9am UTC. Wide 18–36h window catches all bookings
-  // happening within "tomorrow" range. reminder_sent_at prevents duplicates.
-  const windowStart = new Date(now.getTime() + 18 * 60 * 60 * 1000);
+  // Daily cron runs once at 9am UTC. The window must be at least 24h wide
+  // or consecutive daily runs leave a coverage gap: the old 18–36h window
+  // was only 18h wide, so bookings starting 36–42h out on one day were
+  // 12–18h out the next — never inside any run's window — and their
+  // clients silently got no reminder. 12–36h tiles perfectly day to day.
+  // reminder_sent_at prevents duplicates.
+  const windowStart = new Date(now.getTime() + 12 * 60 * 60 * 1000);
   const windowEnd = new Date(now.getTime() + 36 * 60 * 60 * 1000);
 
   const { data: bookings, error } = await supabase
@@ -35,7 +39,7 @@ export async function GET(request: NextRequest) {
       business_id,
       services(name, price_cents),
       clients(name, email, phone, sms_consent),
-      businesses!business_id(id, business_name, slug, phone, subscription_tier)
+      businesses!business_id(id, business_name, slug, phone, subscription_tier, timezone)
     `)
     .eq("status", "confirmed")
     .is("reminder_sent_at", null)
@@ -72,6 +76,7 @@ export async function GET(request: NextRequest) {
         slug: string;
         phone: string | null;
         subscription_tier: string;
+        timezone: string | null;
       } | null;
     };
 
@@ -80,12 +85,15 @@ export async function GET(request: NextRequest) {
     const svc = booking.services;
     if (!client || !biz || !svc) continue;
 
+    // Render in the business timezone — without it the server (UTC on
+    // Vercel) turns a 2:00 PM Eastern appointment into "7:00 PM".
     const whenLabel = new Date(booking.start_at).toLocaleString("en-US", {
       weekday: "long",
       month: "long",
       day: "numeric",
       hour: "numeric",
       minute: "2-digit",
+      timeZone: biz.timezone || "America/New_York",
     });
 
     let emailed = false;
@@ -178,13 +186,17 @@ export async function GET(request: NextRequest) {
       clients(name, email),
       businesses!business_id(business_name, slug)
     `)
-    .eq("status", "confirmed")
+    // Include "completed": the auto-complete cron (07:00 UTC) flips
+    // confirmed → completed 4h after end_at, which is BEFORE this cron
+    // runs at 09:00 — with a confirmed-only filter, review requests
+    // never matched a single row and no client was ever asked to review.
+    .in("status", ["confirmed", "completed"])
     .is("review_request_sent_at", null)
     .gte("end_at", reviewWindowStart.toISOString())
     .lte("end_at", reviewWindowEnd.toISOString());
 
   let reviewEmailsSent = 0;
-  for (const b of (completedBookings ?? []) as Array<{
+  for (const b of (completedBookings ?? []) as unknown as Array<{
     id: string;
     business_id: string;
     services: { name: string } | null;

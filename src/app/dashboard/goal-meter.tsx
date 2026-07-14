@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { Pencil, TrendingUp } from "lucide-react";
 import type { GoalSnapshot } from "@/lib/goal-tracking";
+import { cheer } from "@/lib/cheer";
 
 // Favicon palette — mirrors the avatar gradient + glow. Bar fill uses this
 // gradient; empty track is a neutral.
@@ -53,6 +55,22 @@ export function GoalMeter({ snapshot }: Props) {
     isFirstRun,
   } = snapshot;
 
+  // Cheer doll: celebrate crossing 100% once per goal period. resetsAt
+  // changes when the goal rolls over, so the localStorage key naturally
+  // re-arms next month. Must run before the early returns below (hooks
+  // can't be conditional).
+  useEffect(() => {
+    if (isFirstRun || !showOnDashboard || percent < 100) return;
+    const key = `oyrb:goal-cheered:${resetsAt}`;
+    try {
+      if (localStorage.getItem(key)) return;
+      localStorage.setItem(key, "1");
+    } catch {
+      return; // storage unavailable (private mode) — skip rather than spam
+    }
+    cheer("GOAL SMASHED! Six-figure energy 💰🎉");
+  }, [percent, resetsAt, isFirstRun, showOnDashboard]);
+
   // Render nothing when the user has hidden the meter.
   if (!showOnDashboard) return null;
 
@@ -71,7 +89,7 @@ export function GoalMeter({ snapshot }: Props) {
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-[#0A0A0A]">Set your monthly goal</p>
             <p className="mt-1 text-xs text-[#737373]">
-              How much are you aiming to make this month? We'll track your
+              How much are you aiming to make this month? We&apos;ll track your
               progress and cheer you on.
             </p>
             <Link

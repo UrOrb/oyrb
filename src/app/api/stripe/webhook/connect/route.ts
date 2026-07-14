@@ -123,9 +123,9 @@ export async function POST(request: Request) {
         // the redirect; here we only log them as the safety-net audit row.
         const bookingType = session.metadata?.booking_type;
         if (bookingType === "pay_in_full") {
-          await handlePayInFullCompleted(supabase, session);
+          await handlePayInFullCompleted(supabase, session, accountId);
         } else if (bookingType === "gift_card") {
-          await handleGiftCardCompleted(supabase, session);
+          await handleGiftCardCompleted(supabase, session, accountId);
         }
         // deposit / unknown → handled elsewhere (or ignored). Either way the
         // stripe_connect_events row already captured the payload for audit.

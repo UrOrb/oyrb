@@ -6,7 +6,12 @@ import type { NextRequest } from "next/server";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  // Only allow same-origin paths. Without this, `next=@evil.com` makes the
+  // concatenated URL's host evil.com (open redirect from a legit OAuth
+  // link); `//evil.com` is protocol-relative and just as bad.
+  const rawNext = searchParams.get("next") ?? "/dashboard";
+  const next =
+    rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/dashboard";
 
   if (code) {
     const cookieStore = await cookies();

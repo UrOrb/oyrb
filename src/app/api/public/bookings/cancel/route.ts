@@ -65,6 +65,16 @@ export async function POST(request: NextRequest) {
   if (bookingRow.status === "cancelled") {
     return NextResponse.json({ ok: true, already_cancelled: true });
   }
+  // Tokens stay valid for days and get re-issued in history emails — a
+  // past appointment must not be cancellable, or a completed booking can
+  // be flipped to cancelled after the fact (erasing it from revenue/goal
+  // stats and emailing the pro a bogus cancellation).
+  if (new Date(bookingRow.start_at) <= new Date()) {
+    return NextResponse.json(
+      { error: "This appointment has already happened and can't be cancelled." },
+      { status: 400 },
+    );
+  }
 
   const reason = (body.reason ?? "").slice(0, 500) || null;
   const { error } = await supabase

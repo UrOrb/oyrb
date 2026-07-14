@@ -13,12 +13,15 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
 
   const supabase = createAdminClient();
 
-  // Verify the booking belongs to this client's email
+  // Verify the booking belongs to this client's email. ilike, not eq —
+  // the session email is lowercased but client rows created via manual
+  // dashboard entry or import can carry mixed case, and every other
+  // client-email match in the app is case-insensitive.
   const { data: booking } = await supabase
     .from("bookings")
     .select("id, status, start_at, clients!inner(email)")
     .eq("id", id)
-    .eq("clients.email", email)
+    .ilike("clients.email", email)
     .maybeSingle();
 
   if (!booking) {
@@ -34,7 +37,24 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: "Can't cancel a past appointment" }, { status: 400 });
   }
 
-  await supabase.from("bookings").update({ status: "cancelled" }).eq("id", id);
+  // Stamp cancelled_at/cancelled_by like the other cancel paths so
+  // cancellation analytics see these rows too — and surface a real error
+  // instead of telling the client "cancelled" when the update failed.
+  const { error } = await supabase
+    .from("bookings")
+    .update({
+      status: "cancelled",
+      cancelled_at: new Date().toISOString(),
+      cancelled_by: "client",
+    })
+    .eq("id", id);
+  if (error) {
+    console.error("my-bookings cancel update failed:", error);
+    return NextResponse.json(
+      { error: "Couldn't cancel — please try again." },
+      { status: 500 },
+    );
+  }
 
   return NextResponse.json({ success: true });
 }

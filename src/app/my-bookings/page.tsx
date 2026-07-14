@@ -58,7 +58,7 @@ export default async function MyBookingsPage() {
     } | null;
   };
 
-  const bookings = (rows ?? []) as Row[];
+  const bookings = (rows ?? []) as unknown as Row[];
   const now = new Date();
   const upcoming = bookings.filter(
     (b) => b.status !== "cancelled" && new Date(b.start_at) > now
