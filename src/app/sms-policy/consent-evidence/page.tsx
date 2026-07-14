@@ -45,6 +45,13 @@ export default function SmsConsentEvidencePage() {
             <p>
               The screenshot below shows OYRB&apos;s booking confirmation step, captured from a live storefront. The consent checkbox wording has since been refined to the exact language quoted above; the placement, optional labeling, and unchecked-by-default behavior are unchanged.
             </p>
+            <p>
+              <strong>Verify the live flow directly:</strong> reviewers can observe the consent step themselves at{" "}
+              <a href="https://www.oyrb.space/s/glamboxroomllc-mo8xhd0q" className="text-[#B8896B] hover:underline">
+                oyrb.space/s/glamboxroomllc-mo8xhd0q
+              </a>
+              {" "}— select any service and time, enter any name/phone, and proceed to step 4 (&quot;Confirm&quot;). The optional SMS consent checkbox with the full disclosure language appears at the bottom of that step, unchecked, above the Confirm button. No purchase is required to view it.
+            </p>
           </section>
 
           <section className="space-y-3">
