@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   STAXK design tokens — "Night Scan" (SPEC §2)
+   Dark-primary. Light mode flips paper/ink and deepens accents ~15%.
+   All component colors come from these tokens — never raw hex in components.
+--------------------------------------------------------------------------- */
+:root {
+  --ink: #0e1116; /* app background (deep blue-black) */
+  --surface: #1a1f27; /* cards, sheets */
+  --surface-2: #232a35; /* raised cards, hover */
+  --signal: #7fd3c7; /* primary accent — match scores, live states, CTAs */
+  --pulse: #e8a0bf; /* secondary accent — replies, human moments */
+  --paper: #f2efe9; /* text on dark; light-mode background */
+  --caution: #e3b23c; /* follow-ups due, gaps flagged */
+  --muted: #8b95a5; /* secondary text (4.6:1 on --ink) */
+  --line: #2c3440; /* hairline borders */
+
+  --bg: var(--ink);
+  --fg: var(--paper);
+  --card: var(--surface);
+  --card-2: var(--surface-2);
+}
+
+/* Light mode: system preference… */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: var(--paper);
+    --fg: var(--ink);
+    --card: #ffffff;
+    --card-2: #e9e4da;
+    --signal: #1e7d70; /* accents deepen for contrast on paper */
+    --pulse: #b4517e;
+    --caution: #8a6414;
+    --muted: #5b6472;
+    --line: #d8d2c6;
+  }
+}
+/* …and manual toggle override */
+:root[data-theme="light"] {
+  --bg: var(--paper);
+  --fg: var(--ink);
+  --card: #ffffff;
+  --card-2: #e9e4da;
+  --signal: #1e7d70;
+  --pulse: #b4517e;
+  --caution: #8a6414;
+  --muted: #5b6472;
+  --line: #d8d2c6;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-surface: var(--card);
+  --color-surface-2: var(--card-2);
+  --color-signal: var(--signal);
+  --color-pulse: var(--pulse);
+  --color-paper: var(--paper);
+  --color-caution: var(--caution);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+}
+
+html {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+body {
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Visible focus rings — --signal, 2px offset (SPEC §2 a11y) */
+:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Kanban snap-scroll (mobile) */
+.snap-row {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.snap-col {
+  scroll-snap-align: center;
+}
+
+/* Radar sweep — one orchestrated moment on dashboard load.
+   prefers-reduced-motion: sweep becomes a fade. */
+@keyframes staxk-sweep {
+  from {
+    transform: rotate(0deg);
+    opacity: 1;
+  }
+  to {
+    transform: rotate(360deg);
+    opacity: 0;
+  }
+}
+@keyframes staxk-fade {
+  from {
+    opacity: 0.6;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.radar-sweep {
+  animation: staxk-sweep 1.4s ease-out 1 forwards;
+  background: conic-gradient(
+    from 0deg,
+    color-mix(in srgb, var(--signal) 35%, transparent),
+    transparent 90deg
+  );
+}
+@media (prefers-reduced-motion: reduce) {
+  .radar-sweep {
+    animation: staxk-fade 0.8s ease-out 1 forwards;
+    background: color-mix(in srgb, var(--signal) 12%, transparent);
+  }
+  .dial-arc {
+    transition: none !important;
+  }
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Match Dial arc fill-in on first paint */
+.dial-arc {
+  transition: stroke-dashoffset 900ms ease-out;
+}
