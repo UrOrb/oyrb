@@ -156,7 +156,7 @@ export const sleuthRun = inngest.createFunction(
       const contactId = await step.run(`save-${person.name}`, async () => {
         const { data, error } = await supabase
           .from("contacts")
-          .insert({
+          .upsert({
             user_id: userId,
             company_id: company.id,
             full_name: person.name,
@@ -166,7 +166,7 @@ export const sleuthRun = inngest.createFunction(
             email_confidence: confidence,
             linkedin_url: linkedinUrl,
             personalization_notes_md: notes.personalization_notes_md,
-          })
+          }, { onConflict: "user_id,company_id,full_name" })
           .select("id")
           .single();
         if (error) throw error;

@@ -2,6 +2,7 @@
 // Route handlers are for webhooks ONLY; all user mutations are Server
 // Actions (CLAUDE.md hard rule).
 import { NextResponse } from "next/server";
+import { Webhook } from "svix";
 import { z } from "zod";
 
 import { sendEvent } from "@/inngest/client";
@@ -17,17 +18,31 @@ const inboundSchema = z.object({
 });
 
 export async function POST(req: Request) {
-  // Shared-secret check; swap for svix signature verification when the
-  // dashboard secret is configured.
+  const payload = await req.text();
+
+  // Resend signs webhooks with Svix headers — verify against the signing
+  // secret from the Resend dashboard (whsec_...). Without the secret set
+  // (local dev), verification is skipped.
   const secret = process.env.RESEND_WEBHOOK_SECRET;
   if (secret) {
-    const provided = req.headers.get("x-webhook-secret");
-    if (provided !== secret) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    try {
+      new Webhook(secret).verify(payload, {
+        "svix-id": req.headers.get("svix-id") ?? "",
+        "svix-timestamp": req.headers.get("svix-timestamp") ?? "",
+        "svix-signature": req.headers.get("svix-signature") ?? "",
+      });
+    } catch {
+      return NextResponse.json({ error: "invalid signature" }, { status: 401 });
     }
   }
 
-  const parsed = inboundSchema.safeParse(await req.json());
+  let body: unknown;
+  try {
+    body = JSON.parse(payload);
+  } catch {
+    return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
+  }
+  const parsed = inboundSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid payload" }, { status: 400 });
   }

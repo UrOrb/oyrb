@@ -22,6 +22,13 @@ const STAGE_FOR: Record<string, string | null> = {
   other: null,
 };
 
+// Inbound `from` is usually `"Sarah Okafor <sarah@figma.com>"` — match on
+// the bare address or contact lookup misses almost every real reply.
+function extractAddress(from: string): string {
+  const angled = from.match(/<([^>]+)>/);
+  return (angled ? angled[1] : from).trim().toLowerCase();
+}
+
 export const chronicleReply = inngest.createFunction(
   { id: "chronicle-reply", retries: 2 },
   { event: "email.inbound" },
@@ -34,7 +41,7 @@ export const chronicleReply = inngest.createFunction(
       const { data: contact } = await supabase
         .from("contacts")
         .select("id")
-        .ilike("email", event.data.from)
+        .ilike("email", extractAddress(event.data.from))
         .maybeSingle();
       if (!contact) return null;
       const { data } = await supabase

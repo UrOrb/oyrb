@@ -48,8 +48,10 @@ export default async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Everything except API routes (webhooks/Inngest), Next internals, and
-    // public assets the PWA needs pre-auth (manifest, icons).
-    "/((?!api/|_next/|favicon.ico|icon.svg|manifest.webmanifest).*)",
+    // Everything except API routes (webhooks/Inngest), the PUBLIC /pulse
+    // metrics page (the meta-move — recruiters land here from outreach
+    // links, never behind login), Next internals, and public assets the
+    // PWA needs pre-auth (manifest, icons).
+    "/((?!api/|pulse|_next/|favicon.ico|icon.svg|manifest.webmanifest).*)",
   ],
 };

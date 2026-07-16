@@ -41,6 +41,9 @@ importers:
       resend:
         specifier: ^6.12.0
         version: 6.17.2
+      svix:
+        specifier: ^1.97.0
+        version: 1.97.0
       tailwind-merge:
         specifier: ^3.5.0
         version: 3.6.0
@@ -2883,6 +2886,9 @@ packages:
   supports-preserve-symlinks-flag@1.0.0:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
+
+  svix@1.97.0:
+    resolution: {integrity: sha512-W8725SeneqfhPNSAlXR97yYefVBcomXDjnEJgTWw0HJHkhjs4yknNt6bvwW1Ujg2v5cCa+5AxDAN7wSf+ZAFMg==}
 
   systeminformation@5.31.17:
     resolution: {integrity: sha512-TvFA9iwDWlMjqZVlKIJ0Cy+Zgm9ttlMx0SMRwJDMNKyhlEKWBMb3+WRwDi/3dvHdWbexpos4Osp4U49p5WjB5g==}
@@ -6257,6 +6263,10 @@ snapshots:
       has-flag: 4.0.0
 
   supports-preserve-symlinks-flag@1.0.0: {}
+
+  svix@1.97.0:
+    dependencies:
+      standardwebhooks: 1.0.0
 
   systeminformation@5.31.17: {}
 

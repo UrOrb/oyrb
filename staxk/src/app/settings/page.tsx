@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { signOut } from "@/app/login/actions";
 import { PageHeader } from "@/components/page-header";
 import { demoMode } from "@/lib/data";
 
@@ -64,6 +65,25 @@ export default function SettingsPage() {
             <li>Contacts auto-purge 90 days after a pipeline closes; the suppression list is permanent.</li>
           </ul>
         </section>
+
+        {!demoMode() && (
+          <section
+            aria-labelledby="account-h"
+            className="rounded-2xl border border-line bg-surface p-5"
+          >
+            <h2 id="account-h" className="font-display text-xl font-semibold">
+              Account
+            </h2>
+            <form action={signOut} className="mt-3">
+              <button
+                type="submit"
+                className="rounded-lg border border-line px-4 py-2 text-sm text-muted hover:border-caution hover:text-caution"
+              >
+                Sign out
+              </button>
+            </form>
+          </section>
+        )}
       </div>
     </>
   );

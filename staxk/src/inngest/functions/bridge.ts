@@ -38,7 +38,7 @@ export const bridgeMap = inngest.createFunction(
         : { data: null };
       const { data: network } = await supabase
         .from("network")
-        .select("full_name, company, title, relationship_tier, last_touch");
+        .select("full_name, company, title, relationship_tier, last_touch, email");
       return { job, company, network: network ?? [] };
     });
     if (!job || !company) return { skipped: true };
@@ -86,16 +86,24 @@ export const bridgeMap = inngest.createFunction(
       // It goes to YOUR contact; contact_id refers to a contacts row created
       // for them (upsert by name+company kept simple here).
       if (mapped.intro_ask_md) {
+        // Carry the network row's email onto the contact — without it the
+        // approved intro ask has no address and Envoy would silently skip it.
+        const topPath = mapped.paths[0];
+        const networkRow =
+          candidates.find((c) => c.full_name === topPath?.contact_name) ??
+          candidates[0];
         const { data: contact } = await supabase
           .from("contacts")
           .upsert(
             {
               user_id: userId,
               company_id: company.id,
-              full_name: mapped.paths[0].contact_name,
+              full_name: topPath?.contact_name ?? networkRow.full_name,
               role_type: "other",
+              email: networkRow.email ?? null,
+              email_confidence: networkRow.email ? 1.0 : null,
             },
-            { onConflict: "id" },
+            { onConflict: "user_id,company_id,full_name" },
           )
           .select("id")
           .single();
