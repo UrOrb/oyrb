@@ -43,13 +43,39 @@ async function fetchHN(): Promise<{ url: string; text: string }[]> {
     }));
 }
 
+// Reddit via PullPush (public Reddit archive API) — keyless. Reddit itself
+// fingerprint-blocks unauthenticated access and gates OAuth app creation
+// behind registration approval; PullPush mirrors submissions openly.
+// One request per sweep; graceful degradation on any failure.
+async function fetchReddit(): Promise<{ url: string; text: string }[]> {
+  const res = await fetch(
+    "https://api.pullpush.io/reddit/search/submission/?q=%22hiring%22%20%22front%20end%22&size=15&sort=desc&sort_type=created_utc",
+  );
+  if (!res.ok) return [];
+  const json = (await res.json()) as {
+    data?: { permalink?: string; title?: string; selftext?: string }[];
+  };
+  return (json.data ?? [])
+    .filter((p) => p.permalink)
+    .map((p) => ({
+      url: `https://www.reddit.com${p.permalink}`,
+      text: `${p.title ?? ""}\n${(p.selftext ?? "").slice(0, 800)}`,
+    }));
+}
+
 export const pulseListen = inngest.createFunction(
   { id: "pulse-listen", retries: 1 },
   { cron: "0 */4 * * *" },
   async ({ step }) => {
     const supabase = supabaseAdmin();
 
-    const items = await step.run("fetch-hn", fetchHN);
+    const items = await step.run("fetch-sources", async () => {
+      const [hn, reddit] = await Promise.all([fetchHN(), fetchReddit()]);
+      return [
+        ...hn.map((i) => ({ ...i, source: "hn" as const })),
+        ...reddit.map((i) => ({ ...i, source: "reddit" as const })),
+      ];
+    });
     if (items.length === 0) return { stored: 0 };
 
     const classified = await step.run("classify", () =>
@@ -67,7 +93,7 @@ export const pulseListen = inngest.createFunction(
         .filter(({ item, source }) => item.kind !== "noise" && source)
         .map(({ item, source }) => ({
           user_id: staxkUserId(),
-          source: "hn" as const,
+          source: source.source,
           url: source.url,
           kind: item.kind,
           summary_md: item.summary_md,
