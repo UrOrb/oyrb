@@ -1,8 +1,9 @@
 // Resend inbound email webhook → Chronicle (email.inbound event).
 // Route handlers are for webhooks ONLY; all user mutations are Server
 // Actions (CLAUDE.md hard rule).
+import { createHmac, timingSafeEqual } from "node:crypto";
+
 import { NextResponse } from "next/server";
-import { Webhook } from "svix";
 import { z } from "zod";
 
 import { sendEvent } from "@/inngest/client";
@@ -17,32 +18,44 @@ const inboundSchema = z.object({
   }),
 });
 
+// Resend signs webhooks with svix: HMAC-SHA256 over `${id}.${timestamp}.${body}`
+// keyed by the base64 secret after the `whsec_` prefix. The svix-signature
+// header may hold several space-separated `v1,<base64>` entries (key rotation).
+function verifySvix(secret: string, headers: Headers, payload: string): boolean {
+  const id = headers.get("svix-id");
+  const timestamp = headers.get("svix-timestamp");
+  const signatures = headers.get("svix-signature");
+  if (!id || !timestamp || !signatures) return false;
+  if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return false; // replay window
+
+  const key = Buffer.from(
+    secret.startsWith("whsec_") ? secret.slice(6) : secret,
+    "base64",
+  );
+  const expected = Buffer.from(
+    createHmac("sha256", key).update(`${id}.${timestamp}.${payload}`).digest("base64"),
+  );
+  return signatures.split(" ").some((entry) => {
+    const sig = Buffer.from(entry.split(",")[1] ?? "");
+    return sig.length === expected.length && timingSafeEqual(sig, expected);
+  });
+}
+
 export async function POST(req: Request) {
-  const payload = await req.text();
+  const body = await req.text();
 
-  // Resend signs webhooks with Svix headers — verify against the signing
-  // secret from the Resend dashboard (whsec_...). Without the secret set
-  // (local dev), verification is skipped.
   const secret = process.env.RESEND_WEBHOOK_SECRET;
-  if (secret) {
-    try {
-      new Webhook(secret).verify(payload, {
-        "svix-id": req.headers.get("svix-id") ?? "",
-        "svix-timestamp": req.headers.get("svix-timestamp") ?? "",
-        "svix-signature": req.headers.get("svix-signature") ?? "",
-      });
-    } catch {
-      return NextResponse.json({ error: "invalid signature" }, { status: 401 });
-    }
+  if (secret && !verifySvix(secret, req.headers, body)) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  let body: unknown;
+  let json: unknown;
   try {
-    body = JSON.parse(payload);
+    json = JSON.parse(body);
   } catch {
-    return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
+    return NextResponse.json({ error: "invalid payload" }, { status: 400 });
   }
-  const parsed = inboundSchema.safeParse(body);
+  const parsed = inboundSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid payload" }, { status: 400 });
   }

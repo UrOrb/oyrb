@@ -10,6 +10,9 @@ type Events = {
   "outreach.approved": { data: { outreachId: string } };
   "email.inbound": { data: { to: string; from: string; subject: string; text: string } };
   "coach.session.requested": { data: { jobId: string | null; mode: string } };
+  // Manual triggers — fire cron agents on demand (dashboard/CLI/testing).
+  "scout.run": { data: Record<string, never> };
+  "pulse.run": { data: Record<string, never> };
 };
 
 export const inngest = new Inngest({

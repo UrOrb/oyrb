@@ -1,6 +1,7 @@
-// 🛰 SCOUT — job sourcing. Cron 6am + 2pm ET.
+// 🛰 SCOUT — job sourcing. Cron 6am + 2pm ET, or on demand via `scout.run`.
 // fetch → dedupe on source_url → keyword filter → embed → cosine score vs
-// active resume → score ≥ 80 → stage `qualified` → fire job.qualified.
+// active resume → score ≥ QUALIFY_THRESHOLD → stage `qualified` → fire
+// job.qualified.
 import { z } from "zod";
 
 import { inngest } from "../client";
@@ -10,7 +11,23 @@ import { SCOUT_SYSTEM } from "@/lib/prompts/agents";
 import { staxkUserId, supabaseAdmin } from "@/lib/supabase/admin";
 
 const KEYWORDS = /front.?end|ui engineer|creative technolog|design engineer|design system/i;
-const QUALIFY_THRESHOLD = 80;
+// Embedding cosine between a resume and a JD realistically peaks ~50–60
+// with text-embedding-3-small; 50 marks a genuinely strong match.
+const QUALIFY_THRESHOLD = 50;
+
+// Greenhouse ships HTML-escaped descriptions — decode + strip so keyword
+// filtering and embeddings see prose, not markup.
+function stripHtml(escaped: string): string {
+  return escaped
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 const normalizedSchema = z.object({
   title: z.string(),
@@ -37,7 +54,7 @@ const adapters: Record<string, (slug: string) => Promise<RawPosting[]>> = {
     return (json.jobs ?? []).map((j) => ({
       title: j.title,
       url: j.absolute_url,
-      content: j.content ?? "",
+      content: stripHtml(j.content ?? ""),
       location: j.location?.name ?? "",
     }));
   },
@@ -74,7 +91,7 @@ const adapters: Record<string, (slug: string) => Promise<RawPosting[]>> = {
 
 export const scoutRun = inngest.createFunction(
   { id: "scout-run", retries: 3 },
-  { cron: "TZ=America/New_York 0 6,14 * * *" },
+  [{ cron: "TZ=America/New_York 0 6,14 * * *" }, { event: "scout.run" }],
   async ({ step, logger }) => {
     const supabase = supabaseAdmin();
     const userId = staxkUserId();
@@ -108,12 +125,16 @@ export const scoutRun = inngest.createFunction(
     let qualified = 0;
 
     for (const target of targets) {
-      const postings = await step.run(`fetch-${target.ats}-${target.board_slug}`, () =>
-        adapters[target.ats]?.(target.board_slug) ?? Promise.resolve([]),
-      );
+      const postings = await step.run(`fetch-${target.ats}-${target.board_slug}`, async () => {
+        const all = (await adapters[target.ats]?.(target.board_slug)) ?? [];
+        // Filter + trim INSIDE the step — large boards (Stripe: 500+ full
+        // descriptions) exceed Inngest's step output size limit otherwise.
+        return all
+          .filter((p) => KEYWORDS.test(`${p.title} ${p.content.slice(0, 500)}`))
+          .map((p) => ({ ...p, content: p.content.slice(0, 8000) }));
+      });
 
       for (const posting of postings) {
-        if (!KEYWORDS.test(`${posting.title} ${posting.content.slice(0, 500)}`)) continue;
         scanned++;
 
         const result = await step.run(`ingest-${posting.url.slice(-40)}`, async () => {

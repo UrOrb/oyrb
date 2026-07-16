@@ -65,7 +65,7 @@ async function fetchReddit(): Promise<{ url: string; text: string }[]> {
 
 export const pulseListen = inngest.createFunction(
   { id: "pulse-listen", retries: 1 },
-  { cron: "0 */4 * * *" },
+  [{ cron: "0 */4 * * *" }, { event: "pulse.run" }],
   async ({ step }) => {
     const supabase = supabaseAdmin();
 
