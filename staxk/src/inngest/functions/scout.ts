@@ -104,22 +104,31 @@ export const scoutRun = inngest.createFunction(
       return data ?? [];
     });
 
-    const resume = await step.run("load-active-resume", async () => {
+    // Load EVERY active resume — a job is scored against each and bound to the
+    // one it matches best. This is what lets Technical and Creative resumes run
+    // side by side without the old single-active assumption.
+    const resumes = await step.run("load-active-resumes", async () => {
       const { data } = await supabase
         .from("resumes")
         .select("id, embedding, content_md")
-        .eq("is_active", true)
-        .single();
-      return data;
+        .eq("is_active", true);
+      return data ?? [];
     });
-    if (!resume?.embedding) {
+    const activeResumes = resumes
+      .map((r: { id: string; embedding: unknown }) => ({
+        id: r.id,
+        embedding: (typeof r.embedding === "string"
+          ? JSON.parse(r.embedding)
+          : r.embedding) as number[] | null,
+      }))
+      .filter(
+        (r): r is { id: string; embedding: number[] } =>
+          Array.isArray(r.embedding) && r.embedding.length > 0,
+      );
+    if (activeResumes.length === 0) {
       logger.warn("No active embedded resume — skipping scan.");
       return { scanned: 0, qualified: 0 };
     }
-    const resumeEmbedding: number[] =
-      typeof resume.embedding === "string"
-        ? JSON.parse(resume.embedding)
-        : resume.embedding;
 
     let scanned = 0;
     let qualified = 0;
@@ -153,7 +162,16 @@ export const scoutRun = inngest.createFunction(
           });
 
           const embedding = await embed(posting.content);
-          const score = cosineScore(embedding, resumeEmbedding);
+          // Score against every active resume; bind the job to the best fit.
+          let bestResumeId = activeResumes[0].id;
+          let score = cosineScore(embedding, activeResumes[0].embedding);
+          for (const r of activeResumes.slice(1)) {
+            const s = cosineScore(embedding, r.embedding);
+            if (s > score) {
+              score = s;
+              bestResumeId = r.id;
+            }
+          }
           const stage = score >= QUALIFY_THRESHOLD ? "qualified" : "sourced";
 
           const { data: job, error } = await supabase
@@ -172,6 +190,7 @@ export const scoutRun = inngest.createFunction(
               required_skills: normalized.skills,
               embedding,
               match_score: score,
+              resume_id: bestResumeId,
               stage,
             })
             .select("id, stage")

@@ -8,6 +8,7 @@ import {
   GATEKEEPER_MARKET_SYSTEM,
   GATEKEEPER_SCREEN_SYSTEM,
 } from "@/lib/prompts/agents";
+import { resolveJobResume } from "@/lib/resumes";
 import { staxkUserId, supabaseAdmin } from "@/lib/supabase/admin";
 
 const screenSchema = z.object({
@@ -42,11 +43,9 @@ export const gatekeeperScreen = inngest.createFunction(
         .select("*")
         .eq("id", event.data.jobId)
         .single();
-      const { data: resume } = await supabase
-        .from("resumes")
-        .select("*")
-        .eq("is_active", true)
-        .single();
+      // Screen against the resume this job was matched to; fall back to any
+      // active resume for legacy jobs saved before jobs.resume_id existed.
+      const resume = await resolveJobResume(supabase, job?.resume_id);
       const { data: company } = job?.company_id
         ? await supabase.from("companies").select("*").eq("id", job.company_id).single()
         : { data: null };
@@ -109,25 +108,30 @@ export const gatekeeperMarket = inngest.createFunction(
   async ({ step }) => {
     const supabase = supabaseAdmin();
 
-    const { jobs, resume } = await step.run("load-week", async () => {
+    const { jobs, resumeText } = await step.run("load-week", async () => {
       const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
-      const [{ data: jobs }, { data: resume }] = await Promise.all([
+      const [{ data: jobs }, { data: resumes }] = await Promise.all([
         supabase
           .from("jobs")
           .select("title, description_md")
           .gte("created_at", weekAgo),
-        supabase.from("resumes").select("content_md").eq("is_active", true).single(),
+        // All active resumes — market gaps are measured against everything you
+        // present, not one lane.
+        supabase.from("resumes").select("label, content_md").eq("is_active", true),
       ]);
-      return { jobs: jobs ?? [], resume };
+      const resumeText = (resumes ?? [])
+        .map((r: { label: string; content_md: string }) => `## ${r.label}\n${r.content_md}`)
+        .join("\n\n---\n\n");
+      return { jobs: jobs ?? [], resumeText };
     });
-    if (jobs.length === 0 || !resume) return { skipped: true };
+    if (jobs.length === 0 || !resumeText) return { skipped: true };
 
     const scan = await step.run("aggregate", () =>
       agentJSON({
         system: GATEKEEPER_MARKET_SYSTEM,
         prompt: `THIS WEEK'S ${jobs.length} POSTINGS:\n${jobs
           .map((j) => `## ${j.title}\n${(j.description_md ?? "").slice(0, 1500)}`)
-          .join("\n\n")}\n\nRESUME:\n${resume.content_md}`,
+          .join("\n\n")}\n\nRESUME(S):\n${resumeText}`,
         schema: marketSchema,
         maxTokens: 3000,
       }),

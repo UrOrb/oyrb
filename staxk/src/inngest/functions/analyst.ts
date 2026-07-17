@@ -6,6 +6,7 @@ import { z } from "zod";
 import { inngest } from "../client";
 import { agentJSON } from "@/lib/anthropic";
 import { ANALYST_SYSTEM } from "@/lib/prompts/agents";
+import { resolveJobResume } from "@/lib/resumes";
 import { staxkUserId, supabaseAdmin } from "@/lib/supabase/admin";
 
 const analysisSchema = z.object({
@@ -22,10 +23,14 @@ export const analystRun = inngest.createFunction(
     const supabase = supabaseAdmin();
 
     const { job, resume } = await step.run("load", async () => {
-      const [{ data: job }, { data: resume }] = await Promise.all([
-        supabase.from("jobs").select("*").eq("id", event.data.jobId).single(),
-        supabase.from("resumes").select("*").eq("is_active", true).single(),
-      ]);
+      const { data: job } = await supabase
+        .from("jobs")
+        .select("*")
+        .eq("id", event.data.jobId)
+        .single();
+      // Tailor against the resume this job was matched to; fall back to any
+      // active resume for legacy jobs saved before jobs.resume_id existed.
+      const resume = await resolveJobResume(supabase, job?.resume_id);
       return { job, resume };
     });
     if (!job || !resume) return { skipped: true };
