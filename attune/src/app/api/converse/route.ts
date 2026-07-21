@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { Anthropic } from "@anthropic-ai/sdk";
-import { anthropic, hasApiKey, CONVERSE_MODEL } from "@/lib/anthropic";
+import { anthropic, hasApiKey, CONVERSE_MODEL, anthropicErrorInfo } from "@/lib/anthropic";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { buildSystemPrompt, deliveryLine, stateSummary, SPECTRUM_LIST, BEHAVIOR_LIST } from "@/lib/prompt";
 import { normalizeState } from "@/lib/emotion";
@@ -158,6 +158,7 @@ export async function POST(req: Request) {
     return NextResponse.json(turn);
   } catch (err) {
     console.error("converse error:", err);
-    return NextResponse.json({ error: "The character is unavailable right now — try again in a moment." }, { status: 500 });
+    const info = anthropicErrorInfo(err);
+    return NextResponse.json({ error: info.message }, { status: info.status });
   }
 }

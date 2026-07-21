@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { Anthropic } from "@anthropic-ai/sdk";
-import { anthropic, hasApiKey, DEBRIEF_MODEL } from "@/lib/anthropic";
+import { anthropic, hasApiKey, DEBRIEF_MODEL, anthropicErrorInfo } from "@/lib/anthropic";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import type { ResponseLabRequest, ResponseLabResult, ReplyOption } from "@/lib/session";
 
@@ -104,6 +104,7 @@ Give your read of what's really being said, the sender's likely feeling, and 3 d
     return NextResponse.json(result);
   } catch (err) {
     console.error("response-lab error:", err);
-    return NextResponse.json({ error: "Couldn't work through it right now — try again." }, { status: 500 });
+    const info = anthropicErrorInfo(err);
+    return NextResponse.json({ error: info.message }, { status: info.status });
   }
 }

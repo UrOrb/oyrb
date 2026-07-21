@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { Anthropic } from "@anthropic-ai/sdk";
-import { anthropic, hasApiKey, CONVERSE_MODEL } from "@/lib/anthropic";
+import { anthropic, hasApiKey, CONVERSE_MODEL, anthropicErrorInfo } from "@/lib/anthropic";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { characterById, DIFFICULTIES } from "@/lib/characters";
 import { stateSummary } from "@/lib/prompt";
@@ -96,6 +96,7 @@ Give the user 2–3 strong things they could say next.`;
     return NextResponse.json({ suggestions } satisfies SuggestResult);
   } catch (err) {
     console.error("suggest error:", err);
-    return NextResponse.json({ error: "Couldn't fetch a hint — try again." }, { status: 500 });
+    const info = anthropicErrorInfo(err);
+    return NextResponse.json({ error: info.message }, { status: info.status });
   }
 }

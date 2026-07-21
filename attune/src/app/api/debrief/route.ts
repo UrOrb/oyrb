@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { Anthropic } from "@anthropic-ai/sdk";
-import { anthropic, hasApiKey, DEBRIEF_MODEL } from "@/lib/anthropic";
+import { anthropic, hasApiKey, DEBRIEF_MODEL, anthropicErrorInfo } from "@/lib/anthropic";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { characterById, DIFFICULTIES } from "@/lib/characters";
 import { stateSummary } from "@/lib/prompt";
@@ -149,6 +149,7 @@ Call deliver_debrief exactly once. Keep every field concrete and tied to what ac
     return NextResponse.json(debrief);
   } catch (err) {
     console.error("debrief error:", err);
-    return NextResponse.json({ error: "Couldn't produce a debrief right now — try again." }, { status: 500 });
+    const info = anthropicErrorInfo(err);
+    return NextResponse.json({ error: info.message }, { status: info.status });
   }
 }
