@@ -1,0 +1,3 @@
+# Attune is a standalone app — this file makes it its own pnpm root so it is
+# never pulled into a parent workspace. It intentionally declares no packages.
+packages: []
