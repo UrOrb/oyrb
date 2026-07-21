@@ -23,12 +23,23 @@ export const metadata: Metadata = {
   },
   description:
     "A real-time AI communication coach that speaks, listens, reacts, and emotionally adapts like a real conversation partner. Practice hard conversations, interviews, negotiations, and talks — and experience the reaction, not just the script.",
+  applicationName: "Attune",
+  appleWebApp: {
+    capable: true,
+    title: "Attune",
+    statusBarStyle: "default",
+  },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f7f5f2",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f5f2" },
+    { media: "(prefers-color-scheme: dark)", color: "#17140f" },
+  ],
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
