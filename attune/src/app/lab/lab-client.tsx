@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Logo } from "@/components/logo";
 import { PENDING_SCENE_KEY } from "@/lib/session";
 import type { ResponseLabResult, ReplyOption, SceneConfig } from "@/lib/session";
 
@@ -74,8 +75,8 @@ export function LabClient() {
   return (
     <div className="min-h-dvh">
       <header className="mx-auto flex max-w-4xl items-center justify-between px-5 py-5">
-        <Link href="/" className="font-display text-lg tracking-tight">
-          Attune
+        <Link href="/" aria-label="Attune home">
+          <Logo size={27} />
         </Link>
         <nav className="flex items-center gap-4 text-sm">
           <Link href="/library" className="text-soft hover:text-[var(--fg)]">

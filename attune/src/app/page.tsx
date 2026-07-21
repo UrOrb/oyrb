@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { Logo } from "@/components/logo";
 import { MODES, DIFFICULTIES, CHARACTERS } from "@/lib/characters";
 
 export default function Home() {
   return (
     <div className="min-h-dvh">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <span className="font-display text-xl tracking-tight">Attune</span>
+        <Logo size={32} />
         <nav className="flex items-center gap-5 text-sm">
           <Link href="/library" className="text-soft hover:text-[var(--fg)]">
             Library

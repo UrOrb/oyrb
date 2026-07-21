@@ -73,6 +73,15 @@ body {
   font-family: var(--font-display);
 }
 
+/* Logo wordmark — rounded geometric sans, adapts to light/dark. */
+.logo-word {
+  font-family: var(--font-logo), ui-rounded, "Segoe UI Rounded", system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  color: var(--fg);
+}
+
 /* Utility surfaces driven by CSS vars so they adapt to light/dark. */
 .surface {
   background: var(--surface);

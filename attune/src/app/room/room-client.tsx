@@ -6,6 +6,7 @@ import Link from "next/link";
 import { SetupPanel } from "@/components/setup-panel";
 import { LiveRoom, type SessionResult } from "@/components/live-room";
 import { DebriefPanel } from "@/components/debrief-panel";
+import { Logo } from "@/components/logo";
 import { MODES, type ModeId } from "@/lib/characters";
 import type { SceneConfig } from "@/lib/session";
 import { PENDING_SCENE_KEY } from "@/lib/session";
@@ -50,8 +51,8 @@ export function RoomClient() {
   return (
     <div className="min-h-dvh">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
-        <Link href="/" className="font-display text-lg tracking-tight">
-          Attune
+        <Link href="/" aria-label="Attune home">
+          <Logo size={27} />
         </Link>
         {phase !== "setup" && (
           <button

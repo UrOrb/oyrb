@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/logo";
 import { CATEGORIES, scenariosForCategory, characterById } from "@/lib/characters";
 
 export const metadata = { title: "Scenario Library" };
@@ -7,8 +8,8 @@ export default function LibraryPage() {
   return (
     <div className="min-h-dvh">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
-        <Link href="/" className="font-display text-lg tracking-tight">
-          Attune
+        <Link href="/" aria-label="Attune home">
+          <Logo size={27} />
         </Link>
         <nav className="flex items-center gap-4 text-sm">
           <Link href="/lab" className="text-soft hover:text-[var(--fg)]">

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Fraunces } from "next/font/google";
+import { Inter, Fraunces, Quicksand } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -13,6 +13,14 @@ const fraunces = Fraunces({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   style: ["normal", "italic"],
+  display: "swap",
+});
+
+// Rounded geometric sans used for the "Attune" wordmark, matching the logo.
+const quicksand = Quicksand({
+  variable: "--font-logo",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
   display: "swap",
 });
 
@@ -46,7 +54,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${fraunces.variable}`}>
+    <html lang="en" className={`${inter.variable} ${fraunces.variable} ${quicksand.variable}`}>
       <body className="min-h-dvh room-bg">{children}</body>
     </html>
   );

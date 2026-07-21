@@ -1,10 +1,13 @@
 import { ImageResponse } from "next/og";
+import { attuneMarkSvg } from "@/lib/logo-svg";
 
 // iOS home-screen icon (Apple uses its own square, non-transparent icon).
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
 
 export default function AppleIcon() {
+  const svg = attuneMarkSvg({ size: 132, id: "ai" });
+  const src = `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
   return new ImageResponse(
     (
       <div
@@ -14,26 +17,11 @@ export default function AppleIcon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#f7f5f2",
+          background: "#ffffff",
         }}
       >
-        <div
-          style={{
-            width: 132,
-            height: 132,
-            borderRadius: "50%",
-            background: "radial-gradient(circle at 35% 30%, #d98a5f, #a24f28)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#fff",
-            fontSize: 88,
-            fontWeight: 600,
-            fontFamily: "Georgia, serif",
-          }}
-        >
-          A
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} width={132} height={132} alt="Attune" />
       </div>
     ),
     { ...size }
