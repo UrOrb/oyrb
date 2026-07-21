@@ -8,7 +8,7 @@ import { Waveform } from "@/components/waveform";
 import { prosodyFor, NEUTRAL_STATE } from "@/lib/emotion";
 import type { EmotionalState, Prosody } from "@/lib/emotion";
 import { characterById } from "@/lib/characters";
-import type { SceneConfig, ChatTurn, CharacterTurn, DeliverySignal } from "@/lib/session";
+import type { SceneConfig, ChatTurn, CharacterTurn, DeliverySignal, Suggestion } from "@/lib/session";
 
 type DisplayTurn = {
   role: "user" | "character";
@@ -42,6 +42,8 @@ export function LiveRoom({ scene, onEnd }: { scene: SceneConfig; onEnd: (r: Sess
   const [typed, setTyped] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [showMeters, setShowMeters] = useState(true);
+  const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null);
+  const [suggestLoading, setSuggestLoading] = useState(false);
 
   const historyRef = useRef<ChatTurn[]>([]);
   const stateRef = useRef<EmotionalState>(state);
@@ -147,14 +149,45 @@ export function LiveRoom({ scene, onEnd }: { scene: SceneConfig; onEnd: (r: Sess
     runTurnRef.current("", null);
   }, []);
 
-  function sendTyped() {
-    const text = typed.trim();
-    if (!text || busyRef.current) return;
-    setTyped("");
+  function sendText(text: string) {
+    const clean = text.trim();
+    if (!clean || busyRef.current) return;
+    setSuggestions(null);
     const wasInterrupt = interruptedRef.current;
     interruptedRef.current = false;
-    setTurns((t) => [...t, { role: "user", text }]);
-    runTurn(text, { words: text.split(/\s+/).length, interrupted: wasInterrupt });
+    setTurns((t) => [...t, { role: "user", text: clean }]);
+    runTurn(clean, { words: clean.split(/\s+/).length, interrupted: wasInterrupt });
+  }
+
+  function sendTyped() {
+    if (!typed.trim() || busyRef.current) return;
+    const text = typed;
+    setTyped("");
+    sendText(text);
+  }
+
+  async function getSuggestions() {
+    if (suggestLoading || busyRef.current) return;
+    setSuggestLoading(true);
+    setSuggestions(null);
+    setError(null);
+    try {
+      const res = await fetch("/api/suggest", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ scene, history: historyRef.current.slice(-16), state: stateRef.current }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || "Couldn't fetch a hint.");
+      }
+      const data = await res.json();
+      setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't fetch a hint.");
+    } finally {
+      setSuggestLoading(false);
+    }
   }
 
   function cutIn() {
@@ -235,6 +268,46 @@ export function LiveRoom({ scene, onEnd }: { scene: SceneConfig; onEnd: (r: Sess
           </div>
         )}
 
+        {/* how-could-I-respond suggestions */}
+        {(suggestLoading || suggestions) && (
+          <div className="mt-3 rounded-[var(--radius-card)] border p-4 animate-rise" style={{ background: "var(--surface)" }}>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-medium tracking-wide uppercase text-soft">Ways you could respond</span>
+              <button className="text-xs text-soft hover:underline" onClick={() => setSuggestions(null)}>
+                dismiss
+              </button>
+            </div>
+            {suggestLoading ? (
+              <div className="flex items-center gap-2 py-2 text-sm text-soft">
+                <span className="inline-block size-2.5 animate-breathe rounded-full" style={{ background: "var(--color-clay)" }} />
+                Thinking of a few options…
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {suggestions && suggestions.length > 0 ? (
+                  suggestions.map((s, i) => (
+                    <div key={i} className="rounded-xl p-3 surface-2">
+                      <div className="text-[11px] font-medium tracking-wide uppercase text-soft">{s.approach}</div>
+                      <p className="mt-1 text-sm">“{s.text}”</p>
+                      <p className="mt-1 text-xs text-soft">{s.why}</p>
+                      <div className="mt-2 flex gap-2">
+                        <button className="attune-btn-primary" style={{ padding: "0.3rem 0.9rem", fontSize: "0.8rem" }} onClick={() => sendText(s.text)} disabled={busy}>
+                          Say this
+                        </button>
+                        <button className="attune-btn-ghost" style={{ padding: "0.3rem 0.9rem", fontSize: "0.8rem" }} onClick={() => setTyped(s.text)}>
+                          Edit first
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="py-1 text-sm text-soft">No suggestions right now — try again in a moment.</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* controls */}
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {voice.sttSupported ? (
@@ -255,6 +328,10 @@ export function LiveRoom({ scene, onEnd }: { scene: SceneConfig; onEnd: (r: Sess
               Cut in ✋
             </button>
           )}
+
+          <button onClick={getSuggestions} className="attune-btn-ghost" disabled={busy || suggestLoading}>
+            💡 How could I respond?
+          </button>
 
           <div className="ml-auto flex items-center gap-2">
             <Toggle on={coachOn} onClick={() => setCoachOn((v) => !v)} label="Coaching" />

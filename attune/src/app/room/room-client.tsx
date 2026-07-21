@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { SetupPanel } from "@/components/setup-panel";
@@ -8,6 +8,7 @@ import { LiveRoom, type SessionResult } from "@/components/live-room";
 import { DebriefPanel } from "@/components/debrief-panel";
 import { MODES, type ModeId } from "@/lib/characters";
 import type { SceneConfig } from "@/lib/session";
+import { PENDING_SCENE_KEY } from "@/lib/session";
 
 type Phase = "setup" | "live" | "debrief";
 
@@ -17,10 +18,34 @@ export function RoomClient() {
     const m = params.get("mode");
     return (MODES.find((x) => x.id === m)?.id as ModeId) ?? "practice";
   }, [params]);
+  const initialScenarioId = params.get("scenario");
 
   const [phase, setPhase] = useState<Phase>("setup");
   const [scene, setScene] = useState<SceneConfig | null>(null);
   const [result, setResult] = useState<SessionResult | null>(null);
+
+  // Handoff from the Response Lab: a scene stashed in sessionStorage. If present,
+  // jump straight into the live conversation. Read once, on the client, after
+  // hydration — indirected through a helper so it stays a one-time consume.
+  function consumePendingScene() {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = sessionStorage.getItem(PENDING_SCENE_KEY);
+      if (!raw) return;
+      sessionStorage.removeItem(PENDING_SCENE_KEY);
+      const parsed = JSON.parse(raw) as SceneConfig;
+      setScene(parsed);
+      setPhase("live");
+    } catch {
+      /* ignore malformed handoff */
+    }
+  }
+  const consumedRef = useRef(false);
+  useEffect(() => {
+    if (consumedRef.current) return;
+    consumedRef.current = true;
+    consumePendingScene();
+  }, []);
 
   return (
     <div className="min-h-dvh">
@@ -54,6 +79,7 @@ export function RoomClient() {
             </div>
             <SetupPanel
               initialMode={initialMode}
+              initialScenarioId={initialScenarioId}
               onStart={(s) => {
                 setScene(s);
                 setPhase("live");

@@ -7,6 +7,7 @@ import {
   CHARACTERS,
   scenariosForMode,
   characterById,
+  scenarioById,
   type ModeId,
   type DifficultyId,
 } from "@/lib/characters";
@@ -34,10 +35,19 @@ const emptyCustom: CustomCharacter = {
   wants: "",
 };
 
-export function SetupPanel({ initialMode, onStart }: { initialMode: ModeId; onStart: (scene: SceneConfig) => void }) {
-  const [mode, setMode] = useState<ModeId>(initialMode);
+export function SetupPanel({
+  initialMode,
+  initialScenarioId,
+  onStart,
+}: {
+  initialMode: ModeId;
+  initialScenarioId?: string | null;
+  onStart: (scene: SceneConfig) => void;
+}) {
+  const preset = initialScenarioId ? scenarioById(initialScenarioId) : undefined;
+  const [mode, setMode] = useState<ModeId>(preset?.mode ?? initialMode);
   const scenarios = useMemo(() => scenariosForMode(mode), [mode]);
-  const [scenarioId, setScenarioId] = useState<string>(scenarios[0]?.id ?? "custom");
+  const [scenarioId, setScenarioId] = useState<string>(preset?.id ?? scenarios[0]?.id ?? "custom");
 
   // custom situation fields
   const [customSetup, setCustomSetup] = useState("");

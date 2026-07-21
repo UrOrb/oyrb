@@ -6,9 +6,17 @@ export default function Home() {
     <div className="min-h-dvh">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
         <span className="font-display text-xl tracking-tight">Attune</span>
-        <Link href="/room" className="attune-btn-primary">
-          Enter the room
-        </Link>
+        <nav className="flex items-center gap-5 text-sm">
+          <Link href="/library" className="text-soft hover:text-[var(--fg)]">
+            Library
+          </Link>
+          <Link href="/lab" className="text-soft hover:text-[var(--fg)]">
+            Response Lab
+          </Link>
+          <Link href="/room" className="attune-btn-primary">
+            Enter the room
+          </Link>
+        </nav>
       </header>
 
       {/* Hero */}
@@ -46,12 +54,17 @@ export default function Home() {
 
       {/* Modes */}
       <section className="mx-auto max-w-6xl px-6 py-12">
-        <h2 className="font-display text-2xl">Five ways to practice</h2>
+        <div className="flex items-baseline justify-between gap-4">
+          <h2 className="font-display text-2xl">Five ways to practice</h2>
+          <Link href="/library" className="text-sm font-medium" style={{ color: "var(--color-clay)" }}>
+            Browse the scenario library →
+          </Link>
+        </div>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {MODES.map((m) => (
             <Link
               key={m.id}
-              href={`/room?mode=${m.id}`}
+              href={m.id === "response-lab" ? "/lab" : `/room?mode=${m.id}`}
               className="surface group rounded-[var(--radius-card)] p-6 transition-transform hover:-translate-y-1"
             >
               <div className="text-2xl">{m.icon}</div>

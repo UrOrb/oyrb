@@ -74,6 +74,44 @@ export type DebriefRequest = {
   stateHistory: { turn: number; state: EmotionalState }[];
 };
 
+// ── Response Lab ────────────────────────────────────────────────────────────
+// Paste a message you received; explore how different replies would land.
+
+export type ResponseLabRequest = {
+  message: string; // the message they received
+  from: string; // who it's from / relationship
+  context: string; // what's going on / what they want
+  tone?: string; // desired tone of their reply, optional
+};
+
+export type ReplyOption = {
+  approach: string; // short label, e.g. "Direct & warm"
+  text: string; // the actual reply they could send
+  howItLands: string; // likely emotional + relational effect
+  risk: string; // the main downside / when it backfires
+  recommended?: boolean;
+};
+
+export type ResponseLabResult = {
+  read: string; // what the incoming message is really saying (subtext)
+  senderFeeling: string; // one-line read of the sender's emotional state
+  options: ReplyOption[];
+};
+
+// ── In-conversation suggestions ─────────────────────────────────────────────
+
+export type SuggestRequest = {
+  scene: SceneConfig;
+  history: ChatTurn[];
+  state: EmotionalState;
+};
+
+export type Suggestion = { text: string; why: string; approach: string };
+export type SuggestResult = { suggestions: Suggestion[] };
+
+/** sessionStorage key for handing a built scene from the Lab into the Room. */
+export const PENDING_SCENE_KEY = "attune:pendingScene";
+
 export type Debrief = {
   headline: string;
   emotionalArc: string;

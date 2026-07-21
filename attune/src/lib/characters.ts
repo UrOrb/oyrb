@@ -218,10 +218,32 @@ export function characterById(id: string): Character | undefined {
   return CHARACTERS.find((c) => c.id === id);
 }
 
+export type CategoryId =
+  | "corporate"
+  | "career"
+  | "conflict"
+  | "relationships"
+  | "difficult-people"
+  | "stage"
+  | "everyday";
+
+export const CATEGORIES: { id: CategoryId; name: string; blurb: string; icon: string }[] = [
+  { id: "corporate", name: "Corporate", blurb: "Negotiations, feedback, clients, leadership.", icon: "💼" },
+  { id: "career", name: "Interviews & Career", blurb: "Interviews, promotions, offers, reviews.", icon: "🎯" },
+  { id: "conflict", name: "Conflict & Repair", blurb: "Tension, apologies, hard truths.", icon: "🔥" },
+  { id: "relationships", name: "Relationships", blurb: "Partners, family, close friends.", icon: "💗" },
+  { id: "difficult-people", name: "Difficult People", blurb: "Defensive, angry, dismissive, stonewalling.", icon: "🧱" },
+  { id: "everyday", name: "Everyday Nerve", blurb: "Small asks that still make you sweat.", icon: "☕" },
+  { id: "stage", name: "On Stage", blurb: "Talks, pitches, presentations.", icon: "🎤" },
+];
+
 export type Scenario = {
   id: string;
   mode: ModeId;
+  category: CategoryId;
   title: string;
+  /** A short tone tag shown on the card, e.g. "tense", "warm", "high-stakes". */
+  tone: string;
   /** The situation, from the user's side. */
   setup: string;
   /** Suggested character ids, first is default. */
@@ -233,41 +255,12 @@ export type Scenario = {
 };
 
 export const SCENARIOS: Scenario[] = [
-  // Practice
-  {
-    id: "boundary-friend",
-    mode: "practice",
-    title: "Set a boundary with a friend",
-    setup:
-      "A close friend keeps cancelling on you last-minute, and it's started to sting. You want to name it without blowing up the friendship.",
-    suggested: ["maya", "elena"],
-    characterGoal: "feel that the friendship is safe and that they're not simply being attacked.",
-    userGoal: "name the pattern clearly, stay warm, and ask for a real change.",
-  },
-  {
-    id: "repair-partner",
-    mode: "practice",
-    title: "Repair after a fight",
-    setup:
-      "You said something dismissive to your partner yesterday. You want to come back and actually repair it, not just smooth it over.",
-    suggested: ["maya", "elena"],
-    characterGoal: "feel genuinely heard and see that you understand why it landed badly.",
-    userGoal: "take real accountability without over-apologizing or making excuses.",
-  },
-  {
-    id: "difficult-parent",
-    mode: "practice",
-    title: "A hard talk with a parent",
-    setup:
-      "You need to tell a parent something they won't want to hear — a decision they'll disagree with. You want to hold your ground and the relationship.",
-    suggested: ["elena", "maya"],
-    characterGoal: "feel respected and not steamrolled by your decision.",
-    userGoal: "hold the decision calmly while acknowledging their feelings.",
-  },
-  // Corporate
+  // ── Corporate ──────────────────────────────────────────────────────────
   {
     id: "salary-negotiation",
     mode: "corporate",
+    category: "corporate",
+    tone: "high-stakes",
     title: "Negotiate a raise",
     setup:
       "You're asking for a meaningful raise. Your manager is results-oriented and will push back on whether you've earned it.",
@@ -278,6 +271,8 @@ export const SCENARIOS: Scenario[] = [
   {
     id: "missed-deadline",
     mode: "corporate",
+    category: "corporate",
+    tone: "under fire",
     title: "Explain a missed deadline",
     setup:
       "A launch slipped and you have to tell a client. They care about the impact and the fix, not your internal reasons.",
@@ -286,18 +281,10 @@ export const SCENARIOS: Scenario[] = [
     userGoal: "own it briefly, skip the excuses, lead with the solution and timeline.",
   },
   {
-    id: "job-interview",
-    mode: "corporate",
-    title: "Behavioral interview",
-    setup:
-      "A final-round interview. You'll be asked for real examples of impact and pushed on the details.",
-    suggested: ["marcus"],
-    characterGoal: "find specific, structured evidence that you can do the job.",
-    userGoal: "answer directly, give concrete outcomes, and cut the filler.",
-  },
-  {
     id: "difficult-feedback",
     mode: "corporate",
+    category: "corporate",
+    tone: "delicate",
     title: "Deliver hard feedback",
     setup:
       "You have to give a defensive teammate direct feedback about missed commitments without them shutting down.",
@@ -308,6 +295,8 @@ export const SCENARIOS: Scenario[] = [
   {
     id: "present-to-leadership",
     mode: "corporate",
+    category: "corporate",
+    tone: "fast & sharp",
     title: "Present to a skeptical exec",
     setup:
       "You're pitching an idea to a busy executive who will interrupt and ask for measurable outcomes.",
@@ -315,10 +304,239 @@ export const SCENARIOS: Scenario[] = [
     characterGoal: "get to the decision and the numbers fast; cut the preamble.",
     userGoal: "lead with the point, survive interruptions, and speak to outcomes.",
   },
-  // Stage
+  {
+    id: "upset-client",
+    mode: "corporate",
+    category: "corporate",
+    tone: "angry",
+    title: "Calm a furious client",
+    setup:
+      "A client is livid about a mistake on your side and opens the call hot. They want accountability and a fix, now.",
+    suggested: ["riley"],
+    characterGoal: "feel taken seriously and get a real remedy — not deflection or defensiveness.",
+    userGoal: "stay calm under heat, own it cleanly, and move to a concrete fix.",
+  },
+  {
+    id: "manage-up-overload",
+    mode: "corporate",
+    category: "corporate",
+    tone: "tense",
+    title: "Tell your boss you're overloaded",
+    setup:
+      "You're drowning and need to push back on workload — without sounding like you can't handle the job.",
+    suggested: ["jordan", "maya"],
+    characterGoal: "keep priorities moving; make sure this isn't an excuse.",
+    userGoal: "be clear about capacity, propose trade-offs, keep your credibility.",
+  },
+
+  // ── Interviews & Career ────────────────────────────────────────────────
+  {
+    id: "job-interview",
+    mode: "corporate",
+    category: "career",
+    tone: "evaluative",
+    title: "Behavioral interview",
+    setup:
+      "A final-round interview. You'll be asked for real examples of impact and pushed on the details.",
+    suggested: ["marcus"],
+    characterGoal: "find specific, structured evidence that you can do the job.",
+    userGoal: "answer directly, give concrete outcomes, and cut the filler.",
+  },
+  {
+    id: "tell-me-about-yourself",
+    mode: "corporate",
+    category: "career",
+    tone: "warm but watching",
+    title: "“Tell me about yourself”",
+    setup:
+      "The interview opens with the classic wide-open prompt. It's easy to ramble your whole life story here.",
+    suggested: ["marcus"],
+    characterGoal: "hear a tight, relevant story that points at the role.",
+    userGoal: "give a crisp 60-second arc that lands on why you're right for this.",
+  },
+  {
+    id: "ask-for-promotion",
+    mode: "corporate",
+    category: "career",
+    tone: "high-stakes",
+    title: "Ask for a promotion",
+    setup:
+      "You believe you're already operating at the next level and want to make the case to your manager.",
+    suggested: ["jordan"],
+    characterGoal: "see evidence of next-level impact, not just ambition.",
+    userGoal: "show you're already doing the job and ask clearly for the title.",
+  },
+  {
+    id: "resign-gracefully",
+    mode: "corporate",
+    category: "career",
+    tone: "awkward",
+    title: "Resign gracefully",
+    setup:
+      "You're quitting. Your manager may take it personally or try to talk you out of it. You want to leave clean.",
+    suggested: ["jordan", "maya"],
+    characterGoal: "understand why, and not feel blindsided or betrayed.",
+    userGoal: "be firm and grateful, hold your decision, don't over-explain.",
+  },
+
+  // ── Conflict & Repair ──────────────────────────────────────────────────
+  {
+    id: "repair-partner",
+    mode: "practice",
+    category: "conflict",
+    tone: "raw",
+    title: "Repair after a fight",
+    setup:
+      "You said something dismissive to your partner yesterday. You want to come back and actually repair it, not just smooth it over.",
+    suggested: ["maya", "elena"],
+    characterGoal: "feel genuinely heard and see that you understand why it landed badly.",
+    userGoal: "take real accountability without over-apologizing or making excuses.",
+  },
+  {
+    id: "apology-that-lands",
+    mode: "practice",
+    category: "conflict",
+    tone: "vulnerable",
+    title: "Apologize for real",
+    setup:
+      "You let someone down and a hollow “sorry” won't cut it. They're still hurt and a little skeptical of your apology.",
+    suggested: ["elena", "maya"],
+    characterGoal: "believe you actually get the impact — not just that you got caught.",
+    userGoal: "name the specific harm, own it, and change something — no excuses.",
+  },
+  {
+    id: "confront-broken-promise",
+    mode: "practice",
+    category: "conflict",
+    tone: "tense",
+    title: "Confront a broken promise",
+    setup:
+      "Someone close keeps saying they'll change and doesn't. You want to name the pattern without it becoming a blowup.",
+    suggested: ["elena", "maya"],
+    characterGoal: "not feel attacked or cornered; save face.",
+    userGoal: "stay calm and specific, hold the line, don't get pulled into a fight.",
+  },
+  {
+    id: "roommate-money",
+    mode: "practice",
+    category: "conflict",
+    tone: "awkward",
+    title: "The money conversation",
+    setup:
+      "A roommate or friend owes you money and keeps dodging it. You want it back without torching the relationship.",
+    suggested: ["elena", "maya"],
+    characterGoal: "not feel judged or shamed about it.",
+    userGoal: "be direct and warm, name a concrete next step, don't apologize for asking.",
+  },
+
+  // ── Relationships ──────────────────────────────────────────────────────
+  {
+    id: "boundary-friend",
+    mode: "practice",
+    category: "relationships",
+    tone: "warm",
+    title: "Set a boundary with a friend",
+    setup:
+      "A close friend keeps cancelling on you last-minute, and it's started to sting. You want to name it without blowing up the friendship.",
+    suggested: ["maya", "elena"],
+    characterGoal: "feel that the friendship is safe and that they're not simply being attacked.",
+    userGoal: "name the pattern clearly, stay warm, and ask for a real change.",
+  },
+  {
+    id: "difficult-parent",
+    mode: "practice",
+    category: "relationships",
+    tone: "loaded",
+    title: "A hard talk with a parent",
+    setup:
+      "You need to tell a parent something they won't want to hear — a decision they'll disagree with. You want to hold your ground and the relationship.",
+    suggested: ["elena", "maya"],
+    characterGoal: "feel respected and not steamrolled by your decision.",
+    userGoal: "hold the decision calmly while acknowledging their feelings.",
+  },
+  {
+    id: "express-a-need",
+    mode: "practice",
+    category: "relationships",
+    tone: "tender",
+    title: "Ask for what you need",
+    setup:
+      "You've been feeling unseen by your partner and tend to bury it. You want to say what you need without it sounding like an accusation.",
+    suggested: ["maya"],
+    characterGoal: "understand you without feeling blamed for failing you.",
+    userGoal: "speak from your own feelings, be specific, stay open rather than accusing.",
+  },
+
+  // ── Difficult People ───────────────────────────────────────────────────
+  {
+    id: "defensive-coworker",
+    mode: "practice",
+    category: "difficult-people",
+    tone: "prickly",
+    title: "The defensive coworker",
+    setup:
+      "You need to resolve something with a coworker who takes every comment as an attack and gets sharp fast.",
+    suggested: ["elena"],
+    characterGoal: "defend themselves; not be made wrong.",
+    userGoal: "stay non-reactive, keep it about the issue, don't match their heat.",
+  },
+  {
+    id: "dismissive-boss",
+    mode: "practice",
+    category: "difficult-people",
+    tone: "cold",
+    title: "The dismissive boss",
+    setup:
+      "Your manager talks over you and waves off your ideas. You want to be taken seriously without picking a fight.",
+    suggested: ["jordan"],
+    characterGoal: "keep control of the conversation and stay unbothered.",
+    userGoal: "hold your ground, get your point in, command a little respect.",
+  },
+  {
+    id: "stonewaller",
+    mode: "practice",
+    category: "difficult-people",
+    tone: "shut down",
+    title: "Someone who shuts down",
+    setup:
+      "The person you need to talk to goes quiet and withdraws the moment things get hard. You want to keep them in the room.",
+    suggested: ["elena", "maya"],
+    characterGoal: "retreat to safety; avoid the discomfort.",
+    userGoal: "lower the temperature, make it safe, draw them back without pushing.",
+  },
+
+  // ── Everyday Nerve ─────────────────────────────────────────────────────
+  {
+    id: "send-food-back",
+    mode: "practice",
+    category: "everyday",
+    tone: "low-key",
+    title: "Send the order back",
+    setup:
+      "Your food or order is wrong and you hate making a fuss. You want to fix it politely without shrinking.",
+    suggested: ["maya", "riley"],
+    characterGoal: "get through the interaction smoothly.",
+    userGoal: "ask plainly for what you paid for, friendly but unapologetic.",
+  },
+  {
+    id: "say-no-invite",
+    mode: "practice",
+    category: "everyday",
+    tone: "mild",
+    title: "Say no without a story",
+    setup:
+      "You want to decline an invitation or request without inventing an elaborate excuse or over-apologizing.",
+    suggested: ["maya"],
+    characterGoal: "not feel rejected or brushed off.",
+    userGoal: "give a clean, warm no — no essay, no guilt.",
+  },
+
+  // ── On Stage ───────────────────────────────────────────────────────────
   {
     id: "ted-talk",
     mode: "stage",
+    category: "stage",
+    tone: "expressive",
     title: "Rehearse a TED-style talk",
     setup:
       "You're rehearsing a talk built around one central idea and a personal story. You want it to land, not just be recited.",
@@ -329,6 +547,8 @@ export const SCENARIOS: Scenario[] = [
   {
     id: "pitch",
     mode: "stage",
+    category: "stage",
+    tone: "high-energy",
     title: "Investor pitch",
     setup:
       "You're rehearsing a 3-minute pitch. The room is sharp and will lose attention the moment you get vague.",
@@ -336,8 +556,28 @@ export const SCENARIOS: Scenario[] = [
     characterGoal: "understand what it is, why now, and why you — fast.",
     userGoal: "be concrete, keep energy up, and make the ask clear.",
   },
+  {
+    id: "wedding-toast",
+    mode: "stage",
+    category: "stage",
+    tone: "heartfelt",
+    title: "Give a toast",
+    setup:
+      "You're rehearsing a wedding toast or eulogy — a short, personal speech where emotion and timing are everything.",
+    suggested: ["ava"],
+    characterGoal: "feel a genuine moment, well-paced, that doesn't ramble.",
+    userGoal: "tell one real story, land the emotion, keep it tight.",
+  },
 ];
 
 export function scenariosForMode(mode: ModeId): Scenario[] {
   return SCENARIOS.filter((s) => s.mode === mode);
+}
+
+export function scenariosForCategory(cat: CategoryId): Scenario[] {
+  return SCENARIOS.filter((s) => s.category === cat);
+}
+
+export function scenarioById(id: string): Scenario | undefined {
+  return SCENARIOS.find((s) => s.id === id);
 }
