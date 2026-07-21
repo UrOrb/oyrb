@@ -90,12 +90,13 @@ export default function Home() {
           {CHARACTERS.map((c) => (
             <div key={c.id} className="surface rounded-[var(--radius-card)] p-5">
               <div className="flex items-center gap-3">
-                <span
-                  className="grid size-11 shrink-0 place-items-center rounded-full font-display text-lg text-white"
-                  style={{ background: c.accent }}
-                >
-                  {c.name.charAt(0)}
-                </span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={c.avatar}
+                  alt={c.name}
+                  className="size-12 shrink-0 rounded-full object-cover"
+                  style={{ boxShadow: `0 0 0 2px ${c.accent}` }}
+                />
                 <div>
                   <div className="font-medium">{c.name}</div>
                   <div className="text-xs text-soft">{c.role}</div>

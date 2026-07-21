@@ -189,12 +189,13 @@ export function SetupPanel({
               }}
             >
               <div className="flex items-center gap-2.5">
-                <span
-                  className="grid size-8 shrink-0 place-items-center rounded-full font-display text-sm text-white"
-                  style={{ background: c.accent }}
-                >
-                  {c.name.charAt(0)}
-                </span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={c.avatar}
+                  alt={c.name}
+                  className="size-9 shrink-0 rounded-full object-cover"
+                  style={{ boxShadow: `0 0 0 2px ${c.accent}` }}
+                />
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="font-medium">{c.name}</span>

@@ -41,12 +41,14 @@ export function Presence({
   intensity,
   status,
   thinking,
+  avatar,
 }: {
   name: string;
   emotion: Emotion;
   intensity: Intensity;
   status: VoiceStatus;
   thinking: boolean;
+  avatar?: string;
 }) {
   const hue = EMOTION_HUE[emotion] ?? "#8a8a8a";
   const speaking = status === "speaking";
@@ -60,29 +62,39 @@ export function Presence({
           <>
             <span
               className="animate-pulse-ring absolute rounded-full"
-              style={{ width: 140, height: 140, border: `2px solid ${hue}` }}
+              style={{ width: 150, height: 150, border: `2px solid ${hue}` }}
             />
             <span
               className="animate-pulse-ring absolute rounded-full"
-              style={{ width: 140, height: 140, border: `2px solid ${hue}`, animationDelay: "0.5s" }}
+              style={{ width: 150, height: 150, border: `2px solid ${hue}`, animationDelay: "0.5s" }}
             />
           </>
         )}
-        {/* the orb */}
-        <div
-          className={`relative grid place-items-center rounded-full transition-all duration-700 ${
-            speaking ? "" : "animate-breathe"
-          }`}
-          style={{
-            width: 140,
-            height: 140,
-            background: `radial-gradient(circle at 35% 30%, ${hue}, color-mix(in oklab, ${hue} 55%, #000))`,
-            boxShadow: `0 0 ${strong ? 60 : 34}px -6px ${hue}, inset 0 -12px 30px -10px rgba(0,0,0,0.5)`,
-          }}
-        >
-          <span className="font-display text-4xl font-medium text-white/95 select-none">
-            {name.trim().charAt(0).toUpperCase()}
-          </span>
+        {/* portrait with an emotion-colored halo + ring */}
+        <div className="relative" style={{ width: 150, height: 150 }}>
+          {/* breathing halo behind the photo (this is where the emotion "shows") */}
+          <span
+            className={`absolute inset-0 rounded-full ${speaking ? "" : "animate-breathe"}`}
+            style={{ background: hue, boxShadow: `0 0 ${strong ? 64 : 36}px ${strong ? 6 : 0}px ${hue}` }}
+          />
+          {avatar ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatar}
+              alt={name}
+              className="relative h-full w-full rounded-full object-cover transition-all duration-700"
+              style={{ border: `3px solid ${hue}`, filter: strong ? "saturate(1.05)" : undefined }}
+            />
+          ) : (
+            <div
+              className="relative grid h-full w-full place-items-center rounded-full"
+              style={{ background: `radial-gradient(circle at 35% 30%, ${hue}, color-mix(in oklab, ${hue} 55%, #000))`, border: `3px solid ${hue}` }}
+            >
+              <span className="font-display text-4xl font-medium text-white/95 select-none">
+                {name.trim().charAt(0).toUpperCase()}
+              </span>
+            </div>
+          )}
         </div>
       </div>
       <div className="text-center">

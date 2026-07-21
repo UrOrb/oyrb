@@ -30,7 +30,9 @@ function initialState(scene: SceneConfig): EmotionalState {
 }
 
 export function LiveRoom({ scene, onEnd }: { scene: SceneConfig; onEnd: (r: SessionResult) => void }) {
-  const charName = scene.customCharacter?.name || characterById(scene.characterId)?.name || "They";
+  const character = scene.customCharacter ? undefined : characterById(scene.characterId);
+  const charName = scene.customCharacter?.name || character?.name || "They";
+  const charAvatar = character?.avatar; // custom characters have no photo
 
   const [state, setState] = useState<EmotionalState>(() => initialState(scene));
   const [turns, setTurns] = useState<DisplayTurn[]>([]);
@@ -226,6 +228,7 @@ export function LiveRoom({ scene, onEnd }: { scene: SceneConfig; onEnd: (r: Sess
               intensity={last?.intensity ?? "moderate"}
               status={voice.status}
               thinking={thinking}
+              avatar={charAvatar}
             />
             {last && <MoodBadge emotion={last.emotion} intensity={last.intensity} shift={last.shift} />}
           </div>

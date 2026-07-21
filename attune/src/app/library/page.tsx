@@ -58,12 +58,8 @@ export default function LibraryPage() {
                         <div className="mt-4 flex items-center justify-between">
                           {who ? (
                             <span className="flex items-center gap-1.5 text-xs text-soft">
-                              <span
-                                className="grid size-5 place-items-center rounded-full text-[10px] text-white"
-                                style={{ background: who.accent }}
-                              >
-                                {who.name.charAt(0)}
-                              </span>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={who.avatar} alt={who.name} className="size-5 rounded-full object-cover" />
                               with {who.name}
                             </span>
                           ) : (
