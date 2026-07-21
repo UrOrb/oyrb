@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Attune — communication coach",
     short_name: "Attune",
     description:
-      "Practice real conversations out loud with a character that listens, reacts, and adapts. Don't just practice what to say — practice what happens after you say it.",
+      "Practice the conversation, not just the words. Talk out loud with a character that listens, reacts, and adapts — and live through the real reaction.",
     start_url: "/",
     scope: "/",
     display: "standalone",

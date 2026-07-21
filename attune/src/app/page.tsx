@@ -28,10 +28,10 @@ export default function Home() {
             A real-time AI communication coach
           </div>
           <h1 className="font-display text-4xl leading-[1.05] sm:text-6xl">
-            Don&apos;t just practice what to say.
+            Practice the conversation,
             <br />
             <span className="italic" style={{ color: "var(--color-clay)" }}>
-              Practice what happens after you say it.
+              not just the words.
             </span>
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-soft">

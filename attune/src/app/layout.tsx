@@ -27,7 +27,7 @@ const quicksand = Quicksand({
 
 export const metadata: Metadata = {
   title: {
-    default: "Attune — practice what happens after you say it",
+    default: "Attune — Practice the conversation, not just the words.",
     template: "%s — Attune",
   },
   description:
