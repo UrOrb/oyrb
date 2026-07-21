@@ -129,7 +129,7 @@ export default function Home() {
       <section className="mx-auto max-w-6xl px-6 py-16">
         <div
           className="rounded-[var(--radius-card)] p-10 text-center"
-          style={{ background: "var(--color-ink)", color: "var(--bg)" }}
+          style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-2))", color: "#fff" }}
         >
           <h2 className="font-display text-3xl">Ready for the moment that matters?</h2>
           <p className="mx-auto mt-3 max-w-xl opacity-80">

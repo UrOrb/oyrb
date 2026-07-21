@@ -1,55 +1,82 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────────────────
- * Attune — design tokens
- * A calm, focused "practice room" aesthetic: warm ink on soft paper in light,
- * deep slate in dark. One warm accent (clay) for the user, cool tones for the
- * AI character. Emotional meters get their own semantic ramp.
+ * Attune — design tokens & themes
+ * A futuristic, digitally-clean system with three switchable palettes that
+ * match the blue→purple brand mark. The active theme is set via a
+ * `data-theme` attribute on <html> (persisted to localStorage). Every color in
+ * the app resolves through these variables, so swapping the theme recolors
+ * everything. `--accent` is the brand color; older code that referenced
+ * `--color-clay` now points at it too.
  * ───────────────────────────────────────────────────────────────────────── */
 
 @theme {
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-display: var(--font-display), Georgia, "Times New Roman", serif;
 
-  --color-paper: #f7f5f2;
-  --color-ink: #1a1714;
-  --color-ink-soft: #6b635b;
-  --color-line: #e6e1da;
-  --color-surface: #ffffff;
-
-  --color-clay: #c2683f;
-  --color-clay-soft: #e9c9b8;
-  --color-sky: #3f6bc2;
-  --color-sky-soft: #b8c9e9;
-
-  --color-calm: #4a9d7f;
-  --color-warn: #d99b3f;
-  --color-alarm: #c24a4a;
+  /* Semantic ramp for emotional meters — tuned to read on dark and light. */
+  --color-calm: #35c08e;
+  --color-warn: #e0a13a;
+  --color-alarm: #e2585c;
 
   --radius-card: 1.25rem;
 }
 
-:root {
-  color-scheme: light dark;
-  --bg: #f7f5f2;
-  --fg: #1a1714;
-  --fg-soft: #6b635b;
-  --line: #e6e1da;
-  --surface: #ffffff;
-  --surface-2: #f1ede7;
-  --shadow: 0 1px 3px rgba(26, 23, 20, 0.05), 0 10px 30px -12px rgba(26, 23, 20, 0.12);
+/* Midnight Lavender — the default, best match to the logo. */
+:root,
+:root[data-theme="lavender"] {
+  color-scheme: dark;
+  --bg: #0b0b12;
+  --fg: #f2f2f7;
+  --fg-soft: #9e9bb2;
+  --line: #262433;
+  --surface: #14141f;
+  --surface-2: #1d1b29;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.55), 0 20px 44px -20px rgba(0, 0, 0, 0.8);
+  --accent: #8b7df6;
+  --accent-2: #a78bfa;
+  --accent-soft: #2a2740;
+  --glow: 22%;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #17140f;
-    --fg: #f2ede6;
-    --fg-soft: #a49b8f;
-    --line: #322c25;
-    --surface: #1f1b16;
-    --surface-2: #262019;
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 10px 30px -12px rgba(0, 0, 0, 0.6);
-  }
+/* Deep Ocean — dark navy with blue→cyan accents. */
+:root[data-theme="ocean"] {
+  color-scheme: dark;
+  --bg: #0a1120;
+  --fg: #eaf1fb;
+  --fg-soft: #8fa3bf;
+  --line: #1c2840;
+  --surface: #111c30;
+  --surface-2: #16233b;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 20px 44px -20px rgba(0, 0, 0, 0.75);
+  --accent: #3b82f6;
+  --accent-2: #22d3ee;
+  --accent-soft: #14263f;
+  --glow: 22%;
+}
+
+/* Clean Light — bright, minimal, black/white/lavender. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #fafaff;
+  --fg: #0e0e14;
+  --fg-soft: #66647a;
+  --line: #e7e5f3;
+  --surface: #ffffff;
+  --surface-2: #f1f0fb;
+  --shadow: 0 1px 3px rgba(20, 18, 40, 0.05), 0 12px 30px -14px rgba(30, 27, 75, 0.18);
+  --accent: #6f6ae6;
+  --accent-2: #9b6ae8;
+  --accent-soft: #e6e3fb;
+  --glow: 12%;
+}
+
+/* Back-compat aliases: existing components reference these names. */
+:root,
+:root[data-theme] {
+  --color-clay: var(--accent);
+  --color-clay-soft: var(--accent-soft);
+  --color-ink: var(--fg);
 }
 
 * {
@@ -100,7 +127,8 @@ body {
 /* Soft grain/vignette for the practice room feel. */
 .room-bg {
   background:
-    radial-gradient(1200px 600px at 50% -10%, color-mix(in oklab, var(--color-clay) 8%, transparent), transparent 60%),
+    radial-gradient(1100px 560px at 12% -8%, color-mix(in oklab, var(--accent-2) var(--glow), transparent), transparent 60%),
+    radial-gradient(1200px 620px at 88% -12%, color-mix(in oklab, var(--accent) var(--glow), transparent), transparent 62%),
     var(--bg);
 }
 

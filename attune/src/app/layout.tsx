@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Fraunces, Quicksand } from "next/font/google";
 import "./globals.css";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -41,10 +42,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f5f2" },
-    { media: "(prefers-color-scheme: dark)", color: "#17140f" },
-  ],
+  themeColor: "#0b0b12",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -54,8 +52,22 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${fraunces.variable} ${quicksand.variable}`}>
-      <body className="min-h-dvh room-bg">{children}</body>
+    <html
+      lang="en"
+      data-theme="lavender"
+      suppressHydrationWarning
+      className={`${inter.variable} ${fraunces.variable} ${quicksand.variable}`}
+    >
+      <body className="min-h-dvh room-bg">
+        {/* Apply the saved theme before paint to avoid a flash of the default. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('attune-theme')||'lavender';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`,
+          }}
+        />
+        {children}
+        <ThemeToggle />
+      </body>
     </html>
   );
 }
