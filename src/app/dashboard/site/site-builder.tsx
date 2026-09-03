@@ -28,6 +28,12 @@ import {
   ALL_FONT_VARIABLE_CLASSES,
 } from "@/lib/storefront-fonts";
 import { TEMPLATE_THEMES } from "@/lib/template-themes";
+import {
+  ALL_THEME_IDS,
+  STARTER_THEME_IDS,
+  themesForTemplateAccess,
+  type TemplateUnlock,
+} from "@/lib/template-access";
 
 type Service = {
   id: string;
@@ -43,6 +49,7 @@ type Props = {
   hours: BusinessHours[];
   services: Service[];
   origin: string;
+  templateUnlocks: TemplateUnlock[];
 };
 
 // ── Draft shape ───────────────────────────────────────────────────────────────
@@ -189,19 +196,6 @@ const LAYOUTS = [
   { id: "clean",    label: "Clean",    helper: "Minimal list + sidebar" },
   { id: "bold",     label: "Bold",     helper: "Dark hero · service cards" },
 ];
-
-const ALL_THEMES = [
-  "aura", "minimal", "bold",
-  "luxe", "earth", "street", "y2k",
-  "rose", "sage", "slate", "noir",
-  "citrus", "colorblock",
-  "riot", "mochi", "linden", "harajuku", "sorbet", "amethyst", "quartz", "latte", "league", "crimson", "avenger", "knight", "neon", "candy", "galactic", "sunset", "chrome",
-];
-const STARTER_THEMES = ["aura", "minimal", "bold"];
-
-function themesForTier(tier: string | undefined): string[] {
-  return tier === "starter" ? STARTER_THEMES : ALL_THEMES;
-}
 
 // ── Field-group config drives the settings panel AND the template (keys match
 //    the c(...) calls inside the template components). Leave a field blank to
@@ -360,7 +354,7 @@ function Field({ label, optional, children, helper }: { label: string; optional?
 }
 
 // ── Main builder component ───────────────────────────────────────────────────
-export function SiteBuilder({ business, hours, services, origin }: Props) {
+export function SiteBuilder({ business, hours, services, origin, templateUnlocks }: Props) {
   const [saved, setSaved] = useState<Draft>(() => businessToDraft(business, hours));
   const [draft, setDraft] = useState<Draft>(() => businessToDraft(business, hours));
   const [pending, start] = useTransition();
@@ -431,7 +425,11 @@ export function SiteBuilder({ business, hours, services, origin }: Props) {
   };
 
   const subscriptionTier = business.subscription_tier;
-  const allowedThemes = themesForTier(subscriptionTier);
+  const allowedThemes = themesForTemplateAccess(
+    subscriptionTier,
+    draft.template_layout,
+    templateUnlocks,
+  );
 
   return (
     <div className="-mx-4 md:-mx-6 lg:-mx-8">
@@ -655,8 +653,8 @@ export function SiteBuilder({ business, hours, services, origin }: Props) {
                 </div>
                 {subscriptionTier === "starter" && (
                   <p className="mt-2 text-[11px] text-[#B8896B]">
-                    Starter includes 3 themes.{" "}
-                    <a href="/pricing" className="font-medium underline">Upgrade to Studio</a> for all {ALL_THEMES.length}.
+                    Starter includes {STARTER_THEME_IDS.length} themes. Purchased templates are added here.{" "}
+                    <a href="/pricing" className="font-medium underline">Upgrade to Studio</a> for all {ALL_THEME_IDS.length}.
                   </p>
                 )}
               </div>

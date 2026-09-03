@@ -53,7 +53,7 @@ export default async function AdminReviewsPage() {
     .order("admin_reviewed_at", { ascending: false })
     .limit(20);
 
-  const flagged = (flaggedData ?? []) as FlaggedRow[];
+  const flagged = (flaggedData ?? []) as unknown as FlaggedRow[];
   const recent = (recentDecisionsData ?? []) as unknown as Array<{
     id: string;
     status: string;

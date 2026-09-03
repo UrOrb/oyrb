@@ -11,6 +11,9 @@ import {
   parseReferralCookie,
   REFERRAL_COOKIE_NAME,
 } from "@/lib/referrer-classifier";
+import { isWithinBusinessHoursInTimezone } from "@/lib/timezone";
+import { reportError } from "@/lib/monitoring";
+import { verifyPhoneVerificationToken } from "@/lib/client-auth";
 
 type Payload = {
   business_id: string;
@@ -21,6 +24,7 @@ type Payload = {
   phone?: string;
   notes?: string;
   sms_consent?: boolean;
+  phone_verification_token?: string | null;
   marketing_opt_in?: boolean;
   tip_cents?: number;
   series_interval_weeks?: number | null;
@@ -45,8 +49,8 @@ export async function POST(request: NextRequest) {
   }
 
   const ip = ipFromRequest(request);
-  const minute = rateLimit(`deposit:m:${ip}`, 6, 60_000);
-  const hour = rateLimit(`deposit:h:${ip}`, 30, 60 * 60_000);
+  const minute = await rateLimit(`deposit:m:${ip}`, 6, 60_000);
+  const hour = await rateLimit(`deposit:h:${ip}`, 30, 60 * 60_000);
   if (!minute.ok || !hour.ok) {
     return NextResponse.json(
       { error: "Too many checkout attempts — please slow down." },
@@ -73,12 +77,21 @@ export async function POST(request: NextRequest) {
   }
 
   body.email = body.email.toLowerCase();
+  if (
+    body.sms_consent &&
+    !(await verifyPhoneVerificationToken(body.phone_verification_token, body.phone))
+  ) {
+    return NextResponse.json(
+      { error: "Please verify your phone number before opting into SMS reminders." },
+      { status: 403 },
+    );
+  }
 
   const supabase = createAdminClient();
 
   const { data: business } = await supabase
     .from("businesses")
-    .select("id, business_name, slug, is_published, subscription_tier")
+    .select("id, business_name, slug, is_published, subscription_tier, timezone")
     .eq("id", body.business_id)
     .maybeSingle();
   if (!business || !business.is_published) {
@@ -119,6 +132,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid booking time" }, { status: 400 });
   }
   const endAt = new Date(startAt.getTime() + service.duration_minutes * 60_000);
+
+  const { data: hoursRows } = await supabase
+    .from("business_hours")
+    .select("day_of_week, is_open, open_time, close_time")
+    .eq("business_id", body.business_id);
+  if (!isWithinBusinessHoursInTimezone({
+    startAt,
+    endAt,
+    hours: hoursRows ?? [],
+    timeZone: (business as { timezone?: string | null }).timezone ?? "America/New_York",
+  })) {
+    return NextResponse.json(
+      { error: "That time is outside this provider's business hours." },
+      { status: 409 },
+    );
+  }
 
   // Check for overlap (someone else might have booked while this user was deciding)
   const { data: overlap } = await supabase
@@ -179,8 +208,13 @@ export async function POST(request: NextRequest) {
   // Phase 5 — read referral signals from the cookie set by the proxy
   // on the storefront visit, forward as 4 metadata keys so the
   // post-webhook confirm route can persist them on the booking row.
-  const { utm_source: utmSource, utm_medium: utmMedium, utm_campaign: utmCampaign, referrer_url: referrerUrl } =
-    parseReferralCookie(request.cookies.get(REFERRAL_COOKIE_NAME)?.value);
+  const {
+    utm_source: utmSource,
+    utm_medium: utmMedium,
+    utm_campaign: utmCampaign,
+    referrer_url: referrerUrl,
+    influencer_code: influencerCode,
+  } = parseReferralCookie(request.cookies.get(REFERRAL_COOKIE_NAME)?.value);
 
   try {
     // Direct charge on the pro's connected account — money flows
@@ -230,6 +264,7 @@ export async function POST(request: NextRequest) {
           utm_medium: utmMedium ?? "",
           utm_campaign: utmCampaign ?? "",
           referrer_url: referrerUrl ?? "",
+          influencer_code: influencerCode ?? "",
           // Phase 5 closer — survey response forwarded as its own
           // metadata key. Empty string when missing or invalid;
           // confirm route re-validates against the allowlist before
@@ -246,7 +281,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: session.url });
   } catch (err) {
-    console.error("Deposit checkout error:", err);
+    reportError("deposit_checkout_create_failed", err, {
+      business_id: body.business_id,
+      service_id: body.service_id,
+    });
     return NextResponse.json(
       { error: "Could not start deposit checkout" },
       { status: 500 }

@@ -14,19 +14,20 @@ export type FakeFeatured = {
   is_fake: true;                 // marker so the UI knows to render differently
 };
 
-// Owner-uploaded avatars — 11 unique photos, each bound to exactly one fake business.
+// Stock avatars — stable remote URLs so homepage placeholders do not depend on
+// the app's Supabase storage project being reachable.
 const AVATARS = [
-  "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/avatars/avatar-1-1776533851.jpg",
-  "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/avatars/avatar-2-1776533851.jpg",
-  "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/avatars/avatar-3-1776533851.jpg",
-  "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/avatars/avatar-4-1776533851.jpg",
-  "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/avatars/avatar-5-1776533851.jpg",
-  "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/avatars/avatar-6-1776533851.jpg",
-  "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/avatars/avatar-7-1776533851.jpg",
-  "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/avatars/avatar-8-1776533851.jpg",
-  "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/avatars/avatar-9-1776533851.jpg",
-  "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/avatars/avatar-10-1776533851.jpg",
-  "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/avatars/avatar-11-1776533851.jpg",
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80",
+  "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80",
+  "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=300&q=80",
+  "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=300&q=80",
+  "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=300&q=80",
+  "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80",
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80",
+  "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=300&q=80",
+  "https://images.unsplash.com/photo-1520813792240-56fc4a3765a7?auto=format&fit=crop&w=300&q=80",
+  "https://images.unsplash.com/photo-1530268729831-4b0b9e170218?auto=format&fit=crop&w=300&q=80",
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
 ];
 
 // 11 fake businesses — one unique avatar per business, no duplicates anywhere.

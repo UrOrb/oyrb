@@ -11,6 +11,7 @@ import {
 import { resend } from "@/lib/email";
 import { getFromAddress, EmailPurpose } from "@/lib/email-from";
 import { formatCents } from "@/lib/types";
+import { reportError, reportWarning } from "@/lib/monitoring";
 import type Stripe from "stripe";
 
 /**
@@ -48,6 +49,7 @@ export async function POST(request: Request) {
 
   const secret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET;
   if (!secret) {
+    reportError("connect_webhook_secret_missing", new Error("STRIPE_CONNECT_WEBHOOK_SECRET not configured"));
     console.error("STRIPE_CONNECT_WEBHOOK_SECRET not configured");
     return NextResponse.json(
       { error: "Connect webhook not configured" },
@@ -59,6 +61,7 @@ export async function POST(request: Request) {
   try {
     event = stripe.webhooks.constructEvent(body, sig, secret);
   } catch (err) {
+    reportWarning("connect_webhook_signature_verification_failed", err instanceof Error ? err.message : "signature verification failed");
     console.error("Connect webhook signature verification failed:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
@@ -91,6 +94,11 @@ export async function POST(request: Request) {
       event.data.object,
     );
   } catch (err) {
+    reportError("connect_webhook_reservation_failed", err, {
+      event_id: event.id,
+      event_type: event.type,
+      account_id: accountId,
+    });
     console.error(
       `[connect-webhook] reservation failed for ${event.id}:`,
       err,
@@ -126,9 +134,11 @@ export async function POST(request: Request) {
           await handlePayInFullCompleted(supabase, session);
         } else if (bookingType === "gift_card") {
           await handleGiftCardCompleted(supabase, session);
+        } else if (bookingType === "deposit") {
+          await confirmDepositBookingFromWebhook(session.id, accountId);
         }
-        // deposit / unknown → handled elsewhere (or ignored). Either way the
-        // stripe_connect_events row already captured the payload for audit.
+        // unknown → ignored. Either way the stripe_connect_events row already
+        // captured the payload for audit.
         break;
       }
 
@@ -237,6 +247,12 @@ export async function POST(request: Request) {
         e,
       );
     });
+    reportError("connect_webhook_processing_failed", err, {
+      event_id: event.id,
+      event_type: event.type,
+      account_id: accountId,
+      duration_ms: Date.now() - t0,
+    });
     console.error(
       `[connect-webhook] ${event.id} (${event.type}) FAILED in ${Date.now() - t0}ms:`,
       err,
@@ -244,6 +260,42 @@ export async function POST(request: Request) {
     // 500 → Stripe retries; the next attempt sees status='failed' in our
     // ledger and reason="retry", so the handler runs again.
     return NextResponse.json({ error: "Handler failed" }, { status: 500 });
+  }
+}
+
+async function confirmDepositBookingFromWebhook(
+  sessionId: string,
+  connectedAccountId: string,
+): Promise<void> {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) {
+    throw new Error("NEXT_PUBLIC_APP_URL is required to confirm deposit bookings from webhook");
+  }
+
+  const res = await fetch(`${appUrl.replace(/\/$/, "")}/api/public/bookings/confirm`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      session_id: sessionId,
+      connected_account_id: connectedAccountId,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    // A paid deposit can legitimately be unable to create a booking if
+    // the slot was taken while the client was in Checkout. /confirm now
+    // performs an idempotent automatic refund in that case. Treat that
+    // remediated state as handled so Stripe does not retry forever.
+    if (res.status === 409 && body.includes("automatically refunded")) {
+      console.warn(
+        `[connect-webhook] deposit ${sessionId} could not create booking; automatic refund issued`,
+      );
+      return;
+    }
+    throw new Error(
+      `Deposit booking confirmation failed for ${sessionId}: HTTP ${res.status} ${body.slice(0, 500)}`,
+    );
   }
 }
 

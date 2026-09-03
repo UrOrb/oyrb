@@ -4,13 +4,16 @@ import { sendOwnerNotification } from "@/lib/email";
 import { formatCents } from "@/lib/types";
 import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
 import { notifyBookingConfirmed } from "@/lib/booking-notify";
-import { checkBookingOverlap } from "@/lib/booking-overlap";
+import { checkBookingOverlap, isBookingConflictDbError } from "@/lib/booking-overlap";
 import {
   parseReferralCookie,
   REFERRAL_COOKIE_NAME,
 } from "@/lib/referrer-classifier";
 import { sanitizeSurveyResponse } from "@/lib/survey-options";
 import { fillEmptyClientFields } from "@/lib/clients/fill-empty";
+import { isWithinBusinessHoursInTimezone } from "@/lib/timezone";
+import { reportError } from "@/lib/monitoring";
+import { verifyPhoneVerificationToken } from "@/lib/client-auth";
 
 type BookingPayload = {
   business_id: string;
@@ -21,6 +24,7 @@ type BookingPayload = {
   phone?: string;
   notes?: string;
   sms_consent?: boolean;
+  phone_verification_token?: string | null;
   marketing_opt_in?: boolean;
   series_interval_weeks?: number | null;
   series_occurrences?: number | null;
@@ -43,8 +47,8 @@ export async function POST(request: NextRequest) {
   // emails (Resend quota) and create real DB rows. 6/min, 30/hour is plenty
   // for legitimate human use, blocks scripted abuse.
   const ip = ipFromRequest(request);
-  const minute = rateLimit(`book:m:${ip}`, 6, 60_000);
-  const hour = rateLimit(`book:h:${ip}`, 30, 60 * 60_000);
+  const minute = await rateLimit(`book:m:${ip}`, 6, 60_000);
+  const hour = await rateLimit(`book:h:${ip}`, 30, 60 * 60_000);
   if (!minute.ok || !hour.ok) {
     return NextResponse.json(
       { error: "Too many booking attempts — please slow down." },
@@ -75,6 +79,15 @@ export async function POST(request: NextRequest) {
   // duplicate client rows. The rest of the pipeline already lower-cases
   // email when reading; do it on write too.
   body.email = body.email.toLowerCase();
+  if (
+    body.sms_consent &&
+    !(await verifyPhoneVerificationToken(body.phone_verification_token, body.phone))
+  ) {
+    return NextResponse.json(
+      { error: "Please verify your phone number before opting into SMS reminders." },
+      { status: 403 },
+    );
+  }
 
   // RLS NOTE: this route uses the admin client because anonymous clients
   // need to insert booking + client rows. We protect those writes by
@@ -88,7 +101,7 @@ export async function POST(request: NextRequest) {
   const { data: business } = await supabase
     .from("businesses")
     .select(`
-      id, business_name, slug, contact_email, owner_id, is_published, subscription_tier,
+      id, business_name, slug, contact_email, owner_id, is_published, subscription_tier, timezone,
       booking_interval_minutes, allow_last_minute_booking, last_minute_cutoff_hours,
       break_between_appointments_minutes, daily_break_blocks
     `)
@@ -114,6 +127,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid booking time" }, { status: 400 });
   }
   const endAt = new Date(startAt.getTime() + service.duration_minutes * 60_000);
+
+  const { data: hoursRows } = await supabase
+    .from("business_hours")
+    .select("day_of_week, is_open, open_time, close_time")
+    .eq("business_id", body.business_id);
+  if (!isWithinBusinessHoursInTimezone({
+    startAt,
+    endAt,
+    hours: hoursRows ?? [],
+    timeZone: (business as { timezone?: string | null }).timezone ?? "America/New_York",
+  })) {
+    return NextResponse.json(
+      { error: "That time is outside this provider's business hours." },
+      { status: 409 },
+    );
+  }
 
   // Enforce pro's booking rules server-side as defense-in-depth — a stale
   // widget, a crafted POST, or a client on a different timezone could all
@@ -305,6 +334,7 @@ export async function POST(request: NextRequest) {
       utm_medium: referral.utm_medium,
       utm_campaign: referral.utm_campaign,
       referrer_url: referral.referrer_url,
+      influencer_code: referral.influencer_code,
       // Phase 5 — Pass the Torch attribution. Resolved above; NULL if
       // slug didn't match a business or if the pro tried to refer
       // themselves (self-referral guard).
@@ -321,6 +351,17 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (bookingErr || !booking) {
+    if (isBookingConflictDbError(bookingErr)) {
+      return NextResponse.json(
+        { error: "That time was just booked. Please pick another." },
+        { status: 409 },
+      );
+    }
+    reportError("public_booking_insert_failed", bookingErr, {
+      business_id: body.business_id,
+      service_id: body.service_id,
+      has_client_id: Boolean(clientId),
+    });
     return NextResponse.json({ error: bookingErr?.message ?? "Failed to create booking" }, { status: 500 });
   }
 
@@ -348,7 +389,7 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      await supabase.from("bookings").insert({
+      const { error: seriesErr } = await supabase.from("bookings").insert({
         business_id: body.business_id,
         client_id: clientId,
         service_id: service.id,
@@ -363,11 +404,20 @@ export async function POST(request: NextRequest) {
         utm_medium: referral.utm_medium,
         utm_campaign: referral.utm_campaign,
         referrer_url: referral.referrer_url,
+        influencer_code: referral.influencer_code,
         referrer_business_id: referrerBusinessId,
         survey_response: sanitizeSurveyResponse(body.survey_response),
         series_id: seriesId,
         series_interval_weeks: weeks,
       });
+      if (seriesErr) {
+        reportError("public_booking_series_insert_failed", seriesErr, {
+          business_id: body.business_id,
+          service_id: body.service_id,
+        });
+        seriesSkipped++;
+        continue;
+      }
       seriesCreated++;
     }
   }

@@ -9,7 +9,7 @@ const FEATURES = [
     label: "Booking",
     heading: "Your schedule, running itself.",
     body: "Clients book directly from your site — any time, any device. Set your hours, block time off, add buffers between appointments. No more back-and-forth texts.",
-    image: "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/feature-01-1776535251.jpg",
+    image: "/aura-hero.jpeg",
     alt: "Close-up of eyelashes with extensions applied",
   },
   {
@@ -18,7 +18,7 @@ const FEATURES = [
     label: "Your Site",
     heading: "A booking site that actually looks like your brand.",
     body: "Choose from 150 editor-designed templates built for beauty pros — 5 layouts × 30 themes. Go live in under 10 minutes — no designer, no developer needed.",
-    image: "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/feature-02-1776535534.jpg",
+    image: "/bold-hero.avif",
     alt: "Barber giving a fresh fade haircut",
   },
   {
@@ -27,7 +27,7 @@ const FEATURES = [
     label: "Payments",
     heading: "Collect deposits. Get paid instantly.",
     body: "Require deposits at booking to protect your time. All major cards, Apple Pay, Google Pay — funds land in your bank directly. We never touch your money.",
-    image: "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/feature-03-1776535927.jpg",
+    image: "/luxe-hero.avif",
     alt: "Payment at salon counter",
   },
   {
@@ -36,7 +36,7 @@ const FEATURES = [
     label: "Clients",
     heading: "Every client. Every detail. One place.",
     body: "Automatic booking history, spend totals, notes, and contact info for every client. Know who's coming in before they walk through the door.",
-    image: "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/feature-04-1776535708.jpg",
+    image: "/earth-hero.avif",
     alt: "Woman relaxing at spa with face mask",
   },
 ];
@@ -80,7 +80,6 @@ export function ScrollFeatures() {
                     fill
                     className="object-cover transition-transform duration-700 hover:scale-105"
                     sizes="(max-width: 768px) 100vw, 600px"
-                    priority={i === 0}
                   />
                   {/* Number + label badge */}
                   <div className="absolute bottom-4 left-4 flex items-center gap-3 rounded-full bg-white/90 px-4 py-2 backdrop-blur-sm md:bottom-6 md:left-6">

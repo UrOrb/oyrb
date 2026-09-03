@@ -44,7 +44,7 @@ function sniffMimeAndExt(file: File): { mime: string; ext: string } | null {
 
 export async function POST(request: NextRequest) {
   const ip = ipFromRequest(request);
-  const minute = rateLimit(`upload:m:${ip}`, 10, 60_000);
+  const minute = await rateLimit(`upload:m:${ip}`, 10, 60_000);
   if (!minute.ok) {
     return NextResponse.json(
       { error: "Too many uploads — please slow down." },

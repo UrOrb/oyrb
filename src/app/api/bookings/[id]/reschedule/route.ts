@@ -3,7 +3,7 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { resend, sendBookingRescheduledByPro } from "@/lib/email";
 import { sendSms, tierAllowsSms } from "@/lib/sms";
 import { issueBookingToken } from "@/lib/booking-tokens";
-import { checkBookingOverlap } from "@/lib/booking-overlap";
+import { checkBookingOverlap, isBookingConflictDbError } from "@/lib/booking-overlap";
 import type { DailyBreakBlock } from "@/lib/booking-slots";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.oyrb.space";
@@ -178,6 +178,12 @@ export async function POST(
     })
     .eq("id", booking.id);
   if (updErr) {
+    if (isBookingConflictDbError(updErr)) {
+      return NextResponse.json(
+        { error: "That time was just booked. Please pick another." },
+        { status: 409 },
+      );
+    }
     console.error("Pro reschedule update failed:", updErr);
     return NextResponse.json({ error: "Couldn't save the new time." }, { status: 500 });
   }

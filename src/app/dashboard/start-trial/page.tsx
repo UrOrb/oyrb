@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/purity */
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { TIERS, fmtMoney, type Tier, type BillingCycle } from "@/lib/plans";

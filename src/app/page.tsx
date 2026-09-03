@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Check, Star } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { Nav } from "@/components/marketing/nav";
 import { Footer } from "@/components/marketing/footer";
 import { ScrollFeatures } from "@/components/marketing/scroll-features";
@@ -12,35 +12,6 @@ import { TEMPLATE_THEMES } from "@/lib/template-themes";
 export const metadata = {
   title: { absolute: "Own Your Brand" },
 };
-
-// ─── Hero floating images ────────────────────────────────────────────────────
-const HERO_IMAGES = [
-  { id: "1508214751196-bcfd4ca60f91", alt: "Beauty professional styling hair", size: "large" },
-  { id: "1519014816548-bf5fe059798b",    alt: "Nail technician detailing nails",   size: "small" },
-  { id: "1540555700478-4be289fbecef", alt: "Lash artist at work",               size: "small" },
-];
-
-// ─── Testimonials ────────────────────────────────────────────────────────────
-const TESTIMONIALS = [
-  {
-    quote: "I went from texting clients back and forth to having everything automated. My rebooking rate went up 40% in the first month.",
-    name: "Destiny M.",
-    role: "Hair Stylist, Atlanta",
-    img: "1519699047748-de8e457a634e",
-  },
-  {
-    quote: "My clients always compliment my booking page. They think I hired a designer. OYRB did that in 10 minutes.",
-    name: "Jasmine R.",
-    role: "Nail Tech, Houston",
-    img: "1531746020798-e6953c6e8e04",
-  },
-  {
-    quote: "Deposits changed my life. No more no-shows. I actually get paid for my time now.",
-    name: "Aaliyah K.",
-    role: "Lash Artist, Chicago",
-    img: "1542838132-92c53300491e",
-  },
-];
 
 // ─── Pricing tiers ───────────────────────────────────────────────────────────
 // Source of truth lives in src/lib/plans.ts — copy below stays in sync with
@@ -172,7 +143,7 @@ export default function HomePage() {
               {/* Main large image — lash artist working on client */}
               <div className="absolute right-0 top-8 h-[420px] w-[300px] overflow-hidden rounded-2xl shadow-xl lg:h-[500px] lg:w-[340px]">
                 <Image
-                  src="https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/hero-1-1776526722.jpg"
+                  src="/aura-hero.jpeg"
                   alt="Lash artist applying lash extensions to client"
                   fill
                   className="object-cover"
@@ -184,7 +155,7 @@ export default function HomePage() {
               {/* Second image — left, lower — man with sunglasses, men's grooming */}
               <div className="absolute left-0 bottom-12 h-[260px] w-[200px] overflow-hidden rounded-2xl shadow-lg lg:h-[300px] lg:w-[230px]">
                 <Image
-                  src="https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/hero-1-1776525604.jpg"
+                  src="/street-hero.avif"
                   alt="Man with sunglasses, men's grooming style"
                   fill
                   className="object-cover"
@@ -195,7 +166,7 @@ export default function HomePage() {
               {/* Third image — left, upper — nail closeup with detailed art */}
               <div className="absolute left-16 top-10 h-[180px] w-[160px] overflow-hidden rounded-2xl shadow-md lg:h-[210px] lg:w-[190px]">
                 <Image
-                  src="https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/hero-3-1776527115.jpg"
+                  src="/candy-hero.avif"
                   alt="Detailed nail art with black and amber polish"
                   fill
                   className="object-cover"
@@ -231,7 +202,7 @@ export default function HomePage() {
           <div className="flex flex-col gap-6 pb-6 lg:hidden">
             <div className="relative aspect-[4/5] overflow-hidden rounded-2xl shadow-lg">
               <Image
-                src="https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/hero-1-1776526722.jpg"
+                src="/aura-hero.jpeg"
                 alt="Lash artist applying lash extensions to client"
                 fill
                 sizes="(max-width: 1024px) 100vw, 0px"
@@ -243,7 +214,7 @@ export default function HomePage() {
             </div>
             <div className="relative aspect-[4/5] overflow-hidden rounded-2xl shadow-lg">
               <Image
-                src="https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/hero-3-1776527115.jpg"
+                src="/candy-hero.avif"
                 alt="Detailed nail art with black and amber polish"
                 fill
                 sizes="(max-width: 1024px) 100vw, 0px"
@@ -252,7 +223,7 @@ export default function HomePage() {
             </div>
             <div className="relative aspect-[4/5] overflow-hidden rounded-2xl shadow-lg">
               <Image
-                src="https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/hero-1-1776525604.jpg"
+                src="/street-hero.avif"
                 alt="Man with sunglasses, men's grooming style"
                 fill
                 sizes="(max-width: 1024px) 100vw, 0px"
@@ -388,46 +359,6 @@ export default function HomePage() {
       {/* ── Featured in your area ── */}
       <FeaturedCategory />
 
-      {/* ── Testimonials ── */}
-      <section className="border-t border-[#E7E5E4] bg-[#FFFFFF] py-24 md:py-32">
-        <div className="mx-auto max-w-[1200px] px-6">
-          <p className="text-sm font-medium text-[#B8896B]">What pros are saying</p>
-          <h2 className="font-display mt-3 text-3xl font-medium tracking-[-0.02em] md:text-5xl">
-            Your success is our priority.
-          </h2>
-
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {TESTIMONIALS.map((t) => (
-              <div key={t.name} className="flex flex-col gap-4 rounded-xl border border-[#E7E5E4] p-6">
-                <div className="flex gap-0.5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={14} fill="#B8896B" className="text-[#B8896B]" />
-                  ))}
-                </div>
-                <p className="flex-1 text-sm leading-relaxed text-[#525252]">
-                  &ldquo;{t.quote}&rdquo;
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="relative h-10 w-10 overflow-hidden rounded-full border border-[#E7E5E4]">
-                    <Image
-                      src={`https://images.unsplash.com/photo-${t.img}?auto=format&fit=crop&w=80&q=80`}
-                      alt={t.name}
-                      fill
-                      className="object-cover"
-                      sizes="40px"
-                    />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{t.name}</p>
-                    <p className="text-xs text-[#737373]">{t.role}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── Pricing ── */}
       <section className="border-t border-[#E7E5E4] py-24 md:py-32">
         <div className="mx-auto max-w-[1200px] px-6">
@@ -504,9 +435,9 @@ export default function HomePage() {
             {/* 3 portrait thumbnails */}
             <div className="flex justify-end gap-3">
               {[
-                "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/cta-1-1776537062.jpg",
+                "/luxe-hero.avif",
                 "1531746020798-e6953c6e8e04",
-                "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/cta-3-1776536345.jpg",
+                "/chrome-hero.avif",
               ].map((id, i) => (
                 <div
                   key={id}

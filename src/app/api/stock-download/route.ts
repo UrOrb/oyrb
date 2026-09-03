@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
 
 // Unsplash requires clients to hit the photo's download_location endpoint
 // whenever a photo is "downloaded" (meaning a user picks it / saves it).
@@ -6,6 +7,12 @@ import { NextRequest, NextResponse } from "next/server";
 // Reference: https://help.unsplash.com/en/articles/2511315-guideline-triggering-a-download
 
 export async function POST(request: NextRequest) {
+  const ip = ipFromRequest(request);
+  const ipCheck = await rateLimit(`stock-download:ip:${ip}`, 60, 60_000);
+  if (!ipCheck.ok) {
+    return NextResponse.json({ ok: true });
+  }
+
   const { downloadLocation } = (await request.json().catch(() => ({}))) as {
     downloadLocation?: string;
   };

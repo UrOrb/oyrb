@@ -28,7 +28,7 @@ const UPLOAD_TTL_SECONDS = 300; // 5 minutes — generous enough for slow upload
 
 export async function POST(request: NextRequest) {
   const ip = ipFromRequest(request);
-  const limit = rateLimit(`disp-up:${ip}`, 30, 60_000);
+  const limit = await rateLimit(`disp-up:${ip}`, 30, 60_000);
   if (!limit.ok) {
     return NextResponse.json({ error: "Too many uploads. Slow down." }, { status: 429 });
   }

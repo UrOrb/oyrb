@@ -184,7 +184,7 @@ export async function GET(request: NextRequest) {
     .lte("end_at", reviewWindowEnd.toISOString());
 
   let reviewEmailsSent = 0;
-  for (const b of (completedBookings ?? []) as Array<{
+  for (const b of (completedBookings ?? []) as unknown as Array<{
     id: string;
     business_id: string;
     services: { name: string } | null;

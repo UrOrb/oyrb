@@ -7,7 +7,7 @@ import { DIRECTORY_AGREEMENT_VERSION } from "@/lib/directory";
 // Rate limit: max 6 reports per IP per minute to prevent brigading.
 export async function POST(request: NextRequest) {
   const ip = ipFromRequest(request);
-  const rl = rateLimit(`report:${ip}`, 6, 60_000);
+  const rl = await rateLimit(`report:${ip}`, 6, 60_000);
   if (!rl.ok) {
     return NextResponse.json({ error: "Too many reports — slow down." }, { status: 429 });
   }

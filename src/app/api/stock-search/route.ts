@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
 
 // Proxies Unsplash's search API so the access key stays server-side.
 // Add UNSPLASH_ACCESS_KEY env var to enable. Without it, returns empty + fallback flag.
@@ -17,6 +18,12 @@ type UnsplashResponse = {
 };
 
 export async function GET(request: NextRequest) {
+  const ip = ipFromRequest(request);
+  const ipCheck = await rateLimit(`stock-search:ip:${ip}`, 30, 60_000);
+  if (!ipCheck.ok) {
+    return NextResponse.json({ photos: [], fallback: true, reason: "rate_limited" }, { status: 429 });
+  }
+
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q")?.trim() || "";
   const orientation = searchParams.get("orientation") || "landscape";

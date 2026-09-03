@@ -179,6 +179,8 @@ export type ReferralCookiePayload = {
   utm_medium: string | null;
   utm_campaign: string | null;
   referrer_url: string | null;
+  /** Optional creator/influencer code from ?ref=, ?creator=, or ?influencer=. */
+  influencer_code: string | null;
   /** Phase 5 closer — sticky across cookie's 24h life. */
   session_id: string | null;
   captured_at?: string;
@@ -204,6 +206,7 @@ export function parseReferralCookie(
     utm_medium: null,
     utm_campaign: null,
     referrer_url: null,
+    influencer_code: null,
     session_id: null,
   };
   if (!rawCookieValue) return empty;
@@ -229,6 +232,7 @@ export function parseReferralCookie(
     utm_medium: get("utm_medium"),
     utm_campaign: get("utm_campaign"),
     referrer_url: get("referrer_url"),
+    influencer_code: get("influencer_code"),
     session_id,
   };
 }

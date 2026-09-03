@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
   // Rate limit BEFORE any DB work so a runaway client doesn't hammer
   // the concurrency-check query. Per business, not per IP — a pro on a
   // shared corporate network shouldn't share a bucket with strangers.
-  const rl = rateLimit(`client-imports:${business.id}`, 10, 60 * 60 * 1000);
+  const rl = await rateLimit(`client-imports:${business.id}`, 10, 60 * 60 * 1000);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "rate_limited", resetAt: rl.resetAt },

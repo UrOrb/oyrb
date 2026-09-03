@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
   }
 
   const ip = ipFromRequest(request);
-  const hit = rateLimit(`giftcheckout:${ip}`, 8, 60_000);
+  const hit = await rateLimit(`giftcheckout:${ip}`, 8, 60_000);
   if (!hit.ok) {
     return NextResponse.json(
       { error: "Too many attempts. Wait a minute." },

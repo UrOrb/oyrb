@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
       .from("pro_rebook_intervals")
       .select("pro_user_id, service_category, interval_days")
       .in("pro_user_id", proIds);
-    for (const r of (overrides ?? []) as Array<{ pro_user_id: string; service_category: string; interval_days: number }>) {
+    for (const r of (overrides ?? []) as unknown as Array<{ pro_user_id: string; service_category: string; interval_days: number }>) {
       let m = overridesByPro.get(r.pro_user_id);
       if (!m) {
         m = new Map();
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
 
   const results: Array<{ id: string; sent: boolean; reason?: string }> = [];
 
-  for (const b of (bookings ?? []) as Array<{
+  for (const b of (bookings ?? []) as unknown as Array<{
     id: string;
     end_at: string;
     business_id: string;

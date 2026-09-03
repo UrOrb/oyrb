@@ -62,7 +62,7 @@ async function buildHistoryForClient(
     .limit(3);
 
   const items: HistoryItem[] = [];
-  for (const b of (bookings ?? []) as Array<{
+  for (const b of (bookings ?? []) as unknown as Array<{
     id: string;
     start_at: string;
     services: { name: string } | null;

@@ -35,7 +35,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.oyrb.space";
 
 export async function POST(request: NextRequest) {
   const ip = ipFromRequest(request);
-  const limit = rateLimit(`disp-file:${ip}`, 5, 60_000);
+  const limit = await rateLimit(`disp-file:${ip}`, 5, 60_000);
   if (!limit.ok) {
     return NextResponse.json(
       { error: "Too many filing attempts. Wait a minute." },

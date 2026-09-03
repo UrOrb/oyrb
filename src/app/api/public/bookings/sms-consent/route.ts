@@ -26,7 +26,7 @@ import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
  */
 export async function POST(request: NextRequest) {
   const ip = ipFromRequest(request);
-  const limit = rateLimit(`smscon:${ip}`, 10, 60_000);
+  const limit = await rateLimit(`smscon:${ip}`, 10, 60_000);
   if (!limit.ok) {
     return NextResponse.json({ error: "Too many attempts. Wait a minute." }, { status: 429 });
   }

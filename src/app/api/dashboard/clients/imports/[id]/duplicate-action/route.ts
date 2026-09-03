@@ -85,7 +85,7 @@ export async function PATCH(
   // not per IP — pros on shared corporate networks shouldn't share a
   // bucket. 60/min covers normal pro behavior (a few clicks here and
   // there) without throttling intentional bulk edits.
-  const rl = rateLimit(`client-imports-duplicate-action:${row.business_id}`, 60, 60 * 1000);
+  const rl = await rateLimit(`client-imports-duplicate-action:${row.business_id}`, 60, 60 * 1000);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "rate_limited", resetAt: rl.resetAt },

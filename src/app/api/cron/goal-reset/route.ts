@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { snapshotAllUsersForPreviousMonth } from "@/lib/goal-tracking";
+import { requireCronAuth } from "@/lib/cron-auth";
 
 /**
  * Monthly-reset cron for the income goal meter.
@@ -12,7 +13,10 @@ import { snapshotAllUsersForPreviousMonth } from "@/lib/goal-tracking";
  * The snapshot worker uses the service-role admin client and iterates
  * all users, so it only needs to run once per month (not per-user).
  */
-export async function GET() {
+export async function GET(request: Request) {
+  const unauthorized = requireCronAuth(request);
+  if (unauthorized) return unauthorized;
+
   const start = Date.now();
   try {
     const result = await snapshotAllUsersForPreviousMonth();

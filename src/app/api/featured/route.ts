@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { filterFakesByLocation, shuffle } from "@/lib/fake-featured";
+
 
 export type FeaturedBusiness = {
   id: string;
@@ -20,6 +20,10 @@ type FeaturedResponse = {
 };
 
 const TARGET_COUNT = 8;
+
+function shuffle<T>(items: T[]): T[] {
+  return [...items].sort(() => Math.random() - 0.5);
+}
 
 const SELECTED_COLS =
   "id, business_name, slug, city, state, subscription_tier, service_category, profile_image_url";
@@ -64,18 +68,15 @@ export async function GET(request: NextRequest): Promise<NextResponse<FeaturedRe
     is_fake: false,
   });
 
-  // Level 1: exact city + state — try real first, top up with fakes if needed
+  // Level 1: exact city + state — real featured businesses only.
   if (city && state) {
     const { data } = await base().ilike("city", city).ilike("state", state);
     const real = ((data as DbRow[]) ?? []).map(mapRow);
     if (real.length >= TARGET_COUNT) {
       return NextResponse.json({ results: shuffle(real), level: "city" });
     }
-    // Top up with fakes matching the same city
-    const { results: fakes } = filterFakesByLocation(city, state);
-    const combined = [...real, ...fakes].slice(0, TARGET_COUNT);
-    if (combined.length > 0) {
-      return NextResponse.json({ results: combined as FeaturedBusiness[], level: "city" });
+    if (real.length > 0) {
+      return NextResponse.json({ results: shuffle(real), level: "city" });
     }
   }
 
@@ -86,20 +87,17 @@ export async function GET(request: NextRequest): Promise<NextResponse<FeaturedRe
     if (real.length >= TARGET_COUNT) {
       return NextResponse.json({ results: shuffle(real), level: "state" });
     }
-    const { results: fakes } = filterFakesByLocation(null, state);
-    const combined = [...real, ...fakes].slice(0, TARGET_COUNT);
-    if (combined.length > 0) {
-      return NextResponse.json({ results: combined as FeaturedBusiness[], level: "state" });
+    if (real.length > 0) {
+      return NextResponse.json({ results: shuffle(real), level: "state" });
     }
   }
 
-  // Level 3: nationwide — always returns something (fakes cover this floor)
+  // Level 3: nationwide — real featured businesses only. Empty is okay;
+  // the frontend should not invent social proof.
   const { data } = await base();
   const real = ((data as DbRow[]) ?? []).map(mapRow);
-  const { results: fakes } = filterFakesByLocation(null, null);
-  const combined = shuffle([...real, ...fakes].slice(0, TARGET_COUNT));
   return NextResponse.json({
-    results: combined as FeaturedBusiness[],
+    results: shuffle(real).slice(0, TARGET_COUNT),
     level: "nationwide",
   });
 }

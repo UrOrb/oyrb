@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/purity */
 import Link from "next/link";
 import { requireAdmin } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/server";
@@ -63,7 +64,7 @@ export default async function AdminStrikesPage() {
   // Aggregate by business_id. A business with strikes appears once;
   // its weighted total sums weights across the window.
   const byBiz = new Map<string, StrikeRow>();
-  for (const d of (disputes ?? []) as Array<{
+  for (const d of (disputes ?? []) as unknown as Array<{
     business_id: string;
     weight: number;
     businesses: {
@@ -96,7 +97,7 @@ export default async function AdminStrikesPage() {
   // (e.g., paused two weeks ago, all strikes have aged out — still
   // technically paused until admin clears it). They appear so the
   // unpause action stays reachable.
-  for (const b of (pausedBusinesses ?? []) as Array<{
+  for (const b of (pausedBusinesses ?? []) as unknown as Array<{
     id: string;
     business_name: string;
     slug: string;

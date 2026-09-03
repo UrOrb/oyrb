@@ -33,8 +33,8 @@ export async function POST(request: NextRequest) {
   // Public endpoint that pays for every call. Cap each IP at 10 messages per
   // minute and 60 per hour so a runaway loop can't drain the AI budget.
   const ip = ipFromRequest(request);
-  const minuteCheck = rateLimit(`chat:m:${ip}`, 10, 60_000);
-  const hourCheck = rateLimit(`chat:h:${ip}`, 60, 60 * 60_000);
+  const minuteCheck = await rateLimit(`chat:m:${ip}`, 10, 60_000);
+  const hourCheck = await rateLimit(`chat:h:${ip}`, 60, 60 * 60_000);
   if (!minuteCheck.ok || !hourCheck.ok) {
     return NextResponse.json(
       { error: "You're sending messages too quickly — please wait a moment." },

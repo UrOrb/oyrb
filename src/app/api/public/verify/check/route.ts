@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkVerificationCode, verifyConfigured } from "@/lib/twilio-verify";
-import { SignJWT } from "jose";
-
-// Dedicated secret only — do not fall back to CRON_SECRET. See lib/client-auth.ts.
-const SECRET = process.env.CLIENT_AUTH_SECRET ?? "";
-const encoder = new TextEncoder();
+import { signPhoneVerificationToken } from "@/lib/client-auth";
+import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   if (!verifyConfigured()) {
@@ -23,28 +20,22 @@ export async function POST(request: NextRequest) {
   if (!phone || !code) {
     return NextResponse.json({ error: "Phone and code are required" }, { status: 400 });
   }
+  const ip = ipFromRequest(request);
+  const ipCheck = await rateLimit(`verify-check:ip:${ip}`, 10, 60_000);
+  const phoneCheck = await rateLimit(`verify-check:p:${phone}`, 8, 10 * 60_000);
+  if (!ipCheck.ok || !phoneCheck.ok) {
+    return NextResponse.json(
+      { error: "Too many verification attempts — please wait a few minutes." },
+      { status: 429 },
+    );
+  }
 
   const result = await checkVerificationCode(phone, code);
   if (!result.ok) {
     return NextResponse.json({ error: result.error ?? "Invalid code" }, { status: 400 });
   }
 
-  // Issue a short-lived signed token the booking API can trust as proof-of-verification
-  if (!SECRET || SECRET.length < 32) {
-    // Without a strong secret we can't issue a trustworthy proof-of-verification
-    // token. Fail loud so the booking pipeline can decide what to do; do not
-    // silently degrade to "success without token" — that would mean the
-    // downstream booking endpoint accepts unverified phones as verified.
-    return NextResponse.json(
-      { error: "Server missing CLIENT_AUTH_SECRET (>= 32 chars). Please contact support." },
-      { status: 500 }
-    );
-  }
-  const token = await new SignJWT({ phone, kind: "phone_verified" })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("30m")
-    .sign(encoder.encode(SECRET));
+  const token = await signPhoneVerificationToken(phone);
 
   return NextResponse.json({ success: true, token });
 }

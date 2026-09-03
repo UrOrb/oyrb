@@ -6,6 +6,7 @@ import { ClientAccountOffer } from "./client-account-offer";
 import { ProsITrust } from "@/components/storefront/pros-i-trust";
 import type { TrustedProPeer } from "@/lib/pass-the-torch-storefront";
 import { SURVEY_OPTIONS } from "@/lib/survey-options";
+import { localDateKey, zonedDateTimeToUtc } from "@/lib/timezone";
 
 type Service = {
   id: string;
@@ -60,6 +61,7 @@ type Props = {
   slotsOpenThisWeek?: number;
   slug?: string;
   phoneVerificationEnabled?: boolean;
+  providerTimezone?: string;
   rules?: WidgetRules;
   /** Master switch — when false, services that require a deposit can't be
       booked online. Set by the server page from CLIENT_PAYMENTS_ENABLED. */
@@ -203,6 +205,7 @@ export function BookingWidget({
   slotsOpenThisWeek,
   slug,
   phoneVerificationEnabled,
+  providerTimezone = "America/New_York",
   rules,
   clientPaymentsEnabled = false,
   proConnectReady = false,
@@ -243,6 +246,7 @@ export function BookingWidget({
   const [seriesWeeks, setSeriesWeeks] = useState<number>(0); // 0 = no series
   const [seriesOccurrences, setSeriesOccurrences] = useState<number>(4);
   const [phoneVerified, setPhoneVerified] = useState<string | null>(null); // phone that was verified
+  const [phoneVerificationToken, setPhoneVerificationToken] = useState<string | null>(null);
   const [verifyCodeSent, setVerifyCodeSent] = useState(false);
   const [verifyCode, setVerifyCode] = useState("");
   const [verifyBusy, setVerifyBusy] = useState(false);
@@ -287,6 +291,7 @@ export function BookingWidget({
       if (!res.ok) setVerifyMsg(data.error ?? "Invalid code");
       else {
         setPhoneVerified(phone);
+        setPhoneVerificationToken(typeof data.token === "string" ? data.token : null);
         setVerifyMsg(null);
         setVerifyCodeSent(false);
         setVerifyCode("");
@@ -357,6 +362,7 @@ export function BookingWidget({
     setSeriesWeeks(0);
     setSeriesOccurrences(4);
     setPhoneVerified(null);
+    setPhoneVerificationToken(null);
     setVerifyCodeSent(false);
     setVerifyCode("");
     setVerifyMsg(null);
@@ -406,9 +412,8 @@ export function BookingWidget({
       return;
     }
     setError(null);
-    const [h, m] = time.split(":").map(Number);
-    const startAt = new Date(date);
-    startAt.setHours(h, m, 0, 0);
+    const dateKey = localDateKey(date);
+    const startAt = zonedDateTimeToUtc(dateKey, time, providerTimezone);
 
     const hasDeposit = (service.deposit_cents ?? 0) > 0;
     if (hasDeposit && !onlinePaymentLive) {
@@ -438,6 +443,7 @@ export function BookingWidget({
           name,
           email,
           phone,
+          phone_verification_token: phoneVerificationToken,
           notes: combinedNotes,
           sms_consent: smsConsent && !!phone,
           marketing_opt_in: marketingOptIn,
@@ -812,6 +818,7 @@ export function BookingWidget({
                         // Reset verification if phone changes
                         if (phoneVerified && phoneVerified !== e.target.value) {
                           setPhoneVerified(null);
+                          setPhoneVerificationToken(null);
                           setVerifyCodeSent(false);
                           setVerifyCode("");
                         }
