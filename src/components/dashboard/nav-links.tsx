@@ -25,13 +25,14 @@ import { dispatchHelpToggle } from "@/app/dashboard/help-panel";
 // component, so the item list, active-state logic, badge handling,
 // and Help/Contact bottom block can never drift between surfaces.
 //
-// Sidebar nav is grouped by usage frequency:
-//   Today  — daily-use pages (Dashboard, Bookings, Clients)
-//   Grow   — growth-thinking pages (Business Brain, Services, Site, etc.)
-//   Manage — platform housekeeping (Payments, Settings)
-// Adding a new item means picking a group. If in doubt, default to Grow —
-// that section absorbs the long tail. Do not re-flatten NAV_GROUPS into
-// a single array; the visual hierarchy depends on the grouped shape.
+// Sidebar nav is grouped by workflow:
+//   Today   — daily-use pages (Dashboard, Bookings, Clients, Waitlist)
+//   Build   — tools for shaping and growing the business
+//   Network — referral relationships with other pros
+//   Manage  — platform housekeeping
+// Adding a new item means picking a group. If in doubt, default to Build.
+// Do not re-flatten NAV_GROUPS into a single array; the visual hierarchy
+// depends on the grouped shape.
 
 type NavItem = {
   label: string;
@@ -43,7 +44,7 @@ type NavItem = {
 
 type NavGroup = {
   label: string;
-  id: "today" | "grow" | "manage";
+  id: "today" | "build" | "network" | "manage";
   items: NavItem[];
 };
 
@@ -55,19 +56,24 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { label: "Bookings", href: "/dashboard/bookings", icon: CalendarDays },
       { label: "Clients", href: "/dashboard/clients", icon: Users },
+      { label: "Waitlist", href: "/dashboard/waitlist", icon: Clock },
     ],
   },
   {
-    label: "Grow",
-    id: "grow",
+    label: "Build",
+    id: "build",
     items: [
-      { label: "Business Brain", href: "/dashboard/business-brain", icon: LineChart },
+      { label: "Website", href: "/dashboard/site", icon: Globe },
       { label: "Services", href: "/dashboard/services", icon: Scissors },
-      { label: "Site", href: "/dashboard/site", icon: Globe },
-      { label: "Trusted Pros", href: "/dashboard/pass-the-torch", icon: Flame, badgeKey: "pendingTrustedPros" },
-      { label: "Waitlist", href: "/dashboard/waitlist", icon: Clock },
-      { label: "Imports", href: "/dashboard/clients/imports", icon: Upload },
       { label: "Marketing", href: "/dashboard/marketing", icon: Mail },
+      { label: "Business Brain", href: "/dashboard/business-brain", icon: LineChart },
+    ],
+  },
+  {
+    label: "Network",
+    id: "network",
+    items: [
+      { label: "Trusted Pros", href: "/dashboard/pass-the-torch", icon: Flame, badgeKey: "pendingTrustedPros" },
     ],
   },
   {
@@ -75,6 +81,7 @@ const NAV_GROUPS: NavGroup[] = [
     id: "manage",
     items: [
       { label: "Payments", href: "/dashboard/payments", icon: CreditCard },
+      { label: "Client Imports", href: "/dashboard/clients/imports", icon: Upload },
       { label: "Settings", href: "/dashboard/settings", icon: Settings },
     ],
   },
@@ -135,7 +142,7 @@ export function DashboardNavLinks({ pendingTrustedPros = 0, onNavigate }: Props)
                 idiom (e.g. site-switcher.tsx:70) — text-[10px] uppercase
                 tracking-wider on the lightest gray. Pure visual / a11y
                 label, no interactivity. */}
-            <p className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wider text-[#A3A3A3]">
+            <p className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wider text-[#737373]">
               {group.label}
             </p>
             {group.items.map(({ label, href, icon: Icon, badgeKey }) => {
@@ -146,9 +153,10 @@ export function DashboardNavLinks({ pendingTrustedPros = 0, onNavigate }: Props)
                   key={href}
                   href={href}
                   onClick={onNavigate}
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                  aria-current={active ? "page" : undefined}
+                  className={`relative flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
                     active
-                      ? "bg-[#F5F5F4] font-medium text-[#0A0A0A]"
+                      ? "bg-[#F1EFEC] font-medium text-[#0A0A0A] before:absolute before:bottom-2 before:left-0 before:top-2 before:w-0.5 before:rounded-full before:bg-[#B8896B]"
                       : "text-[#525252] hover:bg-[#F5F5F4] hover:text-[#0A0A0A]"
                   }`}
                 >
@@ -184,9 +192,10 @@ export function DashboardNavLinks({ pendingTrustedPros = 0, onNavigate }: Props)
         <Link
           href="/dashboard/support"
           onClick={onNavigate}
-          className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+          aria-current={pathname === "/dashboard/support" ? "page" : undefined}
+          className={`relative flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
             pathname === "/dashboard/support"
-              ? "bg-[#F5F5F4] font-medium text-[#0A0A0A]"
+              ? "bg-[#F1EFEC] font-medium text-[#0A0A0A] before:absolute before:bottom-2 before:left-0 before:top-2 before:w-0.5 before:rounded-full before:bg-[#B8896B]"
               : "text-[#525252] hover:bg-[#F5F5F4] hover:text-[#0A0A0A]"
           }`}
         >
