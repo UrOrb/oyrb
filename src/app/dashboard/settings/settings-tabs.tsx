@@ -2,41 +2,44 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { CalendarDays, CreditCard, Globe, Settings } from "lucide-react";
+import { BarChart3, CalendarDays, Globe2, Settings } from "lucide-react";
 
 const tabs = [
   {
-    label: "General",
+    label: "General & Billing",
     href: "/dashboard/settings/general",
     icon: Settings,
     matches: [
       "/dashboard/settings",
       "/dashboard/settings/general",
-      "/dashboard/settings/exports",
+      "/dashboard/settings/payments",
+      "/dashboard/settings/domain",
       "/dashboard/settings/remove-brand",
     ],
   },
   {
-    label: "Booking",
-    href: "/dashboard/settings/booking",
+    label: "Operations",
+    href: "/dashboard/settings/operations",
     icon: CalendarDays,
     matches: [
+      "/dashboard/settings/operations",
       "/dashboard/settings/booking",
       "/dashboard/settings/booking-rules",
+      "/dashboard/settings/exports",
       "/dashboard/settings/rebook",
     ],
   },
   {
-    label: "Payments",
-    href: "/dashboard/settings/payments",
-    icon: CreditCard,
-    matches: ["/dashboard/settings/payments"],
+    label: "Public Presence",
+    href: "/dashboard/settings/public-presence",
+    icon: Globe2,
+    matches: ["/dashboard/settings/public-presence"],
   },
   {
-    label: "Domain & DNS",
-    href: "/dashboard/settings/domain",
-    icon: Globe,
-    matches: ["/dashboard/settings/domain"],
+    label: "Goals",
+    href: "/dashboard/settings/goals",
+    icon: BarChart3,
+    matches: ["/dashboard/settings/goals"],
   },
 ];
 
@@ -50,7 +53,7 @@ export function SettingsTabs() {
   const siteId = searchParams.get("siteId");
 
   return (
-    <div className="-mx-1 mt-5 overflow-x-auto pb-1">
+    <div className="sticky top-0 z-20 -mx-1 mt-5 overflow-x-auto border-b border-[#E7E5E4] bg-[#FAFAF9]/95 pb-0.5 pt-1 backdrop-blur">
       <nav className="flex min-w-max gap-1 px-1" aria-label="Settings sections">
         {tabs.map((tab) => {
           const active = isActive(pathname, tab.matches);
@@ -62,9 +65,9 @@ export function SettingsTabs() {
               key={tab.href}
               href={href}
               aria-current={active ? "page" : undefined}
-              className={`inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors ${
+              className={`relative inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors ${
                 active
-                  ? "border-[#B8896B]/40 bg-[#F1EFEC] text-[#0A0A0A] shadow-sm"
+                  ? "border-[#B8896B]/40 bg-[#F1EFEC] text-[#0A0A0A] shadow-sm after:absolute after:inset-x-2 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-[#B8896B]"
                   : "border-transparent text-[#525252] hover:bg-[#FAFAF9] hover:text-[#0A0A0A]"
               }`}
             >

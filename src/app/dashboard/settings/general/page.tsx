@@ -1,15 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { GoalForm } from "../goal-form";
-import { IdentityCard } from "../identity-card";
-import { PublicStatsCard } from "../public-stats-card";
+import { BillingPanel } from "../billing-panel";
+import { BillingPortalCard } from "../billing-portal-card";
+import { SettingsForm } from "../settings-form";
 import { getCurrentBusiness } from "@/lib/current-site";
-import { ensureGoalSettings } from "@/lib/goal-tracking";
-import { getReputationStats } from "@/lib/reputation-stats";
+import { getAccountSummary } from "@/lib/account";
 import { createClient } from "@/lib/supabase/server";
 
 interface Props {
-  searchParams: Promise<{ siteId?: string; identity?: string }>;
+  searchParams: Promise<{ siteId?: string; portal_error?: string }>;
 }
 
 export default async function GeneralSettingsPage({ searchParams }: Props) {
@@ -17,29 +16,9 @@ export default async function GeneralSettingsPage({ searchParams }: Props) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { siteId, identity: identityParam } = await searchParams;
+  const { siteId, portal_error: portalError } = await searchParams;
   const business = await getCurrentBusiness(siteId);
-  const goalSettings = await ensureGoalSettings(user.id);
-
-  const reputationStats = business
-    ? await getReputationStats(business.id)
-    : null;
-
-  const identityRow = business
-    ? await supabase
-        .from("businesses")
-        .select(
-          "identity_verification_status, identity_verified_at, identity_last_attempted_at",
-        )
-        .eq("id", business.id)
-        .eq("owner_id", user.id)
-        .maybeSingle()
-        .then((r) => r.data as {
-          identity_verification_status: string | null;
-          identity_verified_at: string | null;
-          identity_last_attempted_at: string | null;
-        } | null)
-    : null;
+  const account = await getAccountSummary();
 
   if (!business) {
     return (
@@ -83,60 +62,27 @@ export default async function GeneralSettingsPage({ searchParams }: Props) {
         </div>
       </section>
 
-      <PublicStatsCard
-        initialEnabled={!!business.public_stats_enabled}
-        stats={reputationStats}
-      />
-
-      <IdentityCard
-        status={(identityRow?.identity_verification_status ?? "none") as
-          | "none" | "pending" | "verified" | "requires_input" | "failed"}
-        verifiedAt={identityRow?.identity_verified_at ?? null}
-        lastAttemptedAt={identityRow?.identity_last_attempted_at ?? null}
-        showProcessingBanner={identityParam === "processing"}
-      />
-
-      <section id="goal" className="scroll-mt-20 rounded-lg border border-[#E7E5E4] bg-white p-6">
-        <h2 className="text-base font-semibold">Goal Tracking</h2>
-        <p className="mt-0.5 text-xs text-[#737373]">
-          Set a monthly income target and choose what counts toward it. Progress is calculated
-          across all the sites you own; resets at the start of each UTC month.
-        </p>
-        <div className="mt-5">
-          <GoalForm initial={goalSettings} />
-        </div>
-      </section>
-
-      <section className="flex items-center justify-between gap-4 rounded-lg border border-[#E7E5E4] bg-white p-6">
-        <div>
-          <h2 className="text-base font-semibold">Directory Listing</h2>
-          <p className="mt-0.5 text-xs text-[#737373]">
-            Opt in to the public OYRB beauty-pro directory at{" "}
-            <code className="text-[#0A0A0A]">oyrb.space/find</code>.
+      {account?.subscription ? (
+        <BillingPanel summary={account} />
+      ) : (
+        <section className="rounded-lg border border-[#E7E5E4] bg-white p-6">
+          <h2 className="text-base font-semibold">Billing</h2>
+          <p className="mt-1 text-sm text-[#737373]">
+            Subscribe first to manage billing and invoices.
           </p>
-        </div>
-        <Link
-          href="/dashboard/directory"
-          className="shrink-0 rounded-md bg-[#0A0A0A] px-3 py-1.5 text-xs font-medium text-white hover:opacity-85"
-        >
-          Manage listing
-        </Link>
-      </section>
+        </section>
+      )}
 
-      <section className="flex items-center justify-between gap-4 rounded-lg border border-[#E7E5E4] bg-white p-6">
-        <div>
-          <h2 className="text-base font-semibold">Exports</h2>
-          <p className="mt-0.5 text-xs text-[#737373]">
-            Download contacts, bookings, and income as portable files.
-          </p>
-        </div>
-        <Link
-          href="/dashboard/settings/exports"
-          className="shrink-0 rounded-md bg-[#0A0A0A] px-3 py-1.5 text-xs font-medium text-white hover:opacity-85"
-        >
-          Open exports
-        </Link>
-      </section>
+      <BillingPortalCard initialError={portalError} />
+
+      <SettingsForm
+        business={{
+          id: business.id,
+          subscription_tier: business.subscription_tier,
+          custom_domain: business.custom_domain ?? null,
+          custom_domain_verified: !!business.custom_domain_verified,
+        }}
+      />
 
       <section className="rounded-lg border border-[#E7E5E4] bg-white p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">

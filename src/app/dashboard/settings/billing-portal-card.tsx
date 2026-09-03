@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { CreditCard, ExternalLink } from "lucide-react";
-import { SectionCard } from "../section-card";
+import { SectionCard } from "./section-card";
 
 export function BillingPortalCard({ initialError }: { initialError?: string }) {
   const [portalPending, startPortal] = useTransition();

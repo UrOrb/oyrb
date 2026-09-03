@@ -3,11 +3,12 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Check, Copy, Globe } from "lucide-react";
-import { updateCustomDomain } from "../actions";
-import { SectionCard } from "../section-card";
+import { updateCustomDomain } from "./actions";
+import { SectionCard } from "./section-card";
 
 type Props = {
   business: {
+    id: string;
     subscription_tier: string;
     custom_domain: string | null;
     custom_domain_verified: boolean;
@@ -39,7 +40,7 @@ function CopyableCode({ value }: { value: string }) {
   );
 }
 
-export function DomainSettingsForm({ business }: Props) {
+export function SettingsForm({ business }: Props) {
   const [pending, start] = useTransition();
   const [domain, setDomain] = useState(business.custom_domain ?? "");
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
@@ -81,6 +82,7 @@ export function DomainSettingsForm({ business }: Props) {
         </div>
       ) : (
         <form action={handleSubmit} className="space-y-5">
+          <input type="hidden" name="business_id" value={business.id} />
           <div>
             <label htmlFor="custom_domain" className="text-sm font-medium">
               Your domain

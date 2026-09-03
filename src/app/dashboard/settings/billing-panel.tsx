@@ -1,5 +1,5 @@
-import { EndTrialButton } from "../end-trial-button";
-import { PlanChangeForm } from "../plan-change-form";
+import { EndTrialButton } from "./end-trial-button";
+import { PlanChangeForm } from "./plan-change-form";
 import type { AccountSummary } from "@/lib/account";
 import {
   ADDON_ANNUAL_CENTS,

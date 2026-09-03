@@ -97,7 +97,7 @@ export async function POST() {
         oyrb_business_id: business.id,
         oyrb_user_id: user.id,
       },
-      return_url: `${appUrl}/dashboard/settings?identity=processing`,
+      return_url: `${appUrl}/dashboard/settings/public-presence?identity=processing`,
     });
 
     // Persist the session id + bump the cooldown anchor + flip to

@@ -57,7 +57,7 @@ export async function updateGoalSettings(input: {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/settings");
-  revalidatePath("/dashboard/settings/general");
+  revalidatePath("/dashboard/settings/goals");
   return { ok: true };
 }
 
@@ -66,7 +66,21 @@ export async function updateCustomDomain(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const business = await getCurrentBusiness();
+  const businessId = String(formData.get("business_id") ?? "");
+  const business = businessId
+    ? await supabase
+        .from("businesses")
+        .select("id, owner_id, subscription_tier")
+        .eq("id", businessId)
+        .eq("owner_id", user.id)
+        .maybeSingle()
+        .then((r) => r.data as {
+          id: string;
+          owner_id: string;
+          subscription_tier: string;
+        } | null)
+    : await getCurrentBusiness();
+
   if (!business) return { error: "No business" };
 
   if (business.subscription_tier !== "scale") {
@@ -93,7 +107,7 @@ export async function updateCustomDomain(formData: FormData) {
     .eq("owner_id", user.id);
 
   revalidatePath("/dashboard/settings");
-  revalidatePath("/dashboard/settings/domain");
+  revalidatePath("/dashboard/settings/general");
   return { success: true };
 }
 
@@ -188,7 +202,7 @@ export async function togglePublicStats(
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/dashboard/settings");
-  revalidatePath("/dashboard/settings/general");
+  revalidatePath("/dashboard/settings/public-presence");
   revalidatePath(`/s/${business.slug}`);
   return { ok: true };
 }
