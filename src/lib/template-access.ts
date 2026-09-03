@@ -24,6 +24,23 @@ export function isValidTemplateSelection(layout: string, theme: string): boolean
   return ALL_LAYOUT_SET.has(layout) && ALL_THEME_SET.has(theme);
 }
 
+export function isValidThemeId(theme: string): boolean {
+  return ALL_THEME_SET.has(theme);
+}
+
+/**
+ * Like isValidTemplateSelection, but tolerates a null layout — the
+ * "unlock this theme across every layout" grant shape used by redemption
+ * codes and rare admin grants (template_unlocks.layout_id is nullable).
+ */
+export function isValidUnlockSelection(
+  layout: string | null,
+  theme: string,
+): boolean {
+  if (layout === null) return isValidThemeId(theme);
+  return isValidTemplateSelection(layout, theme);
+}
+
 export function isStarterTheme(theme: string): boolean {
   return STARTER_THEME_SET.has(theme);
 }

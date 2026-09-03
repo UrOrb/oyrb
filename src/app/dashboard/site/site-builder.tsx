@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check, ChevronDown, ExternalLink, Monitor, RotateCcw, Save, Smartphone } from "lucide-react";
 import { DAY_NAMES, type Business, type BusinessHours } from "@/lib/types";
@@ -9,6 +10,7 @@ import { StockPicker } from "@/components/dashboard/stock-picker";
 import { updateSite } from "./actions";
 import { cheer } from "@/lib/cheer";
 import { TemplatePreview } from "./template-preview";
+import { RedeemCodeBox } from "./redeem-code-box";
 import {
   STAT_TYPES,
   STAT_OPTION_LABELS,
@@ -431,6 +433,7 @@ export function SiteBuilder({ business, hours, services, origin, templateUnlocks
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [pickerMode, setPickerMode] = useState<"hero" | "profile" | "gallery" | null>(null);
   const [previewMode, setPreviewMode] = useState<"mobile" | "desktop">("mobile");
+  const router = useRouter();
 
   const isDirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(saved), [draft, saved]);
 
@@ -779,6 +782,16 @@ export function SiteBuilder({ business, hours, services, origin, templateUnlocks
                     <a href="/pricing" className="font-medium underline">Upgrade to Studio</a> for all {ALL_THEME_IDS.length}.
                   </p>
                 )}
+                <RedeemCodeBox
+                  onRedeemed={(theme, layout) => {
+                    setDraft((d) => ({
+                      ...d,
+                      template_theme: theme,
+                      template_layout: layout ?? d.template_layout,
+                    }));
+                    router.refresh();
+                  }}
+                />
               </div>
 
               <div className="mt-4">
