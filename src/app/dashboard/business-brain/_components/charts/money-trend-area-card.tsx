@@ -13,7 +13,7 @@ import { AreaChart } from "../../_charts/area-chart";
 export function MoneyTrendAreaCard({ trend }: { trend: MoneyTrend }) {
   if (!trend.hasEnoughData) {
     return (
-      <section className="rounded-2xl border border-[#E7E5E4] bg-white p-6">
+      <section className="rounded-2xl border border-[#E7E5E4] bg-[#FFFCF8] p-6 shadow-[0_14px_40px_rgba(10,10,10,0.035)]">
         <Header />
         <p className="mt-4 text-sm text-[#737373]">
           Building trend data — your weekly revenue chart shows up after at least 4 weeks of bookings.
@@ -34,7 +34,7 @@ export function MoneyTrendAreaCard({ trend }: { trend: MoneyTrend }) {
   }));
 
   return (
-    <section className="rounded-2xl border border-[#E7E5E4] bg-white p-6">
+    <section className="rounded-2xl border border-[#E7E5E4] bg-[#FFFCF8] p-6 shadow-[0_14px_40px_rgba(10,10,10,0.035)]">
       <Header />
 
       <p className="font-display mt-3 text-3xl font-medium tracking-tight text-[#0A0A0A]">

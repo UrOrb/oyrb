@@ -1,6 +1,7 @@
 import { TrendingUp, TrendingDown, Minus, Flame } from "lucide-react";
 import type { RevenueWindow, PassTheTorch90DayRevenue } from "@/lib/business-brain";
 import { formatCents } from "@/lib/types";
+import { BrainCard, BrainInset, EmptyState } from "./brain-card";
 
 /**
  * Four-tile revenue overview. Each tile is one window with its prev-period
@@ -30,7 +31,7 @@ export function RevenueOverviewCard({
   const empty = windows.every((w) => w.grossCents === 0 && w.prevGrossCents === 0);
 
   return (
-    <section className="rounded-2xl border border-[#E7E5E4] bg-white p-6">
+    <BrainCard>
       <header className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-[#525252]">
           Revenue overview
@@ -39,9 +40,9 @@ export function RevenueOverviewCard({
       </header>
 
       {empty ? (
-        <p className="mt-4 text-sm text-[#737373]">
+        <EmptyState>
           Run a few bookings and your revenue across short and long windows will appear here.
-        </p>
+        </EmptyState>
       ) : (
         <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
           {windows.map((w) => (
@@ -65,14 +66,14 @@ export function RevenueOverviewCard({
           </span>
         </div>
       )}
-    </section>
+    </BrainCard>
   );
 }
 
 function Tile({ window: w }: { window: RevenueWindow }) {
   const direction = compareDirection(w.grossCents, w.prevGrossCents);
   return (
-    <div className="rounded-lg border border-[#F5F5F4] bg-[#FAFAF9] p-3">
+    <BrainInset className="relative overflow-hidden pl-4 before:absolute before:bottom-3 before:left-0 before:top-3 before:w-1 before:rounded-r-full before:bg-[#B8896B]/45">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-[#A3A3A3]">
         {w.label}
       </p>
@@ -87,7 +88,7 @@ function Tile({ window: w }: { window: RevenueWindow }) {
       {w.comparisonNote && (
         <p className="mt-1 text-[10px] italic text-[#A3A3A3]">{w.comparisonNote}</p>
       )}
-    </div>
+    </BrainInset>
   );
 }
 

@@ -1,6 +1,7 @@
 import { Zap } from "lucide-react";
 import type { ProfitPerMinute } from "@/lib/business-brain";
 import { formatCents } from "@/lib/types";
+import { BrainCard, EmptyState } from "./brain-card";
 
 /**
  * The Money tab's flagship metric. Computed as
@@ -21,7 +22,7 @@ import { formatCents } from "@/lib/types";
  */
 export function ProfitPerMinuteCard({ data }: { data: ProfitPerMinute }) {
   return (
-    <section className="rounded-2xl border border-[#E7E5E4] bg-white p-6">
+    <BrainCard>
       <header className="flex items-center gap-2">
         <Zap size={16} className="text-[#B8896B]" strokeWidth={1.5} />
         <h2 className="text-sm font-semibold uppercase tracking-wider text-[#525252]">
@@ -30,7 +31,7 @@ export function ProfitPerMinuteCard({ data }: { data: ProfitPerMinute }) {
       </header>
 
       {!data.hasEnoughData ? (
-        <div className="mt-4 rounded-lg bg-[#FAFAF9] p-4 text-sm text-[#525252]">
+        <EmptyState className="text-[#525252]">
           <p className="leading-relaxed">
             Profit per minute appears here once you have at least 5 services with timing data.
           </p>
@@ -44,7 +45,7 @@ export function ProfitPerMinuteCard({ data }: { data: ProfitPerMinute }) {
               {data.qualifyingBookings} of 5 needed so far. Keep going.
             </p>
           )}
-        </div>
+        </EmptyState>
       ) : (
         <div className="mt-4">
           <p className="font-display text-3xl font-medium text-[#0A0A0A] tabular-nums">
@@ -63,7 +64,7 @@ export function ProfitPerMinuteCard({ data }: { data: ProfitPerMinute }) {
           </p>
         </div>
       )}
-    </section>
+    </BrainCard>
   );
 }
 

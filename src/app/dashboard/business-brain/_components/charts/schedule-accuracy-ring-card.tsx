@@ -21,7 +21,7 @@ export function ScheduleAccuracyRingCard({
 }) {
   if (!accuracy.hasEnoughData) {
     return (
-      <section className="rounded-2xl border border-[#E7E5E4] bg-white p-6">
+      <section className="rounded-2xl border border-[#E7E5E4] bg-[#FFFCF8] p-6 shadow-[0_14px_40px_rgba(10,10,10,0.035)]">
         <Header />
         <p className="mt-4 text-sm text-[#737373]">
           Schedule accuracy shows up after enough completed appointments with Start + Stop pings.
@@ -44,7 +44,7 @@ export function ScheduleAccuracyRingCard({
         : `${Math.round(overrun)} min avg under`;
 
   return (
-    <section className="flex flex-col items-center rounded-2xl border border-[#E7E5E4] bg-white p-6">
+    <section className="flex flex-col items-center rounded-2xl border border-[#E7E5E4] bg-[#FFFCF8] p-6 shadow-[0_14px_40px_rgba(10,10,10,0.035)]">
       <div className="mb-4 flex w-full items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Gauge size={16} className="text-[#737373]" strokeWidth={1.5} />

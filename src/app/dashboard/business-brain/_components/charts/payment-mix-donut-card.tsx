@@ -42,7 +42,7 @@ export function PaymentMixDonutCard({ mix }: { mix: PaymentMix }) {
       ].filter((s) => s.value > 0);
 
   return (
-    <section className="rounded-2xl border border-[#E7E5E4] bg-white p-6">
+    <section className="rounded-2xl border border-[#E7E5E4] bg-[#FFFCF8] p-6 shadow-[0_14px_40px_rgba(10,10,10,0.035)]">
       <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <CreditCard size={16} className="text-[#737373]" strokeWidth={1.5} />

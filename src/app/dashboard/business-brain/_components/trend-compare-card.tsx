@@ -1,6 +1,7 @@
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import type { TrendCompare } from "@/lib/business-brain";
 import { formatCents } from "@/lib/types";
+import { BrainCard, EmptyState } from "./brain-card";
 
 /**
  * Last week vs this week — three metrics side by side with a trend
@@ -19,7 +20,7 @@ export function TrendCompareCard({ trend }: { trend: TrendCompare }) {
     trend.grossLastWeekCents === 0;
 
   return (
-    <section className="rounded-2xl border border-[#E7E5E4] bg-white p-6">
+    <BrainCard>
       <header className="flex items-center gap-2">
         <TrendingUp size={16} className="text-[#737373]" strokeWidth={1.5} />
         <h2 className="text-sm font-semibold uppercase tracking-wider text-[#525252]">
@@ -28,11 +29,11 @@ export function TrendCompareCard({ trend }: { trend: TrendCompare }) {
       </header>
 
       {empty ? (
-        <p className="mt-4 text-sm text-[#737373]">
+        <EmptyState>
           Run a few weeks of bookings and your week-over-week trend will appear here.
-        </p>
+        </EmptyState>
       ) : (
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 overflow-hidden rounded-xl border border-[#EDE9E4] bg-white/70">
           <Row
             label="Bookings"
             lastWeek={trend.bookingsLastWeek.toString()}
@@ -56,7 +57,7 @@ export function TrendCompareCard({ trend }: { trend: TrendCompare }) {
           />
         </div>
       )}
-    </section>
+    </BrainCard>
   );
 }
 
@@ -74,8 +75,8 @@ function Row({
   direction: Direction;
 }) {
   return (
-    <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-3 border-b border-[#F5F5F4] pb-3 last:border-0 last:pb-0">
-      <p className="text-xs text-[#737373]">{label}</p>
+    <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-3 border-b border-[#E7E5E4]/80 px-3 py-3 last:border-0">
+      <p className="border-l-2 border-[#B8896B]/40 pl-2 text-xs text-[#737373]">{label}</p>
       <p className="text-sm text-[#737373] tabular-nums">{lastWeek}</p>
       <p className="text-sm font-semibold text-[#0A0A0A] tabular-nums">{thisWeek}</p>
       <Arrow direction={direction} />

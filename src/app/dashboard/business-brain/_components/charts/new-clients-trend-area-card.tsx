@@ -16,7 +16,7 @@ export function NewClientsTrendAreaCard({
 }) {
   if (!trend.hasEnoughData) {
     return (
-      <section className="rounded-2xl border border-[#E7E5E4] bg-white p-6">
+      <section className="rounded-2xl border border-[#E7E5E4] bg-[#FFFCF8] p-6 shadow-[0_14px_40px_rgba(10,10,10,0.035)]">
         <Header />
         <p className="mt-4 text-sm text-[#737373]">
           New clients trend appears once you have your first new-client booking in window.
@@ -31,7 +31,7 @@ export function NewClientsTrendAreaCard({
   }));
 
   return (
-    <section className="rounded-2xl border border-[#E7E5E4] bg-white p-6">
+    <section className="rounded-2xl border border-[#E7E5E4] bg-[#FFFCF8] p-6 shadow-[0_14px_40px_rgba(10,10,10,0.035)]">
       <Header />
       <p className="font-display mt-3 text-3xl font-medium tracking-tight text-[#0A0A0A]">
         {trend.totalNew}

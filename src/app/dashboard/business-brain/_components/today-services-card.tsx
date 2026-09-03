@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Sun } from "lucide-react";
 import type { TodayService } from "@/lib/business-brain";
+import { BrainCard, EmptyState } from "./brain-card";
 
 /**
  * Today's services — list of bookings happening today, sorted by
@@ -29,7 +30,7 @@ export function TodayServicesCard({
   timeZone: string;
 }) {
   return (
-    <section className="rounded-2xl border border-[#E7E5E4] bg-white p-6">
+    <BrainCard>
       <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Sun size={16} className="text-[#737373]" strokeWidth={1.5} />
@@ -45,9 +46,9 @@ export function TodayServicesCard({
       </header>
 
       {services.length === 0 ? (
-        <p className="mt-4 text-sm text-[#737373]">
+        <EmptyState>
           No services scheduled today.
-        </p>
+        </EmptyState>
       ) : (
         <ul className="mt-4 space-y-2">
           {services.map((s) => {
@@ -56,7 +57,7 @@ export function TodayServicesCard({
               <li key={s.id}>
                 <Link
                   href={`/dashboard/bookings/${s.id}`}
-                  className="block rounded-lg border border-[#E7E5E4] p-3 hover:border-[#B8896B]"
+                  className="block rounded-xl border border-[#EDE9E4] bg-white/70 p-3 hover:border-[#B8896B]"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -79,7 +80,7 @@ export function TodayServicesCard({
           })}
         </ul>
       )}
-    </section>
+    </BrainCard>
   );
 }
 

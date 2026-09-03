@@ -15,7 +15,7 @@ import type { UtmCampaignsResult } from "@/lib/business-brain";
  */
 export function UtmCampaignsCard({ data }: { data: UtmCampaignsResult }) {
   return (
-    <section className="rounded-2xl border border-[#E7E5E4] bg-white p-6">
+    <section className="rounded-2xl border border-[#E7E5E4] bg-[#FFFCF8] p-6 shadow-[0_14px_40px_rgba(10,10,10,0.035)]">
       <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Tag size={16} className="text-[#737373]" strokeWidth={1.5} />
@@ -30,7 +30,7 @@ export function UtmCampaignsCard({ data }: { data: UtmCampaignsResult }) {
         <div className="mt-4 rounded-lg bg-[#FAFAF9] p-4 text-sm text-[#525252]">
           <p className="leading-relaxed">
             Campaign breakdown appears here once at least 5 bookings come in via URLs tagged
-            with <code className="rounded bg-white px-1.5 py-0.5 text-[11px] text-[#0A0A0A]">?utm_campaign=...</code>
+            with <code className="rounded bg-[#FAFAF9] px-1.5 py-0.5 text-[11px] text-[#0A0A0A]">?utm_campaign=...</code>
             in the last 90 days.
           </p>
           <p className="mt-2 leading-relaxed">
@@ -48,7 +48,7 @@ export function UtmCampaignsCard({ data }: { data: UtmCampaignsResult }) {
           {data.rows.map((r, idx) => (
             <li
               key={r.utmCampaign}
-              className="rounded-lg border border-[#F5F5F4] bg-white p-3"
+              className="rounded-xl border border-[#EDE9E4] bg-white/70 p-3"
             >
               <div className="flex flex-wrap items-baseline justify-between gap-3">
                 <div className="min-w-0 flex-1">

@@ -13,7 +13,7 @@ import { Donut } from "../../_charts/donut";
 export function AcquisitionMixDonutCard({ mix }: { mix: AcquisitionMix }) {
   if (!mix.hasEnoughData) {
     return (
-      <section className="rounded-2xl border border-[#E7E5E4] bg-white p-6">
+      <section className="rounded-2xl border border-[#E7E5E4] bg-[#FFFCF8] p-6 shadow-[0_14px_40px_rgba(10,10,10,0.035)]">
         <Header />
         <p className="mt-4 text-sm text-[#737373]">
           Acquisition mix appears once you have enough booking history.
@@ -28,7 +28,7 @@ export function AcquisitionMixDonutCard({ mix }: { mix: AcquisitionMix }) {
   ].filter((s) => s.value > 0);
 
   return (
-    <section className="rounded-2xl border border-[#E7E5E4] bg-white p-6">
+    <section className="rounded-2xl border border-[#E7E5E4] bg-[#FFFCF8] p-6 shadow-[0_14px_40px_rgba(10,10,10,0.035)]">
       <Header />
       <div className="mt-3">
         <Donut

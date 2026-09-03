@@ -41,7 +41,7 @@ export default async function TimeTabPage({ searchParams }: Props) {
   const business = await getCurrentBusiness(siteId);
   if (!business) {
     return (
-      <div className="rounded-2xl border border-dashed border-[#E7E5E4] bg-white p-8 text-center text-sm text-[#737373]">
+      <div className="rounded-2xl border border-dashed border-[#D7CFC8] bg-[#FAFAF9] p-8 shadow-[0_14px_40px_rgba(10,10,10,0.03)] text-center text-sm text-[#737373]">
         No business yet. Once you complete checkout, your time tab will appear here.
       </div>
     );

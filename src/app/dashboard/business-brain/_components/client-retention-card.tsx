@@ -1,5 +1,6 @@
 import { Heart } from "lucide-react";
 import type { ClientRetention } from "@/lib/business-brain";
+import { BrainCard, EmptyState } from "./brain-card";
 
 /**
  * Cohort retention metric. Cohort = clients whose first booking was
@@ -16,7 +17,7 @@ import type { ClientRetention } from "@/lib/business-brain";
  */
 export function ClientRetentionCard({ data }: { data: ClientRetention }) {
   return (
-    <section className="rounded-2xl border border-[#E7E5E4] bg-white p-6">
+    <BrainCard>
       <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Heart size={16} className="text-[#737373]" strokeWidth={1.5} />
@@ -28,10 +29,10 @@ export function ClientRetentionCard({ data }: { data: ClientRetention }) {
       </header>
 
       {!data.hasEnoughData ? (
-        <p className="mt-4 text-sm text-[#737373]">
+        <EmptyState>
           Retention rate appears here once you have at least 10 clients whose first booking was
           3-6 months ago. Currently {data.cohortSize} in the cohort.
-        </p>
+        </EmptyState>
       ) : (
         <div className="mt-4">
           <p className="font-display text-3xl font-medium text-[#0A0A0A] tabular-nums">
@@ -48,6 +49,6 @@ export function ClientRetentionCard({ data }: { data: ClientRetention }) {
           </p>
         </div>
       )}
-    </section>
+    </BrainCard>
   );
 }

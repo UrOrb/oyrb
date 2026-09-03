@@ -102,7 +102,7 @@ export function PassTheTorchCard({ data }: { data: PassTheTorchData }) {
 
           <p className="mt-4 text-[11px] leading-relaxed text-[#A3A3A3]">
             Pass the Torch attribution applies when a client books via{" "}
-            <code className="rounded bg-white px-1 py-0.5 text-[10px] text-[#0A0A0A]">?ref=…</code>
+            <code className="rounded bg-[#FAFAF9] px-1 py-0.5 text-[10px] text-[#0A0A0A]">?ref=…</code>
             on your storefront URL — typically when another OYRB pro shares your link from their
             own Trusted Pros section.
           </p>

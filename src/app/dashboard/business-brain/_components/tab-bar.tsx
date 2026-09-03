@@ -23,7 +23,7 @@ export function TabBar() {
     <nav
       role="tablist"
       aria-label="Business Brain tabs"
-      className="flex flex-wrap gap-1 border-b border-[#E7E5E4]"
+      className="-mx-1 flex gap-2 overflow-x-auto border-b border-[#E7E5E4] px-1 pb-2"
     >
       {TABS.map((t) => {
         const active = pathname === t.href || pathname.startsWith(`${t.href}/`);
@@ -33,10 +33,11 @@ export function TabBar() {
             href={t.href}
             role="tab"
             aria-selected={active}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm transition-colors ${
+            aria-current={active ? "page" : undefined}
+            className={`relative shrink-0 rounded-full border px-3.5 py-2 text-sm transition-colors ${
               active
-                ? "border-[#0A0A0A] font-semibold text-[#0A0A0A]"
-                : "border-transparent text-[#737373] hover:text-[#0A0A0A]"
+                ? "border-[#B8896B]/35 bg-[#F1EFEC] font-semibold text-[#0A0A0A] after:absolute after:inset-x-4 after:-bottom-[11px] after:h-0.5 after:rounded-full after:bg-[#B8896B]"
+                : "border-transparent text-[#737373] hover:bg-[#FAFAF9] hover:text-[#0A0A0A]"
             }`}
           >
             {t.label}

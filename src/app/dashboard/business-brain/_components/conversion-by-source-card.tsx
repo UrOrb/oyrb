@@ -25,7 +25,7 @@ export function ConversionBySourceCard({
   data: ConversionBySourceResult;
 }) {
   return (
-    <section className="rounded-2xl border border-[#E7E5E4] bg-white p-6">
+    <section className="rounded-2xl border border-[#E7E5E4] bg-[#FFFCF8] p-6 shadow-[0_14px_40px_rgba(10,10,10,0.035)]">
       <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Filter size={16} className="text-[#737373]" strokeWidth={1.5} />
@@ -46,7 +46,7 @@ export function ConversionBySourceCard({
           {data.rows.map((r) => (
             <li
               key={r.source}
-              className="rounded-lg border border-[#F5F5F4] bg-white p-3"
+              className="rounded-xl border border-[#EDE9E4] bg-white/70 p-3"
             >
               <div className="flex flex-wrap items-baseline justify-between gap-3">
                 <p className="text-sm font-semibold text-[#0A0A0A]">{r.source}</p>

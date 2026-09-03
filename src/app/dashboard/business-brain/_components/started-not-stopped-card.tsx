@@ -24,7 +24,7 @@ import type { StartedNotStopped } from "@/lib/business-brain";
  */
 export function StartedNotStoppedCard({ data }: { data: StartedNotStopped }) {
   return (
-    <section className="rounded-2xl border border-[#E7E5E4] bg-white p-6">
+    <section className="rounded-2xl border border-[#E7E5E4] bg-[#FFFCF8] p-6 shadow-[0_14px_40px_rgba(10,10,10,0.035)]">
       <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <AlertCircle size={16} className="text-[#737373]" strokeWidth={1.5} />
@@ -49,7 +49,7 @@ export function StartedNotStoppedCard({ data }: { data: StartedNotStopped }) {
               <li key={b.id}>
                 <Link
                   href={`/dashboard/bookings/${b.id}`}
-                  className="block rounded-lg border border-[#F5F5F4] bg-white p-3 hover:border-[#B8896B]"
+                  className="block rounded-xl border border-[#EDE9E4] bg-white/70 p-3 hover:border-[#B8896B]"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm font-semibold text-[#0A0A0A]">{b.clientName}</p>

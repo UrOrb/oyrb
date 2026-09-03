@@ -14,7 +14,7 @@ export function HeadsUpCard({ result }: { result: AnomalyResult }) {
   const { anomalies, baselineReady } = result;
 
   return (
-    <section className="rounded-2xl border border-[#E7E5E4] bg-white p-6">
+    <section className="rounded-2xl border border-[#E7E5E4] bg-[#FFFCF8] p-6 shadow-[0_14px_40px_rgba(10,10,10,0.035)]">
       <header className="flex items-center gap-2">
         <Lightbulb size={16} className="text-[#B8896B]" strokeWidth={1.5} />
         <h2 className="text-sm font-semibold uppercase tracking-wider text-[#525252]">

@@ -1,6 +1,7 @@
 import { DollarSign } from "lucide-react";
 import type { MoneyThisWeek } from "@/lib/business-brain";
 import { formatCents } from "@/lib/types";
+import { BrainCard, EmptyState } from "./brain-card";
 
 /**
  * Money this week — actuals only. No forecasts, no projections.
@@ -26,7 +27,7 @@ export function MoneyThisWeekCard({ money }: { money: MoneyThisWeek }) {
   const mix = money.paymentMix;
 
   return (
-    <section className="rounded-2xl border border-[#E7E5E4] bg-white p-6">
+    <BrainCard>
       <header className="flex items-center gap-2">
         <DollarSign size={16} className="text-[#737373]" strokeWidth={1.5} />
         <h2 className="text-sm font-semibold uppercase tracking-wider text-[#525252]">
@@ -35,12 +36,12 @@ export function MoneyThisWeekCard({ money }: { money: MoneyThisWeek }) {
       </header>
 
       {empty ? (
-        <p className="mt-4 text-sm text-[#737373]">
+        <EmptyState>
           Once you have bookings on the calendar, your week&apos;s revenue will appear here.
-        </p>
+        </EmptyState>
       ) : (
         <>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="mt-4 grid gap-0 divide-y divide-[#E7E5E4]/80 rounded-xl border border-[#EDE9E4] bg-white/70 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
             <Stat
               label="Gross on calendar"
               value={formatCents(money.grossCents)}
@@ -67,13 +68,13 @@ export function MoneyThisWeekCard({ money }: { money: MoneyThisWeek }) {
       <p className="mt-4 text-[11px] text-[#A3A3A3]">
         Actuals only — no forecasts. Your monthly goal lives on the main dashboard.
       </p>
-    </section>
+    </BrainCard>
   );
 }
 
 function Stat({ label, value, sublabel }: { label: string; value: string; sublabel: string }) {
   return (
-    <div>
+    <div className="p-3">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-[#A3A3A3]">{label}</p>
       <p className="mt-1 font-display text-xl font-medium text-[#0A0A0A]">{value}</p>
       <p className="mt-0.5 text-[11px] text-[#737373]">{sublabel}</p>

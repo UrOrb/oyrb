@@ -1,5 +1,6 @@
 import { UsersRound } from "lucide-react";
 import type { RepeatClientOverview } from "@/lib/business-brain";
+import { BrainCard, EmptyState } from "./brain-card";
 
 /**
  * At-a-glance repeat-client signals for the last 90 days. Three
@@ -15,7 +16,7 @@ export function RepeatClientOverviewCard({
   data: RepeatClientOverview;
 }) {
   return (
-    <section className="rounded-2xl border border-[#E7E5E4] bg-white p-6">
+    <BrainCard>
       <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <UsersRound size={16} className="text-[#737373]" strokeWidth={1.5} />
@@ -27,12 +28,12 @@ export function RepeatClientOverviewCard({
       </header>
 
       {!data.hasEnoughData ? (
-        <p className="mt-4 text-sm text-[#737373]">
+        <EmptyState>
           Repeat-client signals appear here once you have at least 10 unique clients in the last
           90 days. Currently {data.uniqueClientsLast90}.
-        </p>
+        </EmptyState>
       ) : (
-        <div className="mt-4 grid grid-cols-3 gap-4">
+        <div className="mt-4 grid grid-cols-1 divide-y divide-[#E7E5E4]/80 rounded-xl border border-[#EDE9E4] bg-white/70 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           <Stat
             label="Unique clients"
             value={data.uniqueClientsLast90.toString()}
@@ -50,7 +51,7 @@ export function RepeatClientOverviewCard({
           />
         </div>
       )}
-    </section>
+    </BrainCard>
   );
 }
 
@@ -64,7 +65,7 @@ function Stat({
   sublabel: string;
 }) {
   return (
-    <div>
+    <div className="p-3">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-[#A3A3A3]">{label}</p>
       <p className="mt-1 font-display text-xl font-medium text-[#0A0A0A] tabular-nums">
         {value}

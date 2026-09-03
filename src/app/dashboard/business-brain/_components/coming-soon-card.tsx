@@ -1,4 +1,5 @@
 import { Sparkles } from "lucide-react";
+import { BrainCard } from "./brain-card";
 
 /**
  * Shared "Coming soon" card for placeholder Business Brain tabs
@@ -16,7 +17,7 @@ export function ComingSoonCard({
   description: string;
 }) {
   return (
-    <div className="rounded-2xl border border-dashed border-[#E7E5E4] bg-white p-8 text-center">
+    <BrainCard as="div" className="border-dashed p-8 text-center">
       <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#FAFAF9]">
         <Sparkles size={18} className="text-[#B8896B]" strokeWidth={1.5} />
       </div>
@@ -27,6 +28,6 @@ export function ComingSoonCard({
       <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[#525252]">
         {description}
       </p>
-    </div>
+    </BrainCard>
   );
 }
