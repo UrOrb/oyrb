@@ -114,9 +114,14 @@ export async function POST() {
       .eq("id", business.id);
     if (upErr) {
       console.error("Failed to persist identity session id", upErr);
-      // Best-effort: still send the user to Stripe — webhook will
-      // populate the row when it fires. Worst case, the row's status
-      // stays 'none' until that webhook lands.
+      // Must fail here: every identity webhook branch matches rows BY
+      // identity_verification_session_id. If it never persisted, the
+      // webhook updates zero rows and the verification result is silently
+      // lost — the pro pays Stripe's fee and the badge never appears.
+      return NextResponse.json(
+        { error: "Couldn't start verification — please try again." },
+        { status: 500 },
+      );
     }
 
     if (!session.url) {

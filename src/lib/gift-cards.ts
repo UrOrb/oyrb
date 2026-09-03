@@ -33,6 +33,7 @@ export function generateGiftCardCode(): string {
 export async function handleGiftCardCompleted(
   supabase: SupabaseClient,
   session: Stripe.Checkout.Session,
+  expectedAccountId: string,
 ): Promise<void> {
   if (session.payment_status !== "paid") return;
 
@@ -41,6 +42,23 @@ export async function handleGiftCardCompleted(
   const proUserId = m.pro_user_id;
   if (!businessId || !proUserId) {
     console.error("gift_card webhook missing metadata:", session.id);
+    return;
+  }
+
+  // The session must have been paid on THIS business's connected account.
+  // Any connected account can deliver validly-signed events here — without
+  // this check, an attacker's cheap session on their own account with
+  // forged business_id metadata mints a gift card redeemable at the
+  // victim's business while the money settled elsewhere.
+  const { data: bizAccount } = await supabase
+    .from("businesses")
+    .select("stripe_connect_account_id")
+    .eq("id", businessId)
+    .maybeSingle();
+  if (bizAccount?.stripe_connect_account_id !== expectedAccountId) {
+    console.error(
+      `gift_card webhook — session account ${expectedAccountId} does not own business ${businessId}`,
+    );
     return;
   }
 

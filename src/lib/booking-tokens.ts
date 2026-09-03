@@ -82,7 +82,7 @@ export async function resolveToken(token: string): Promise<ResolvedToken | null>
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("booking_access_tokens")
-    .select("token, booking_id, client_email, expires_at")
+    .select("token, booking_id, client_email, expires_at, accessed_count")
     .eq("token", token)
     .maybeSingle();
   if (!data) return null;
@@ -92,12 +92,15 @@ export async function resolveToken(token: string): Promise<ResolvedToken | null>
 
   if (!expired) {
     // Increment access counter (best-effort, non-blocking on failure).
+    // The previous version never selected accessed_count and had the
+    // ternary backwards, so the counter was pinned at 1 forever and the
+    // abuse-spike visibility this exists for never worked.
+    const prior =
+      ((data as unknown as { accessed_count?: number | null }).accessed_count ?? 0);
     await supabase
       .from("booking_access_tokens")
       .update({
-        accessed_count: (data as unknown as { accessed_count?: number }).accessed_count
-          ? undefined
-          : 1,
+        accessed_count: prior + 1,
         last_accessed_at: new Date().toISOString(),
       })
       .eq("token", token);

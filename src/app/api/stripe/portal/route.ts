@@ -37,10 +37,17 @@ async function createPortalSession(request: NextRequest): Promise<
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "unauthorized", status: 401 };
 
+  // limit(1) matters: maybeSingle() ERRORS (data=null) when the query
+  // matches more than one row, so without it every multi-site pro got a
+  // permanent 404 here and couldn't reach the billing portal. Prefer the
+  // oldest row that actually has a customer id.
   const { data: business } = await supabase
     .from("businesses")
     .select("id, stripe_customer_id")
     .eq("owner_id", user.id)
+    .not("stripe_customer_id", "is", null)
+    .order("created_at", { ascending: true })
+    .limit(1)
     .maybeSingle();
 
   if (!business?.stripe_customer_id) {

@@ -191,7 +191,11 @@ export default async function DashboardPage({
       .gte("start_at", todayIso)
       .neq("status", "cancelled")
       .order("start_at", { ascending: true })
-      .limit(10),
+      // 30, not 10: today's bookings get filtered out below before the
+      // Coming-up tile takes its 2. A pro with 10+ bookings left today
+      // would otherwise exhaust the whole fetch and see "Quiet days
+      // ahead" while tomorrow is fully booked.
+      .limit(30),
     supabase
       .from("email_campaigns")
       .select("name, sent_at, recipient_count")
@@ -208,7 +212,10 @@ export default async function DashboardPage({
     supabase
       .from("waitlist")
       .select("id", { count: "exact", head: true })
-      .eq("business_id", business.id),
+      .eq("business_id", business.id)
+      // Tile says "N people waiting" — notified/booked history rows would
+      // permanently inflate it and disagree with the Waitlist page.
+      .eq("status", "waiting"),
     admin
       .from("pro_referrals")
       .select("id", { count: "exact", head: true })
@@ -356,13 +363,14 @@ export default async function DashboardPage({
             todayServices={todayServices}
             isPublished={business.is_published}
             siteUrl={siteUrl}
+            timeZone={timezone}
           />
           <MoneyTile
             grossThisWeekCents={thisWeekData.trend.grossThisWeekCents}
             grossLastWeekCents={thisWeekData.trend.grossLastWeekCents}
           />
           <ClientsTile totalClients={totalClients} newThisWeek={newThisWeek} />
-          <BookingsTile upcoming={upcomingAfterToday} />
+          <BookingsTile upcoming={upcomingAfterToday} timeZone={timezone} />
           <MarketingTile lastCampaign={lastCampaign} />
           <GoalTile snapshot={goalSnapshot} />
           <ServicesTile services={services} />

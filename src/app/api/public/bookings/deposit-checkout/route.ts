@@ -169,7 +169,9 @@ export async function POST(request: NextRequest) {
   const successUrl = `${origin}/s/${business.slug}/booking-confirmed?session_id={CHECKOUT_SESSION_ID}&acct=${acctParam}`;
   const cancelUrl = `${origin}/s/${business.slug}`;
 
-  const tipCents = Math.max(0, Math.floor(body.tip_cents ?? 0));
+  // Clamp to a sane ceiling like pay-checkout does — a real tip on a
+  // deposit is never $500+; anything higher is a crafted request.
+  const tipCents = Math.min(50_000, Math.max(0, Math.floor(body.tip_cents ?? 0)));
 
   const lineItems: Array<{ price_data: { currency: string; product_data: { name: string; description?: string }; unit_amount: number }; quantity: number }> = [
     {

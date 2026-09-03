@@ -24,20 +24,28 @@ export function HeroTile({
   todayServices,
   isPublished,
   siteUrl,
+  timeZone,
 }: {
   greeting: string;
   todayServices: TodayService[];
   isPublished: boolean;
   siteUrl: string;
+  timeZone: string;
 }) {
-  const count = todayServices.length;
+  // Cancelled bookings don't count as "bookings today" and must never
+  // appear in the what's-ahead preview — a pro whose only booking today
+  // was cancelled would otherwise see "1 booking today" listing it.
+  const activeToday = todayServices.filter(
+    (s) => s.progressLabel !== "cancelled",
+  );
+  const count = activeToday.length;
   // Preview the first two services that aren't yet complete (or past),
   // so the pro sees what's *ahead* on the schedule. If everything's
   // wrapped, fall back to the first two in start order.
-  const upcomingToday = todayServices.filter(
+  const upcomingToday = activeToday.filter(
     (s) => s.progressLabel !== "complete" && s.progressLabel !== "past",
   );
-  const preview = (upcomingToday.length > 0 ? upcomingToday : todayServices).slice(0, 2);
+  const preview = (upcomingToday.length > 0 ? upcomingToday : activeToday).slice(0, 2);
 
   return (
     <div className="col-span-2 sm:col-span-4 sm:row-span-2 lg:col-span-4 lg:row-span-2 flex flex-col rounded-lg border border-[#E7E5E4] bg-white p-6 sm:p-8">
@@ -63,7 +71,7 @@ export function HeroTile({
                     className="flex items-baseline gap-3 text-sm text-[#525252]"
                   >
                     <span className="w-16 shrink-0 font-mono text-xs text-[#737373]">
-                      {formatStartTime(s.startAt)}
+                      {formatStartTime(s.startAt, timeZone)}
                     </span>
                     <span className="flex-1 truncate">
                       <span className="font-medium text-[#0A0A0A]">
@@ -124,13 +132,14 @@ export function HeroTile({
   );
 }
 
-function formatStartTime(start: Date): string {
-  // Browser's local-tz format. The Date instances we receive from
-  // getThisWeekData are UTC instants; Intl renders them in the
-  // user's runtime tz, which for the dashboard is the pro's machine
-  // — close enough to the business timezone for inline preview text.
+function formatStartTime(start: Date, timeZone: string): string {
+  // This is a server component, so Intl without an explicit timeZone
+  // renders in the SERVER's zone (UTC on Vercel), not the pro's machine
+  // — a 2:00 PM Eastern booking showed as "7:00 PM". Format in the
+  // business timezone instead.
   return new Intl.DateTimeFormat("en-US", {
     hour: "numeric",
     minute: "2-digit",
+    timeZone,
   }).format(start);
 }

@@ -12,7 +12,7 @@ export const metadata = {
   robots: { index: false, follow: true },
 };
 
-const PAGE_ASSEMBLED = "May 8, 2026";
+const PAGE_ASSEMBLED = "July 14, 2026";
 
 export default function SmsConsentEvidencePage() {
   return (
@@ -37,10 +37,20 @@ export default function SmsConsentEvidencePage() {
           <section className="space-y-3">
             <h2 className="font-display text-2xl font-medium">The consent moment</h2>
             <p>
-              When a client books a service through any OYRB beauty professional&apos;s storefront, they reach a confirmation step where they review their booking details and check optional consent boxes. The SMS consent box is optional, unchecked by default, and includes the full TCPA-required disclosure language. Clients who do not check the SMS consent box never receive any SMS messages — only those who explicitly opt in receive any text messages.
+              When a client books a service through any OYRB beauty professional&apos;s storefront, they reach a confirmation step where they review their booking details and check optional consent boxes. The SMS consent box is optional, unchecked by default, and <strong>not required to complete the booking</strong> — a client can book and use the service fully without checking it. Clients who do not check the SMS consent box never receive any SMS messages — only those who explicitly opt in receive any text messages.
             </p>
             <p>
-              The screenshot below shows OYRB&apos;s actual booking confirmation screen as it appears to clients today, captured from a live storefront.
+              The consent checkbox on the live booking widget reads: <em>&quot;Optional: I consent to receive automated SMS appointment reminders from [Business Name] at [phone number]. Message frequency varies. Message and data rates may apply. Consent is not a condition of any purchase. Reply STOP to unsubscribe, HELP for help. View our SMS Policy.&quot;</em>
+            </p>
+            <p>
+              The screenshot below shows OYRB&apos;s actual booking confirmation step as it appears to clients today, captured from a live storefront on July 14, 2026.
+            </p>
+            <p>
+              <strong>Verify the live flow directly:</strong> reviewers can observe the consent step themselves at{" "}
+              <a href="https://www.oyrb.space/s/glamboxroomllc-mo8xhd0q" className="text-[#B8896B] hover:underline">
+                oyrb.space/s/glamboxroomllc-mo8xhd0q
+              </a>
+              {" "}— select any service and time, enter any name/phone, and proceed to step 4 (&quot;Confirm&quot;). The optional SMS consent checkbox with the full disclosure language appears at the bottom of that step, unchecked, above the Confirm button. No purchase is required to view it.
             </p>
           </section>
 
@@ -49,15 +59,15 @@ export default function SmsConsentEvidencePage() {
             <figure className="mt-4 overflow-hidden rounded-lg border border-[#E7E5E4] bg-white">
               <Image
                 src="/sms-consent-evidence.png"
-                alt="OYRB booking widget confirmation step. The page shows booking details, required consents (age confirmation, terms, authorization), and at the bottom an optional SMS consent checkbox. The SMS line reads: 'Optional: I agree to receive SMS appointment reminders at [phone number]. Message frequency varies. Message and data rates may apply. Reply STOP to unsubscribe. View our SMS Policy.' The checkbox is unchecked by default."
-                width={2000}
-                height={1189}
+                alt="OYRB booking widget confirmation step on a live storefront. The page shows booking details, required consents (age confirmation, policies, terms, authorization), an optional 'How did you hear about us' dropdown, and near the bottom an optional SMS consent checkbox. The SMS line reads: 'Optional: I consent to receive automated SMS appointment reminders from [Business Name] at [phone number]. Message frequency varies. Message and data rates may apply. Consent is not a condition of any purchase. Reply STOP to unsubscribe, HELP for help. View our SMS Policy.' The checkbox is unchecked by default, and a separate optional marketing-email checkbox sits below it."
+                width={3476}
+                height={1918}
                 priority
                 className="h-auto w-full"
                 sizes="(max-width: 768px) 100vw, 720px"
               />
               <figcaption className="border-t border-[#E7E5E4] bg-[#FAFAF9] px-4 py-3 text-xs text-[#525252]">
-                OYRB&apos;s booking confirmation step. The SMS consent checkbox sits at the bottom of the page, marked <strong>Optional</strong> and unchecked by default. The full TCPA-required disclosure language is displayed beside the checkbox, including message frequency, data rate disclosure, opt-out instructions, and a link to the full SMS Policy.
+                OYRB&apos;s booking confirmation step, captured July 14, 2026. The SMS consent checkbox sits near the bottom of the page, marked <strong>Optional</strong> and unchecked by default. The full TCPA-required disclosure language is displayed beside the checkbox: message frequency, data rate disclosure, &quot;Consent is not a condition of any purchase,&quot; STOP/HELP instructions, and a link to the full SMS Policy.
               </figcaption>
             </figure>
           </section>
@@ -69,7 +79,10 @@ export default function SmsConsentEvidencePage() {
                 <strong>Express opt-in consent.</strong> The checkbox must be actively clicked. There is no pre-check, no inferred consent, no bundled consent.
               </li>
               <li>
-                <strong>Required disclosure language.</strong> Message frequency varies. Message and data rates may apply. Reply STOP to unsubscribe.
+                <strong>Required disclosure language.</strong> Message frequency varies. Message and data rates may apply. Consent is not a condition of any purchase. Reply STOP to unsubscribe, HELP for help.
+              </li>
+              <li>
+                <strong>Not a condition of service.</strong> Booking completes identically whether or not the box is checked — SMS consent is never required to use the service.
               </li>
               <li>
                 <strong>Linked policy.</strong> A direct, clickable link to OYRB&apos;s full <a href="/sms-policy" className="text-[#B8896B] hover:underline">SMS Policy</a> sits alongside the disclosure.

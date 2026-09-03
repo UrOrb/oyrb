@@ -164,7 +164,7 @@ export default async function AdminDisputeDetailPage({
         {/* Reason detail */}
         {dispute.reason_detail && (
           <section className="rounded-lg border border-[#E7E5E4] bg-white p-6">
-            <h2 className="text-base font-semibold">Reporter's account</h2>
+            <h2 className="text-base font-semibold">Reporter&apos;s account</h2>
             <p className="mt-2 whitespace-pre-wrap text-sm text-[#525252]">{dispute.reason_detail}</p>
           </section>
         )}

@@ -116,16 +116,6 @@ export function siteAllowance(tier: Tier, addonCount: number): number {
   return Math.min(spec.siteCap, spec.sitesIncluded + Math.max(0, addonCount));
 }
 
-/** True if the user can add another site without buying an add-on. */
-export function withinIncluded(tier: Tier, currentSites: number): boolean {
-  return currentSites < TIERS[tier].sitesIncluded;
-}
-
-/** True if the user is allowed to buy an add-on right now. */
-export function canBuyAddon(tier: Tier, currentSites: number): boolean {
-  return tier !== "starter" && currentSites < TIERS[tier].siteCap;
-}
-
 export function fmtMoney(cents: number): string {
   return `$${(cents / 100).toFixed(0)}`;
 }

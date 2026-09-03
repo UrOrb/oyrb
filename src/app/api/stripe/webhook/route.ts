@@ -4,8 +4,6 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { recordTrialStart, recordTrialAttempt } from "@/lib/trial";
 import { addBan } from "@/lib/trial-bans";
 import { sendTrialReminder } from "@/lib/trial-emails";
-import { handlePayInFullCompleted } from "@/lib/pay-in-full";
-import { handleGiftCardCompleted } from "@/lib/gift-cards";
 import { checkAndReserveEvent, markEventCompleted } from "@/lib/webhook-idempotency";
 import { sendPaymentFailed } from "@/lib/email";
 import type { Tier, BillingCycle } from "@/lib/plans";
@@ -69,19 +67,13 @@ export async function POST(request: Request) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
 
-      // Discriminator: pay-in-full sessions carry booking_type=pay_in_full
-      // in their metadata. Route them to the booking-side handler before
-      // the subscription path below (which expects supabase_user_id).
-      if (session.metadata?.booking_type === "pay_in_full") {
-        await handlePayInFullCompleted(supabase, session);
-        break;
-      }
-      // Gift-card purchases flow through the same webhook; route to the
-      // gift_cards handler.
-      if (session.metadata?.booking_type === "gift_card") {
-        await handleGiftCardCompleted(supabase, session);
-        break;
-      }
+      // pay_in_full / gift_card sessions are created with {stripeAccount}
+      // (direct charges on the pro's connected account), so their
+      // checkout.session.completed fires on the connected account and is
+      // delivered to /api/stripe/webhook/connect — never here. Ignore the
+      // booking_type discriminator entirely; this endpoint only handles
+      // platform subscription sessions.
+      if (session.metadata?.booking_type) break;
 
       const userId = session.metadata?.supabase_user_id;
       if (!userId) break;
@@ -273,6 +265,11 @@ export async function POST(request: Request) {
       // through a cast.
       const subscriptionId = (inv as unknown as { subscription?: string | null }).subscription;
       if (!subscriptionId) break;
+      // Trial signups emit a $0 invoice whose payment_succeeded races the
+      // checkout.session.completed event; letting it through flips the row
+      // trialing → active, hiding the trial banner and silencing the
+      // trial-reminder cron. Only a real payment is a recovery signal.
+      if ((inv.amount_paid ?? 0) <= 0) break;
       const periodEnd = inv.lines.data[0]?.period?.end;
 
       // Recovery path. Clears the past-due/grace columns AND re-publishes

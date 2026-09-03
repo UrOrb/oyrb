@@ -9,6 +9,7 @@ import { PendingInviteAcceptor } from "./pending-invite-acceptor";
 import { BillingBanner } from "./billing-banner";
 import { RemovalBanner } from "@/components/dashboard/removal-banner";
 import { ToSReacceptanceModal } from "@/components/dashboard/tos-reacceptance-modal";
+import { CheerDoll } from "@/components/dashboard/cheer-doll";
 import { TOS_VERSION, meetsTosVersion } from "@/lib/tos-version";
 
 export const metadata = {
@@ -134,6 +135,12 @@ export default async function DashboardLayout({
           dispatches a window event that this panel listens for, so we
           don't need a Context provider just for an open/close boolean. */}
       <HelpPanel />
+
+      {/* Gigi the cheer doll — springs up from the corner whenever a
+          client component calls cheer() (lib/cheer.ts) after a
+          completion moment: service finished, site published, etc.
+          Same window-event pattern as HelpPanel. */}
+      <CheerDoll />
 
       {/* Pass the Torch (Phase 1F) — auto-converts a pending invite
           token from /signup or /login into an accepted referral as

@@ -39,7 +39,12 @@ export async function GET(request: NextRequest) {
       clients(name, email),
       businesses!business_id(business_name, slug, service_category, owner_id)
     `)
-    .eq("status", "confirmed")
+    // "completed" is the state every past booking actually lives in: the
+    // auto-complete cron flips confirmed → completed 4h after end_at, so
+    // by 7+ days out a confirmed-only filter matches zero rows and no
+    // rebook reminder ever sent. Keep "confirmed" for pros whose rows
+    // predate the auto-complete cron.
+    .in("status", ["confirmed", "completed"])
     .is("rebook_reminder_sent_at", null)
     .gte("end_at", lookbackStart.toISOString())
     .lte("end_at", lookbackEnd.toISOString())

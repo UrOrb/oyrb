@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Play, Square, Clock } from "lucide-react";
+import { cheer } from "@/lib/cheer";
 
 /**
  * Phase 3 — Service timing card. Renders in the booking detail page
@@ -81,6 +82,7 @@ export function TimingButtons({ bookingId, initialStartedAt, initialEndedAt }: P
         }
         if (json.service_ended_at) {
           setEndedAt(json.service_ended_at);
+          cheer("Service complete — you did THAT! 💅");
           router.refresh();
         }
       } catch {

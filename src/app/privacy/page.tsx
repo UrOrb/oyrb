@@ -82,6 +82,16 @@ export default function PrivacyPage() {
               <li><strong>Legal &amp; safety:</strong> to comply with law, respond to lawful requests, or protect rights, property, or safety.</li>
               <li><strong>Business transfers:</strong> in connection with a merger, acquisition, or sale of assets, user data may be transferred.</li>
             </ul>
+            {/* Carrier-required disclosure (CTIA / Twilio verification):
+                the privacy policy linked from an SMS campaign must state
+                that mobile opt-in data is never shared for marketing.
+                Reviewers check for this exact commitment — keep it. */}
+            <h3 className="font-display text-lg font-medium">SMS &amp; mobile information</h3>
+            <p>
+              <strong>No mobile information will be shared with third parties or affiliates for marketing or promotional purposes.</strong>{" "}
+              Text messaging originator opt-in data and consent (including phone numbers collected for SMS) will not be shared with, or sold to, any third party. Phone numbers and SMS opt-in records are used solely to deliver the appointment-related messages described in our{" "}
+              <a href="/sms-policy" className="text-[#B8896B] hover:underline">SMS Messaging Policy</a>, and are shared only with our SMS delivery provider (Twilio) for the purpose of sending those messages. You can opt out at any time by replying STOP to any message.
+            </p>
           </section>
 
           <section className="space-y-3">

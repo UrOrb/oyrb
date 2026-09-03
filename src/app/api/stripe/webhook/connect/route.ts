@@ -131,13 +131,12 @@ export async function POST(request: Request) {
         // the redirect; here we only log them as the safety-net audit row.
         const bookingType = session.metadata?.booking_type;
         if (bookingType === "pay_in_full") {
-          await handlePayInFullCompleted(supabase, session);
+          await handlePayInFullCompleted(supabase, session, accountId);
         } else if (bookingType === "gift_card") {
-          await handleGiftCardCompleted(supabase, session);
-        } else if (bookingType === "deposit") {
-          await confirmDepositBookingFromWebhook(session.id, accountId);
+          await handleGiftCardCompleted(supabase, session, accountId);
         }
-        // unknown → ignored. Either way the stripe_connect_events row already
+        // deposit / unknown → handled elsewhere (or ignored). Either way the
+        // stripe_connect_events row already
         // captured the payload for audit.
         break;
       }
@@ -260,42 +259,6 @@ export async function POST(request: Request) {
     // 500 → Stripe retries; the next attempt sees status='failed' in our
     // ledger and reason="retry", so the handler runs again.
     return NextResponse.json({ error: "Handler failed" }, { status: 500 });
-  }
-}
-
-async function confirmDepositBookingFromWebhook(
-  sessionId: string,
-  connectedAccountId: string,
-): Promise<void> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (!appUrl) {
-    throw new Error("NEXT_PUBLIC_APP_URL is required to confirm deposit bookings from webhook");
-  }
-
-  const res = await fetch(`${appUrl.replace(/\/$/, "")}/api/public/bookings/confirm`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      session_id: sessionId,
-      connected_account_id: connectedAccountId,
-    }),
-  });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    // A paid deposit can legitimately be unable to create a booking if
-    // the slot was taken while the client was in Checkout. /confirm now
-    // performs an idempotent automatic refund in that case. Treat that
-    // remediated state as handled so Stripe does not retry forever.
-    if (res.status === 409 && body.includes("automatically refunded")) {
-      console.warn(
-        `[connect-webhook] deposit ${sessionId} could not create booking; automatic refund issued`,
-      );
-      return;
-    }
-    throw new Error(
-      `Deposit booking confirmation failed for ${sessionId}: HTTP ${res.status} ${body.slice(0, 500)}`,
-    );
   }
 }
 

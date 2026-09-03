@@ -980,13 +980,13 @@ export function BookingWidget({
                     </p>
                     <p className="mt-1 text-[#525252]">
                       {fmtPrice(service.price_cents)}
-                      {service.deposit_cents && service.deposit_cents > 0 && onlinePaymentLive && (
+                      {service.deposit_cents != null && service.deposit_cents > 0 && onlinePaymentLive && (
                         <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
                           {fmtPrice(service.deposit_cents)} deposit due now · rest due at appointment
                         </span>
                       )}
                     </p>
-                    {service.deposit_cents && service.deposit_cents > 0 && !onlinePaymentLive && (
+                    {service.deposit_cents != null && service.deposit_cents > 0 && !onlinePaymentLive && (
                       <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
                         {clientPaymentsEnabled
                           ? <>This service usually requires an online deposit. Online payment isn&apos;t available for <strong>{businessName}</strong> yet — please contact them directly to book.</>
@@ -1001,7 +1001,7 @@ export function BookingWidget({
                   </div>
 
                   {/* Tip selector — only when there's a deposit to charge */}
-                  {service.deposit_cents && service.deposit_cents > 0 && onlinePaymentLive && (
+                  {service.deposit_cents != null && service.deposit_cents > 0 && onlinePaymentLive && (
                     <div className="rounded-lg border border-[#E7E5E4] bg-white p-4">
                       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#737373]">
                         Add a tip? (optional)

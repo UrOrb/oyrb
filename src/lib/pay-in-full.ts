@@ -16,6 +16,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.oyrb.space";
 export async function handlePayInFullCompleted(
   supabase: SupabaseClient,
   session: Stripe.Checkout.Session,
+  expectedAccountId: string,
 ): Promise<void> {
   const bookingId = session.metadata?.booking_id;
   const token = session.metadata?.token;
@@ -29,14 +30,37 @@ export async function handlePayInFullCompleted(
     return;
   }
 
-  // Idempotency: if this session already wrote the row, bail.
-  const { data: existing } = await supabase
+  // Idempotency: if this session already wrote the row, bail. The join
+  // also pulls the business's connected account for the ownership check
+  // below.
+  const { data: existingData } = await supabase
     .from("bookings")
-    .select("id, pay_now_session_id, paid_in_full_at")
+    .select(
+      "id, pay_now_session_id, paid_in_full_at, businesses!business_id(stripe_connect_account_id)",
+    )
     .eq("id", bookingId)
     .maybeSingle();
+  const existing = existingData as unknown as {
+    id: string;
+    pay_now_session_id: string | null;
+    paid_in_full_at: string | null;
+    businesses: { stripe_connect_account_id: string | null } | null;
+  } | null;
   if (!existing) {
     console.error("pay_in_full webhook — booking not found:", bookingId);
+    return;
+  }
+  // The session must have been paid on THIS booking's business account.
+  // Any connected account can deliver validly-signed events to the
+  // Connect endpoint — without this check, an attacker's $0.50 session
+  // on their own account with forged booking_id metadata would stamp
+  // someone else's booking paid_in_full.
+  if (
+    existing.businesses?.stripe_connect_account_id !== expectedAccountId
+  ) {
+    console.error(
+      `pay_in_full webhook — session account ${expectedAccountId} does not own booking ${bookingId}`,
+    );
     return;
   }
   if (existing.pay_now_session_id === session.id && existing.paid_in_full_at) {
