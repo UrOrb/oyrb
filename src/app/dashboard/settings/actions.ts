@@ -57,6 +57,7 @@ export async function updateGoalSettings(input: {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/settings/general");
   return { ok: true };
 }
 
@@ -88,9 +89,11 @@ export async function updateCustomDomain(formData: FormData) {
       custom_domain: domain || null,
       custom_domain_verified: false, // reset verification on change
     })
-    .eq("id", business.id);
+    .eq("id", business.id)
+    .eq("owner_id", user.id);
 
   revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/settings/domain");
   return { success: true };
 }
 
@@ -185,6 +188,7 @@ export async function togglePublicStats(
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/settings/general");
   revalidatePath(`/s/${business.slug}`);
   return { ok: true };
 }

@@ -1,4 +1,3 @@
-/* eslint-disable react/no-unescaped-entities */
 "use client";
 
 import Link from "next/link";
@@ -94,7 +93,7 @@ export function GoalMeter({ snapshot }: Props) {
               progress and cheer you on.
             </p>
             <Link
-              href="/dashboard/settings#goal"
+              href="/dashboard/settings/general#goal"
               className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-[#0A0A0A] px-3 py-1.5 text-xs font-medium text-white hover:opacity-85"
             >
               Set goal →
@@ -132,7 +131,7 @@ export function GoalMeter({ snapshot }: Props) {
           </p>
         </div>
         <Link
-          href="/dashboard/settings#goal"
+          href="/dashboard/settings/general#goal"
           aria-label="Edit monthly goal"
           className="inline-flex items-center gap-1 rounded-md border border-[#E7E5E4] px-2 py-1 text-[11px] font-medium text-[#525252] hover:bg-[#F5F5F4]"
         >

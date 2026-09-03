@@ -1,0 +1,140 @@
+import { EndTrialButton } from "../end-trial-button";
+import { PlanChangeForm } from "../plan-change-form";
+import type { AccountSummary } from "@/lib/account";
+import {
+  ADDON_ANNUAL_CENTS,
+  ADDON_MONTHLY_CENTS,
+  TIERS,
+  fmtMoney,
+  fmtPriceLabel,
+} from "@/lib/plans";
+
+export function BillingPanel({ summary }: { summary: AccountSummary }) {
+  const sub = summary.subscription!;
+  const tier = TIERS[sub.tier];
+  const cycle = sub.billing_cycle;
+  const planCents = cycle === "monthly" ? tier.monthlyPriceCents : tier.annualPriceCents;
+  const addonUnitCents = cycle === "monthly" ? ADDON_MONTHLY_CENTS : ADDON_ANNUAL_CENTS;
+  const addonTotalCents = addonUnitCents * sub.addon_count;
+  const totalCents = planCents + addonTotalCents;
+  const renewalDate = sub.current_period_end
+    ? new Date(sub.current_period_end).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "-";
+  const cycleLabel = cycle === "monthly" ? "Monthly" : "Annual";
+  const cycleSuffix = cycle === "monthly" ? "/mo" : "/yr";
+
+  return (
+    <section className="rounded-lg border border-[#E7E5E4] bg-white p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold">Billing</h2>
+          <p className="mt-0.5 text-xs text-[#737373]">
+            Current plan, sites, and renewal.
+          </p>
+        </div>
+        {sub.status !== "active" && (
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+              sub.status === "past_due"
+                ? "bg-red-100 text-red-700"
+                : "bg-[#FAFAF9] text-[#737373]"
+            }`}
+          >
+            {sub.status === "past_due" ? "Past due - update payment method" : sub.status}
+          </span>
+        )}
+      </div>
+
+      <div className="mt-5 grid gap-4 md:grid-cols-2">
+        <div className="rounded-md bg-[#FAFAF9] px-4 py-3">
+          <p className="text-[11px] uppercase tracking-wider text-[#A3A3A3]">Plan</p>
+          <p className="mt-1 text-sm font-semibold">
+            {tier.name} · {cycleLabel}
+          </p>
+          <p className="text-xs text-[#737373]">
+            {fmtMoney(planCents)}
+            {cycleSuffix}
+          </p>
+        </div>
+        <div className="rounded-md bg-[#FAFAF9] px-4 py-3">
+          <p className="text-[11px] uppercase tracking-wider text-[#A3A3A3]">Sites</p>
+          <p className="mt-1 text-sm font-semibold">
+            {summary.siteCount} of {summary.allowance} used
+          </p>
+          <p className="text-xs text-[#737373]">
+            Plan cap: {tier.siteCap}{" "}
+            {sub.tier !== "starter" &&
+              `· add-ons used: ${sub.addon_count}/${tier.siteCap - tier.sitesIncluded}`}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <p className="text-[11px] uppercase tracking-wider text-[#A3A3A3]">Line items</p>
+        <ul className="mt-2 divide-y divide-[#F0EFEC] rounded-md border border-[#E7E5E4]">
+          <li className="flex items-center justify-between px-4 py-2 text-sm">
+            <span>
+              {tier.name} plan ({cycleLabel.toLowerCase()})
+            </span>
+            <span className="font-medium">
+              {fmtMoney(planCents)}
+              {cycleSuffix}
+            </span>
+          </li>
+          {sub.addon_count > 0 && (
+            <li className="flex items-center justify-between px-4 py-2 text-sm">
+              <span>
+                Additional sites × {sub.addon_count}{" "}
+                <span className="text-xs text-[#A3A3A3]">
+                  ({fmtPriceLabel(addonUnitCents, cycle)} each)
+                </span>
+              </span>
+              <span className="font-medium">
+                {fmtMoney(addonTotalCents)}
+                {cycleSuffix}
+              </span>
+            </li>
+          )}
+          <li className="flex items-center justify-between bg-[#FAFAF9] px-4 py-2 text-sm font-semibold">
+            <span>Total</span>
+            <span>
+              {fmtMoney(totalCents)}
+              {cycleSuffix}
+            </span>
+          </li>
+        </ul>
+      </div>
+
+      {sub.status === "trialing" && (
+        <div className="mt-5 rounded-md border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
+          <p className="font-semibold">You&rsquo;re currently in your 14-day free trial.</p>
+          <p className="mt-1">
+            Your card will be charged {fmtMoney(planCents + addonTotalCents)}
+            {cycleSuffix} on <span className="font-semibold">{renewalDate}</span>.
+            Add-on sites are disabled during the trial - skip the trial to start
+            using multiple sites today.
+          </p>
+          <div className="mt-3">
+            <EndTrialButton />
+          </div>
+        </div>
+      )}
+
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-xs text-[#737373]">
+        <p>
+          Next charge: <span className="font-semibold text-[#0A0A0A]">{renewalDate}</span>
+        </p>
+        <PlanChangeForm
+          currentTier={sub.tier}
+          currentCycle={cycle}
+          currentSites={summary.siteCount}
+          currentAddons={sub.addon_count}
+        />
+      </div>
+    </section>
+  );
+}

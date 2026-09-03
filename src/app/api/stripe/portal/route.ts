@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   const result = await createPortalSession(request);
   if ("error" in result) {
     return NextResponse.redirect(
-      new URL(`/dashboard/settings?portal_error=${encodeURIComponent(result.error)}`, request.url)
+      new URL(`/dashboard/settings/payments?portal_error=${encodeURIComponent(result.error)}`, request.url)
     );
   }
   return NextResponse.redirect(result.url);
@@ -55,7 +55,7 @@ async function createPortalSession(request: NextRequest): Promise<
   }
 
   const origin = new URL(request.url).origin;
-  const returnUrl = `${origin}/dashboard/settings`;
+  const returnUrl = `${origin}/dashboard/settings/payments`;
 
   try {
     const session = await stripe.billingPortal.sessions.create({
