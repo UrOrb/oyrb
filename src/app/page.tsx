@@ -447,7 +447,7 @@ export default function HomePage() {
                   style={{ marginTop: i === 1 ? "-16px" : "0" }}
                 >
                   <Image
-                    src={id.startsWith("http") ? id : `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=300&q=80`}
+                    src={id.startsWith("http") || id.startsWith("/") ? id : `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=300&q=80`}
                     alt="Beauty professional"
                     fill
                     className="object-cover"

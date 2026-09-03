@@ -42,7 +42,7 @@ const FEATURES = [
 ];
 
 function resolveSrc(val: string) {
-  return val.startsWith("http")
+  return val.startsWith("http") || val.startsWith("/")
     ? val
     : `https://images.unsplash.com/photo-${val}?auto=format&fit=crop&w=800&q=80`;
 }

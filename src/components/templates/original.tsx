@@ -676,7 +676,7 @@ export function OriginalTemplate({ theme: t, services = [], hours = SAMPLE_HOURS
   // Instagram grid: use uploaded gallery photos if present, else theme's sample gallery IDs via Unsplash
   const galleryFromBiz: string[] = (business?.photos ?? []) as string[];
   const galleryFromTheme: string[] = (biz.galleryIds ?? []).map(
-    (id: string) => id.startsWith("http")
+    (id: string) => id.startsWith("http") || id.startsWith("/")
       ? id
       : `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=400&q=80`
   );
