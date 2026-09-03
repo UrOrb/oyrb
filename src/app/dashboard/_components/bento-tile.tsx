@@ -46,8 +46,8 @@ export function BentoTile({
   badge?: ReactNode;
   ariaLabel?: string;
 }) {
-  const bg = tone === "soft" ? "bg-[#FAFAF9]" : "bg-white";
-  const baseChrome = `group relative flex min-h-[120px] flex-col rounded-lg border border-[#E7E5E4] ${bg} p-5`;
+  const bg = tone === "soft" ? "bg-[#FAFAF9]" : "bg-[#FFFCF8]";
+  const baseChrome = `group relative flex min-h-[120px] flex-col rounded-xl border border-[#E7E5E4] ${bg} p-5 shadow-[0_14px_40px_rgba(10,10,10,0.035)]`;
 
   if (!href) {
     return (
@@ -67,12 +67,39 @@ export function BentoTile({
     <Link
       href={href}
       aria-label={ariaLabel}
-      className={`${baseChrome} transition-colors hover:border-[#A3A3A3] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D946EF] ${className}`}
+      className={`${baseChrome} transition-colors hover:border-[#B8896B]/55 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B8896B] ${className}`}
     >
       {badge !== undefined && (
         <span className="absolute right-3 top-3">{badge}</span>
       )}
       {children}
     </Link>
+  );
+}
+
+export function TileTitle({ children }: { children: ReactNode }) {
+  return (
+    <p className="text-[11px] font-semibold uppercase tracking-wider text-[#525252]">
+      {children}
+    </p>
+  );
+}
+
+export function EmptyTileState({
+  children,
+  icon,
+}: {
+  children: ReactNode;
+  icon?: ReactNode;
+}) {
+  return (
+    <div className="mt-3 flex items-start gap-2 rounded-xl border border-dashed border-[#D7CFC8] bg-white/60 p-3 text-xs leading-relaxed text-[#737373]">
+      {icon && (
+        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#F1EFEC] text-[#B8896B]">
+          {icon}
+        </span>
+      )}
+      <p>{children}</p>
+    </div>
   );
 }

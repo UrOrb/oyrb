@@ -1,4 +1,5 @@
-import { BentoTile } from "../bento-tile";
+import { Mail } from "lucide-react";
+import { BentoTile, EmptyTileState, TileTitle } from "../bento-tile";
 
 /**
  * Marketing tile — last campaign sent. Shows campaign name + sent date
@@ -27,13 +28,13 @@ export function MarketingTile({
       className="col-span-2 sm:col-span-2 lg:col-span-2"
       ariaLabel="Marketing"
     >
-      <p className="text-sm font-semibold text-[#0A0A0A]">Marketing</p>
+      <TileTitle>Marketing</TileTitle>
 
       {!lastCampaign ? (
-        <p className="mt-2 text-xs leading-relaxed text-[#737373]">
+        <EmptyTileState icon={<Mail size={13} strokeWidth={1.6} />}>
           No campaigns yet. Most pros find their first email gets the best
           engagement.
-        </p>
+        </EmptyTileState>
       ) : (
         <>
           <p className="mt-3 truncate text-sm font-medium text-[#0A0A0A]">

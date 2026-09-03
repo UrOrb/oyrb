@@ -328,7 +328,7 @@ export default async function DashboardPage({
       {/* Site status banner — published vs not. Lives between
           status banners and the greeting; orients the pro to
           the most-important state of their site. */}
-      <div className={`mt-2 flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-center md:justify-between ${business.is_published ? "border-[#E7E5E4] bg-[#FAFAF9]" : "border-amber-200 bg-amber-50"}`}>
+      <div className={`mt-2 flex flex-col gap-3 rounded-xl border p-4 shadow-[0_12px_32px_rgba(10,10,10,0.035)] md:flex-row md:items-center md:justify-between ${business.is_published ? "border-[#E7D8CF] bg-[#FFFCF8]" : "border-[#E7C9A8] bg-[#FBF4EC]"}`}>
         <div>
           <p className="text-sm font-semibold">
             {business.is_published ? "Your site is live ✦" : "Publish your site to start taking bookings"}

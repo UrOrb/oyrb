@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import { BentoTile } from "../bento-tile";
+import { BentoTile, EmptyTileState, TileTitle } from "../bento-tile";
 
 /**
  * Services tile — top 3 active services by name. Sized as a tall
@@ -29,13 +29,13 @@ export function ServicesTile({
       className="col-span-1 sm:col-span-2 lg:col-span-1"
       ariaLabel="Services"
     >
-      <p className="text-sm font-semibold text-[#0A0A0A]">Services</p>
+      <TileTitle>Services</TileTitle>
 
       {empty ? (
         <div className="mt-2">
-          <p className="text-xs leading-relaxed text-[#737373]">
+          <EmptyTileState icon={<Plus size={13} strokeWidth={1.6} />}>
             Add your first service to start taking bookings.
-          </p>
+          </EmptyTileState>
           <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[#0A0A0A]">
             <Plus size={11} strokeWidth={1.5} /> Add service
           </span>

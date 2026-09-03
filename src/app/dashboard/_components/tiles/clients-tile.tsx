@@ -1,4 +1,5 @@
-import { BentoTile } from "../bento-tile";
+import { Users } from "lucide-react";
+import { BentoTile, EmptyTileState, TileTitle } from "../bento-tile";
 
 /**
  * Clients tile — total client count + new-this-week. "New" is
@@ -19,16 +20,16 @@ export function ClientsTile({
       className="col-span-1 sm:col-span-2 lg:col-span-2"
       ariaLabel="Clients"
     >
-      <p className="text-sm font-semibold text-[#0A0A0A]">Clients</p>
+      <TileTitle>Clients</TileTitle>
 
       {totalClients === 0 ? (
-        <p className="mt-2 text-xs leading-relaxed text-[#737373]">
+        <EmptyTileState icon={<Users size={13} strokeWidth={1.6} />}>
           Your client list starts at zero. Import past clients from{" "}
           <span className="font-medium text-[#525252]">
             /dashboard/clients/imports
           </span>
           .
-        </p>
+        </EmptyTileState>
       ) : (
         <>
           <p className="font-display mt-3 text-3xl font-medium tracking-tight text-[#0A0A0A]">

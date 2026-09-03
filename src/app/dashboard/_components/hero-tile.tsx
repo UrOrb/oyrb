@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Share2 } from "lucide-react";
+import { ArrowRight, CalendarDays, Share2 } from "lucide-react";
 import type { TodayService } from "@/lib/business-brain";
 
 /**
@@ -48,7 +48,8 @@ export function HeroTile({
   const preview = (upcomingToday.length > 0 ? upcomingToday : activeToday).slice(0, 2);
 
   return (
-    <div className="col-span-2 sm:col-span-4 sm:row-span-2 lg:col-span-4 lg:row-span-2 flex flex-col rounded-lg border border-[#E7E5E4] bg-white p-6 sm:p-8">
+    <div className="relative col-span-2 flex flex-col overflow-hidden rounded-2xl border border-[#E7D8CF] bg-[#FFFCF8] p-6 shadow-[0_18px_55px_rgba(10,10,10,0.055)] sm:col-span-4 sm:row-span-2 sm:p-8 lg:col-span-4 lg:row-span-2">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[#B8896B]" />
       <p className="font-display text-2xl font-medium tracking-tight text-[#0A0A0A] sm:text-3xl">
         {greeting}
       </p>
@@ -86,7 +87,10 @@ export function HeroTile({
             )}
           </>
         ) : (
-          <>
+          <div className="rounded-2xl border border-dashed border-[#D7CFC8] bg-white/65 p-5">
+            <span className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#F1EFEC] text-[#B8896B]">
+              <CalendarDays size={17} strokeWidth={1.7} />
+            </span>
             <p className="font-display text-2xl font-medium tracking-tight text-[#0A0A0A]">
               No bookings today.
             </p>
@@ -96,7 +100,7 @@ export function HeroTile({
                 ? "share your site or plan a campaign."
                 : "set up your site and start taking bookings."}
             </p>
-          </>
+          </div>
         )}
       </div>
 
@@ -113,7 +117,7 @@ export function HeroTile({
             href={siteUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-md border border-[#E7E5E4] bg-white px-3 py-2 text-xs font-medium text-[#525252] hover:bg-[#FAFAF9]"
+            className="inline-flex items-center gap-1.5 rounded-md border border-[#E7E5E4] bg-white/80 px-3 py-2 text-xs font-medium text-[#525252] hover:bg-white"
           >
             <Share2 size={12} strokeWidth={1.5} />
             Share your site
@@ -122,7 +126,7 @@ export function HeroTile({
         {count === 0 && !isPublished && (
           <Link
             href="/dashboard/site"
-            className="inline-flex items-center gap-1.5 rounded-md border border-[#E7E5E4] bg-white px-3 py-2 text-xs font-medium text-[#525252] hover:bg-[#FAFAF9]"
+            className="inline-flex items-center gap-1.5 rounded-md border border-[#E7E5E4] bg-white/80 px-3 py-2 text-xs font-medium text-[#525252] hover:bg-white"
           >
             Set up your site
           </Link>

@@ -1,4 +1,5 @@
-import { BentoTile } from "../bento-tile";
+import { Flame } from "lucide-react";
+import { BentoTile, EmptyTileState, TileTitle } from "../bento-tile";
 
 /**
  * Trusted Pros tile — accepted count + pending badge.
@@ -37,12 +38,12 @@ export function TrustedProsTile({
       }
       ariaLabel="Trusted Pros"
     >
-      <p className="text-sm font-semibold text-[#0A0A0A]">Trusted Pros</p>
+      <TileTitle>Trusted Pros</TileTitle>
 
       {empty ? (
-        <p className="mt-2 text-xs leading-relaxed text-[#737373]">
+        <EmptyTileState icon={<Flame size={13} strokeWidth={1.6} />}>
           Build your trusted-pros circle.
-        </p>
+        </EmptyTileState>
       ) : (
         <>
           <p className="font-display mt-3 text-3xl font-medium tracking-tight text-[#0A0A0A]">

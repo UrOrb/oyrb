@@ -1,5 +1,5 @@
 import { TrendingUp, TrendingDown, ArrowRight } from "lucide-react";
-import { BentoTile } from "../bento-tile";
+import { BentoTile, EmptyTileState, TileTitle } from "../bento-tile";
 
 /**
  * Money tile — this-week gross with week-over-week delta. Pulls from
@@ -34,13 +34,13 @@ export function MoneyTile({
       className="col-span-1 sm:col-span-2 lg:col-span-2"
       ariaLabel="This week revenue"
     >
-      <p className="text-sm font-semibold text-[#0A0A0A]">This week</p>
+      <TileTitle>This week</TileTitle>
 
       {empty ? (
-        <p className="mt-2 text-xs leading-relaxed text-[#737373]">
+        <EmptyTileState icon={<TrendingUp size={13} strokeWidth={1.6} />}>
           This week starts here. Your first paid booking will show up as it
           lands.
-        </p>
+        </EmptyTileState>
       ) : (
         <>
           <p className="font-display mt-3 text-3xl font-medium tracking-tight text-[#0A0A0A]">

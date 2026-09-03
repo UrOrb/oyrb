@@ -47,10 +47,12 @@ export async function BillingBanner() {
     });
 
   return (
-    <div className="border-b border-[#FCD34D] bg-[#FFFBEB] px-6 py-3">
+    <div className="border-b border-[#E7C9A8] bg-[#FBF4EC] px-6 py-3">
       <div className="mx-auto flex max-w-[1200px] flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-2 text-[#78350F]">
-          <AlertCircle size={16} className="mt-0.5 shrink-0" />
+        <div className="flex items-start gap-2 text-[#7C5A3F]">
+          <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-[#B8896B]">
+            <AlertCircle size={15} />
+          </span>
           <p className="leading-relaxed">
             <span className="font-semibold">Payment failed</span>
             {failedAt ? <> on {fmtShort(failedAt)}</> : null} for your OYRB {tier}

@@ -77,7 +77,7 @@ export function GoalMeter({ snapshot }: Props) {
   // First-run CTA: user has never set a goal. Prompt them to.
   if (isFirstRun) {
     return (
-      <div className="rounded-lg border border-[#E7E5E4] bg-white p-5">
+      <div className="rounded-xl border border-[#E7E5E4] bg-[#FFFCF8] p-5 shadow-[0_14px_40px_rgba(10,10,10,0.035)]">
         <div className="flex items-start gap-3">
           <div
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white"
@@ -117,7 +117,7 @@ export function GoalMeter({ snapshot }: Props) {
       : "Confirmed bookings";
 
   return (
-    <div className="rounded-lg border border-[#E7E5E4] bg-white p-5">
+    <div className="rounded-xl border border-[#E7E5E4] bg-[#FFFCF8] p-5 shadow-[0_14px_40px_rgba(10,10,10,0.035)]">
       {/* Title + edit */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">

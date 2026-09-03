@@ -1,4 +1,5 @@
-import { BentoTile } from "../bento-tile";
+import { Clock } from "lucide-react";
+import { BentoTile, EmptyTileState, TileTitle } from "../bento-tile";
 
 /**
  * Waitlist tile — just the count. Compact stat tile (1 col on desktop).
@@ -10,12 +11,12 @@ export function WaitlistTile({ count }: { count: number }) {
       className="col-span-1 sm:col-span-1 lg:col-span-1"
       ariaLabel="Waitlist"
     >
-      <p className="text-sm font-semibold text-[#0A0A0A]">Waitlist</p>
+      <TileTitle>Waitlist</TileTitle>
 
       {count === 0 ? (
-        <p className="mt-2 text-xs leading-relaxed text-[#737373]">
+        <EmptyTileState icon={<Clock size={13} strokeWidth={1.6} />}>
           No one on your waitlist.
-        </p>
+        </EmptyTileState>
       ) : (
         <>
           <p className="font-display mt-3 text-3xl font-medium tracking-tight text-[#0A0A0A]">

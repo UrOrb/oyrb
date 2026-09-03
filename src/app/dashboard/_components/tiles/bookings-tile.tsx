@@ -1,4 +1,5 @@
-import { BentoTile } from "../bento-tile";
+import { CalendarDays } from "lucide-react";
+import { BentoTile, EmptyTileState, TileTitle } from "../bento-tile";
 
 /**
  * Bookings tile — the next 2 upcoming appointments AFTER today. Today
@@ -28,12 +29,12 @@ export function BookingsTile({
       className="col-span-2 sm:col-span-4 lg:col-span-4"
       ariaLabel="Upcoming bookings"
     >
-      <p className="text-sm font-semibold text-[#0A0A0A]">Coming up</p>
+      <TileTitle>Coming up</TileTitle>
 
       {empty ? (
-        <p className="mt-2 text-xs leading-relaxed text-[#737373]">
+        <EmptyTileState icon={<CalendarDays size={13} strokeWidth={1.6} />}>
           Quiet days ahead. A good time to plan a campaign.
-        </p>
+        </EmptyTileState>
       ) : (
         <ul className="mt-3 space-y-2">
           {upcoming.map((b) => (
