@@ -9,7 +9,7 @@ const FEATURES = [
     label: "Booking",
     heading: "Your schedule, running itself.",
     body: "Clients book directly from your site — any time, any device. Set your hours, block time off, add buffers between appointments. No more back-and-forth texts.",
-    image: "/aura-hero.jpeg",
+    image: "/marketing/feature-01.webp",
     alt: "Close-up of eyelashes with extensions applied",
   },
   {
@@ -18,7 +18,7 @@ const FEATURES = [
     label: "Your Site",
     heading: "A booking site that actually looks like your brand.",
     body: "Choose from 150 editor-designed templates built for beauty pros — 5 layouts × 30 themes. Go live in under 10 minutes — no designer, no developer needed.",
-    image: "/bold-hero.avif",
+    image: "/marketing/feature-02.webp",
     alt: "Barber giving a fresh fade haircut",
   },
   {
@@ -27,7 +27,7 @@ const FEATURES = [
     label: "Payments",
     heading: "Collect deposits. Get paid instantly.",
     body: "Require deposits at booking to protect your time. All major cards, Apple Pay, Google Pay — funds land in your bank directly. We never touch your money.",
-    image: "/luxe-hero.avif",
+    image: "/marketing/feature-03.webp",
     alt: "Payment at salon counter",
   },
   {
@@ -36,7 +36,7 @@ const FEATURES = [
     label: "Clients",
     heading: "Every client. Every detail. One place.",
     body: "Automatic booking history, spend totals, notes, and contact info for every client. Know who's coming in before they walk through the door.",
-    image: "/earth-hero.avif",
+    image: "/marketing/feature-04.webp",
     alt: "Woman relaxing at spa with face mask",
   },
 ];

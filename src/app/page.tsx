@@ -143,8 +143,8 @@ export default function HomePage() {
               {/* Main large image — lash artist working on client */}
               <div className="absolute right-0 top-8 h-[420px] w-[300px] overflow-hidden rounded-2xl shadow-xl lg:h-[500px] lg:w-[340px]">
                 <Image
-                  src="/aura-hero.jpeg"
-                  alt="Lash artist applying lash extensions to client"
+                  src="/marketing/hero-1.webp"
+                  alt="Beauty professional styling hair"
                   fill
                   className="object-cover"
                   priority
@@ -155,8 +155,8 @@ export default function HomePage() {
               {/* Second image — left, lower — man with sunglasses, men's grooming */}
               <div className="absolute left-0 bottom-12 h-[260px] w-[200px] overflow-hidden rounded-2xl shadow-lg lg:h-[300px] lg:w-[230px]">
                 <Image
-                  src="/street-hero.avif"
-                  alt="Man with sunglasses, men's grooming style"
+                  src="/marketing/hero-2.webp"
+                  alt="Nail technician detailing nails"
                   fill
                   className="object-cover"
                   sizes="230px"
@@ -166,8 +166,8 @@ export default function HomePage() {
               {/* Third image — left, upper — nail closeup with detailed art */}
               <div className="absolute left-16 top-10 h-[180px] w-[160px] overflow-hidden rounded-2xl shadow-md lg:h-[210px] lg:w-[190px]">
                 <Image
-                  src="/candy-hero.avif"
-                  alt="Detailed nail art with black and amber polish"
+                  src="/marketing/hero-3.webp"
+                  alt="Lash artist at work"
                   fill
                   className="object-cover"
                   sizes="190px"
@@ -202,8 +202,8 @@ export default function HomePage() {
           <div className="flex flex-col gap-6 pb-6 lg:hidden">
             <div className="relative aspect-[4/5] overflow-hidden rounded-2xl shadow-lg">
               <Image
-                src="/aura-hero.jpeg"
-                alt="Lash artist applying lash extensions to client"
+                src="/marketing/hero-1.webp"
+                alt="Beauty professional styling hair"
                 fill
                 sizes="(max-width: 1024px) 100vw, 0px"
                 className="object-cover"
@@ -214,8 +214,8 @@ export default function HomePage() {
             </div>
             <div className="relative aspect-[4/5] overflow-hidden rounded-2xl shadow-lg">
               <Image
-                src="/candy-hero.avif"
-                alt="Detailed nail art with black and amber polish"
+                src="/marketing/hero-3.webp"
+                alt="Lash artist at work"
                 fill
                 sizes="(max-width: 1024px) 100vw, 0px"
                 className="object-cover"
@@ -223,8 +223,8 @@ export default function HomePage() {
             </div>
             <div className="relative aspect-[4/5] overflow-hidden rounded-2xl shadow-lg">
               <Image
-                src="/street-hero.avif"
-                alt="Man with sunglasses, men's grooming style"
+                src="/marketing/hero-2.webp"
+                alt="Nail technician detailing nails"
                 fill
                 sizes="(max-width: 1024px) 100vw, 0px"
                 className="object-cover"

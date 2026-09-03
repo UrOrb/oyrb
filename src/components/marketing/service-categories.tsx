@@ -6,37 +6,37 @@ const CATEGORIES = [
   {
     id: "hair",
     label: "Hair",
-    src: "/bold-hero.avif",
+    src: "/marketing/hair.webp",
   },
   {
     id: "brows",
     label: "Brows",
-    src: "/minimal-hero.avif",
+    src: "/marketing/brows.webp",
   },
   {
     id: "nails",
     label: "Nails",
-    src: "/candy-hero.avif",
+    src: "/marketing/nails.webp",
   },
   {
     id: "lashes",
     label: "Lashes",
-    src: "/aura-hero.jpeg",
+    src: "/marketing/lashes.webp",
   },
   {
     id: "cuts",
     label: "Cuts",
-    src: "/street-hero.avif",
+    src: "/marketing/cuts.webp",
   },
   {
     id: "skin",
     label: "Skin",
-    src: "/earth-hero.avif",
+    src: "/marketing/skin.webp",
   },
   {
     id: "makeup",
     label: "MUA",
-    src: "/luxe-hero.avif",
+    src: "/marketing/mua.webp",
   },
 ];
 
