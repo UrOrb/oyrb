@@ -8,7 +8,6 @@ import { SectionCard } from "./section-card";
 
 type Props = {
   business: {
-    id: string;
     subscription_tier: string;
     custom_domain: string | null;
     custom_domain_verified: boolean;
@@ -82,7 +81,6 @@ export function SettingsForm({ business }: Props) {
         </div>
       ) : (
         <form action={handleSubmit} className="space-y-5">
-          <input type="hidden" name="business_id" value={business.id} />
           <div>
             <label htmlFor="custom_domain" className="text-sm font-medium">
               Your domain

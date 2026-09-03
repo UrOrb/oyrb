@@ -77,7 +77,6 @@ export default async function GeneralSettingsPage({ searchParams }: Props) {
 
       <SettingsForm
         business={{
-          id: business.id,
           subscription_tier: business.subscription_tier,
           custom_domain: business.custom_domain ?? null,
           custom_domain_verified: !!business.custom_domain_verified,

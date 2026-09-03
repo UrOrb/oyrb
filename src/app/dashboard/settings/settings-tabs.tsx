@@ -6,14 +6,12 @@ import { BarChart3, CalendarDays, Globe2, Settings } from "lucide-react";
 
 const tabs = [
   {
-    label: "General & Billing",
+    label: "General",
     href: "/dashboard/settings/general",
     icon: Settings,
     matches: [
       "/dashboard/settings",
       "/dashboard/settings/general",
-      "/dashboard/settings/payments",
-      "/dashboard/settings/domain",
       "/dashboard/settings/remove-brand",
     ],
   },
@@ -23,7 +21,6 @@ const tabs = [
     icon: CalendarDays,
     matches: [
       "/dashboard/settings/operations",
-      "/dashboard/settings/booking",
       "/dashboard/settings/booking-rules",
       "/dashboard/settings/exports",
       "/dashboard/settings/rebook",
