@@ -435,9 +435,9 @@ export default function HomePage() {
             {/* 3 portrait thumbnails */}
             <div className="flex justify-end gap-3">
               {[
-                "/luxe-hero.avif",
+                "/marketing/cta-1.jpg",
                 "1531746020798-e6953c6e8e04",
-                "/chrome-hero.avif",
+                "/marketing/cta-3.jpg",
               ].map((id, i) => (
                 <div
                   key={id}
