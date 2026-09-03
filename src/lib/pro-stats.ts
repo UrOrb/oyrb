@@ -173,14 +173,34 @@ export async function loadProStatsInputs(biz: {
     ? new Date(ownerProfile.data.user.created_at)
     : null;
 
+  const specialtyLabels: Record<string, string> = {
+    hair: "Hair",
+    hair_color: "Hair color",
+    hair_braids: "Braids",
+    locs: "Locs & natural hair",
+    nails: "Nails",
+    lashes: "Lash & brow",
+    brows: "Brows",
+    makeup: "Makeup",
+    skincare: "Skincare",
+    facial: "Facials",
+    hair_removal: "Body & hair removal",
+    pmu: "Permanent makeup",
+    barber: "Barber",
+    massage: "Massage & bodywork",
+    holistic_spa: "Holistic & spa services",
+    tanning: "Tanning",
+    tooth_gems: "Tooth gems & oral aesthetics",
+    waxing: "Waxing",
+    "medical-spa": "Medical spa",
+  };
+
   return {
     reviewsCount,
     averageRating,
     completedBookingsCount: (completed.count as number | null) ?? 0,
     servicesCount: (services.count as number | null) ?? 0,
-    specialty: biz.service_category
-      ? biz.service_category.charAt(0).toUpperCase() + biz.service_category.slice(1)
-      : null,
+    specialty: biz.service_category ? specialtyLabels[biz.service_category] ?? biz.service_category : null,
     city: biz.city ?? null,
     accountCreatedAt,
     repeatClientRate,

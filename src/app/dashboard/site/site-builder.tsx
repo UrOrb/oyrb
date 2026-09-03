@@ -183,10 +183,17 @@ function draftToFormData(draft: Draft): FormData {
 // ── Config ───────────────────────────────────────────────────────────────────
 const CATEGORIES = [
   { id: "hair", label: "Hair styling" },
+  { id: "locs", label: "Locs & natural hair" },
   { id: "nails", label: "Nail art" },
   { id: "lashes", label: "Lash & brow" },
   { id: "barber", label: "Barbering" },
   { id: "skincare", label: "Skincare & facials" },
+  { id: "hair_removal", label: "Body & hair removal" },
+  { id: "pmu", label: "Permanent makeup (PMU)" },
+  { id: "massage", label: "Massage & bodywork" },
+  { id: "holistic_spa", label: "Holistic & spa services" },
+  { id: "tanning", label: "Tanning" },
+  { id: "tooth_gems", label: "Tooth gems & oral aesthetics" },
   { id: "makeup", label: "Makeup artistry" },
 ];
 

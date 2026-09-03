@@ -19,11 +19,18 @@ export const revalidate = 60;
 // avatar carousel is the star of the page.
 const FIELDS: { label: string; value: string }[] = [
   { label: "Hair",         value: "hair" },
+  { label: "Locs",         value: "locs" },
   { label: "Nails",        value: "nails" },
   { label: "Lashes",       value: "lashes" },
   { label: "Brows",        value: "brows" },
   { label: "MUA",          value: "makeup" },
   { label: "Esthetician",  value: "skincare" },
+  { label: "Hair Removal", value: "hair_removal" },
+  { label: "PMU",          value: "pmu" },
+  { label: "Massage",      value: "massage" },
+  { label: "Holistic Spa", value: "holistic_spa" },
+  { label: "Tanning",      value: "tanning" },
+  { label: "Tooth Gems",   value: "tooth_gems" },
   { label: "Barber",       value: "barber" },
   { label: "Medical Spa",  value: "medical-spa" },
 ];

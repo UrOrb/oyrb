@@ -9,10 +9,17 @@ import type { FeaturedBusiness } from "@/app/api/featured/route";
 
 const SERVICE_LABELS: Record<string, string> = {
   hair: "Hair styling",
+  locs: "Locs & natural hair",
   nails: "Nail artist",
   lashes: "Lash & brow",
   barber: "Barber",
   skincare: "Esthetician",
+  hair_removal: "Body & hair removal",
+  pmu: "Permanent makeup",
+  massage: "Massage therapist",
+  holistic_spa: "Holistic spa",
+  tanning: "Tanning artist",
+  tooth_gems: "Tooth gem artist",
   makeup: "Makeup artist",
 };
 
