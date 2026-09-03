@@ -73,7 +73,7 @@ export async function sendTrialReminder(input: {
     cycleLabel: input.billingCycle === "monthly" ? "Monthly" : "Annual",
     amountLabel,
     conversionDate,
-    manageUrl: `${APP_URL}/dashboard/settings`,
+    manageUrl: `${APP_URL}/dashboard/settings/general`,
     cancelUrl: `${APP_URL}/api/stripe/portal`,
   });
 

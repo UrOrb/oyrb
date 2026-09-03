@@ -72,7 +72,7 @@ export default async function DirectoryDashboardPage({ searchParams }: Props) {
           </ul>
           <div className="mt-5 flex items-center gap-3">
             <Link
-              href="/dashboard/settings"
+              href="/dashboard/settings/general"
               className="inline-flex rounded-md border border-[#E7E5E4] bg-white px-4 py-1.5 text-xs font-medium text-[#525252] hover:bg-[#F5F5F4]"
             >
               Not now

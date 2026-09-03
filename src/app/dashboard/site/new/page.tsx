@@ -52,7 +52,7 @@ export default async function AddNewSitePage() {
               {" "}Plan cap: {tier.siteCap}
             </p>
           </div>
-          <Link href="/dashboard/settings" className="text-[#B8896B] hover:underline">
+          <Link href="/dashboard/settings/general" className="text-[#B8896B] hover:underline">
             Manage billing →
           </Link>
         </div>
@@ -101,7 +101,7 @@ function AddonBlockedByTrial() {
         immediately and the trial offer will be forfeited.)
       </p>
       <Link
-        href="/dashboard/settings"
+        href="/dashboard/settings/general"
         className="mt-5 inline-flex items-center gap-1.5 rounded-md bg-[#0A0A0A] px-4 py-2 text-xs font-medium text-white hover:opacity-85"
       >
         Skip trial and start now

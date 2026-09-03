@@ -118,7 +118,7 @@ export function ConfirmForm({
 
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
         <a
-          href="/dashboard/settings"
+          href="/dashboard/settings/general"
           className="inline-flex items-center justify-center rounded-md border border-[#E7E5E4] bg-white px-4 py-2 text-sm text-[#525252] hover:bg-[#F5F5F4]"
         >
           Cancel — back to Settings

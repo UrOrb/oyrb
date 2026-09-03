@@ -158,7 +158,7 @@ export function AvatarMenu({
               <MenuLink href="/dashboard" onClick={close} icon={<LayoutDashboard size={15} />}>
                 Dashboard Home
               </MenuLink>
-              <MenuLink href="/dashboard/settings" onClick={close} icon={<User size={15} />}>
+              <MenuLink href="/dashboard/settings/general" onClick={close} icon={<User size={15} />}>
                 Profile &amp; Settings
               </MenuLink>
               {viewSiteHref && (

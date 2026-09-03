@@ -82,7 +82,7 @@ export default async function RemoveBrandPage({ searchParams }: Props) {
   return (
     <div className="max-w-2xl">
       <Link
-        href="/dashboard/settings"
+        href="/dashboard/settings/general"
         className="inline-flex items-center gap-1 text-xs text-[#737373] hover:text-[#0A0A0A]"
       >
         <ArrowLeft size={12} /> Back to Settings

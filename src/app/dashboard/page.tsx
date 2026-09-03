@@ -470,7 +470,7 @@ async function TrialBanner() {
         </div>
       </div>
       <Link
-        href="/dashboard/settings"
+        href="/dashboard/settings/general"
         className="rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-100"
       >
         Manage trial

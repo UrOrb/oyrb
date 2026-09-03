@@ -91,7 +91,7 @@ export function AgreementForm({ version }: { version: string }) {
           {pending ? "Saving…" : "I Agree — Continue"}
         </button>
         <a
-          href="/dashboard/settings"
+          href="/dashboard/settings/general"
           className="ml-auto text-xs text-[#A3A3A3] hover:text-[#525252]"
         >
           Exit setup
