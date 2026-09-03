@@ -178,7 +178,8 @@ export async function updateSite(formData: FormData) {
   const { error } = await supabase
     .from("businesses")
     .update(update)
-    .eq("id", business.id);
+    .eq("id", business.id)
+    .eq("owner_id", user.id);
 
   if (error) return { error: error.message };
 

@@ -198,6 +198,14 @@ const LAYOUTS = [
   { id: "bold",     label: "Bold",     helper: "Dark hero · service cards" },
 ];
 
+const LAYOUT_LABELS = new Map(LAYOUTS.map((layout) => [layout.id, layout.label]));
+
+function templateLabel(layoutId: string, themeId: string) {
+  const layout = LAYOUT_LABELS.get(layoutId) ?? layoutId;
+  const theme = TEMPLATE_THEMES[themeId]?.name ?? themeId;
+  return `${layout} / ${theme}`;
+}
+
 // ── Field-group config drives the settings panel AND the template (keys match
 //    the c(...) calls inside the template components). Leave a field blank to
 //    fall back to the template's built-in wording.
@@ -436,6 +444,17 @@ export function SiteBuilder({ business, hours, services, origin, templateUnlocks
     draft.template_layout,
     templateUnlocks,
   );
+  const purchasedTemplates = useMemo(() => {
+    const seen = new Set<string>();
+    return templateUnlocks
+      .filter((unlock) => unlock.layout_id && TEMPLATE_THEMES[unlock.theme_id])
+      .filter((unlock) => {
+        const key = `${unlock.layout_id}:${unlock.theme_id}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }, [templateUnlocks]);
 
   return (
     <div className="-mx-4 md:-mx-6 lg:-mx-8">
@@ -617,6 +636,41 @@ export function SiteBuilder({ business, hours, services, origin, templateUnlocks
                   })}
                 </div>
               </div>
+
+              {subscriptionTier === "starter" && purchasedTemplates.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-xs font-medium text-[#525252]">Purchased templates</p>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    {purchasedTemplates.map((unlock) => {
+                      const layoutId = unlock.layout_id as string;
+                      const selected =
+                        draft.template_layout === layoutId &&
+                        draft.template_theme === unlock.theme_id;
+                      return (
+                        <button
+                          key={`${layoutId}:${unlock.theme_id}`}
+                          type="button"
+                          onClick={() =>
+                            setDraft((current) => ({
+                              ...current,
+                              template_layout: layoutId,
+                              template_theme: unlock.theme_id,
+                            }))
+                          }
+                          className={`rounded-md border px-3 py-2 text-left text-xs font-medium transition-colors ${
+                            selected
+                              ? "border-[#0A0A0A] bg-[#0A0A0A] text-white"
+                              : "border-[#E7E5E4] bg-white hover:bg-[#FAFAF9]"
+                          }`}
+                        >
+                          <span>{templateLabel(layoutId, unlock.theme_id)}</span>
+                          {selected && <Check size={14} className="float-right" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="mt-4">
                 <p className="text-xs font-medium text-[#525252]">Theme</p>
