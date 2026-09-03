@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
+/* eslint-disable no-console, @typescript-eslint/no-require-imports */
 
 /**
  * stripe_setup.js — provision OYRB's Stripe Products and Prices.

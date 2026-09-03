@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
 
 type WaitlistPayload = {
   business_id: string;
@@ -13,6 +14,13 @@ type WaitlistPayload = {
 };
 
 export async function POST(request: NextRequest) {
+  const ip = ipFromRequest(request);
+  const ipCheck = await rateLimit(`waitlist:ip:${ip}`, 6, 60_000);
+  const hourCheck = await rateLimit(`waitlist:h:${ip}`, 30, 60 * 60_000);
+  if (!ipCheck.ok || !hourCheck.ok) {
+    return NextResponse.json({ error: "Too many waitlist requests — please wait a minute." }, { status: 429 });
+  }
+
   let body: WaitlistPayload;
   try {
     body = await request.json();
@@ -22,6 +30,14 @@ export async function POST(request: NextRequest) {
 
   if (!body.business_id || !body.name || !body.email) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
+  body.email = body.email.trim().toLowerCase().slice(0, 150);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
+    return NextResponse.json({ error: "Invalid email" }, { status: 400 });
+  }
+  const emailCheck = await rateLimit(`waitlist:email:${body.email}`, 5, 60 * 60_000);
+  if (!emailCheck.ok) {
+    return NextResponse.json({ error: "Too many waitlist requests from this email — please try later." }, { status: 429 });
   }
 
   const supabase = createAdminClient();
@@ -49,11 +65,11 @@ export async function POST(request: NextRequest) {
     .insert({
       business_id: body.business_id,
       service_id: body.service_id ?? null,
-      client_name: body.name,
+      client_name: body.name.trim().slice(0, 100),
       client_email: body.email,
-      client_phone: body.phone ?? null,
-      preferred_window: body.preferred_window ?? null,
-      notes: body.notes ?? null,
+      client_phone: body.phone?.trim().slice(0, 30) || null,
+      preferred_window: body.preferred_window?.trim().slice(0, 160) || null,
+      notes: body.notes?.trim().slice(0, 1000) || null,
       status: "waiting",
     })
     .select("id")

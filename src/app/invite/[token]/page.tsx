@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/purity */
 import Link from "next/link";
 import { Image as ImageIcon, Heart, Flame } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/server";

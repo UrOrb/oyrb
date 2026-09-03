@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.90.0",
+    "@anthropic-ai/sdk": "^0.91.1",
     "@base-ui/react": "^1.4.0",
     "@fingerprintjs/fingerprintjs": "^5.2.0",
     "@stripe/stripe-js": "^9.2.0",
@@ -22,13 +22,12 @@
     "framer-motion": "^12.38.0",
     "jose": "^6.2.2",
     "lucide-react": "^1.8.0",
-    "next": "16.2.4",
+    "next": "16.2.11",
     "papaparse": "^5.5.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "recharts": "^3.8.1",
     "resend": "^6.12.0",
-    "shadcn": "^4.3.0",
     "stripe": "^22.0.2",
     "svix": "^1.92.2",
     "tailwind-merge": "^3.5.0",
@@ -41,10 +40,26 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.4",
+    "eslint-config-next": "16.2.11",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "pnpm": {
+    "overrides": {
+      "postcss": "8.5.26",
+      "nanoid": "3.3.18",
+      "ws": "8.21.3",
+      "js-yaml": "4.3.1",
+      "sharp": "0.35.3",
+      "uuid": "11.1.1",
+      "tmp": "0.2.7",
+      "@babel/core": "7.29.6",
+      "minimatch@3>brace-expansion": "1.1.18",
+      "minimatch@5>brace-expansion": "2.1.4",
+      "minimatch@9>brace-expansion": "2.1.4",
+      "minimatch@10>brace-expansion": "5.0.9"
+    }
   }
 }

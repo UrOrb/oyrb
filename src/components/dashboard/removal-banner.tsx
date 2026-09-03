@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/purity */
 import { AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { restoreRemovalAction } from "@/lib/remove-brand/actions";

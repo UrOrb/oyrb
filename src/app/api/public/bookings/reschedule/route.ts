@@ -7,8 +7,9 @@ import {
   sendOwnerRescheduleAlert,
 } from "@/lib/email";
 import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
-import { checkBookingOverlap } from "@/lib/booking-overlap";
+import { checkBookingOverlap, isBookingConflictDbError } from "@/lib/booking-overlap";
 import type { DailyBreakBlock } from "@/lib/booking-slots";
+import { isWithinBusinessHoursInTimezone } from "@/lib/timezone";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.oyrb.space";
 const RESCHEDULE_CUTOFF_MS = 24 * 60 * 60 * 1000;
@@ -20,7 +21,7 @@ const RESCHEDULE_CUTOFF_MS = 24 * 60 * 60 * 1000;
  */
 export async function POST(request: NextRequest) {
   const ip = ipFromRequest(request);
-  const limit = rateLimit(`resched:${ip}`, 10, 60_000);
+  const limit = await rateLimit(`resched:${ip}`, 10, 60_000);
   if (!limit.ok) {
     return NextResponse.json({ error: "Too many attempts. Wait a minute." }, { status: 429 });
   }
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
       id, business_id, service_id, start_at, end_at, status,
       services(name, duration_minutes, price_cents),
       clients(name, email),
-      businesses!business_id(business_name, slug, contact_email, phone, owner_id, break_between_appointments_minutes, daily_break_blocks, removal_initiated_at, removal_scheduled_for)
+      businesses!business_id(business_name, slug, contact_email, phone, owner_id, timezone, break_between_appointments_minutes, daily_break_blocks, removal_initiated_at, removal_scheduled_for)
     `)
     .eq("id", resolved.bookingId)
     .maybeSingle();
@@ -83,6 +84,7 @@ export async function POST(request: NextRequest) {
       contact_email: string | null;
       phone: string | null;
       owner_id: string;
+      timezone: string | null;
       break_between_appointments_minutes: number | null;
       daily_break_blocks: DailyBreakBlock[] | null;
       // Phase 8 PR 4 — Remove Brand grace-period gating.
@@ -139,28 +141,18 @@ export async function POST(request: NextRequest) {
   const durationMin = booking.services.duration_minutes;
   const newEnd = new Date(newStart.getTime() + durationMin * 60_000);
 
-  // Verify the new slot falls inside the pro's open hours for that day.
+  // Verify the new slot falls inside the pro's open hours in the
+  // provider's timezone — never server timezone or the client's browser.
   const { data: hoursRows } = await supabase
     .from("business_hours")
     .select("day_of_week, is_open, open_time, close_time")
-    .eq("business_id", booking.business_id)
-    .eq("day_of_week", newStart.getDay())
-    .maybeSingle();
-  const hours = hoursRows as {
-    is_open: boolean;
-    open_time: string | null;
-    close_time: string | null;
-  } | null;
-  if (!hours?.is_open || !hours.open_time || !hours.close_time) {
-    return NextResponse.json({ error: "Pro isn't open on that day." }, { status: 400 });
-  }
-  const [openH, openM] = hours.open_time.split(":").map(Number);
-  const [closeH, closeM] = hours.close_time.split(":").map(Number);
-  const dayOpen = new Date(newStart);
-  dayOpen.setHours(openH, openM, 0, 0);
-  const dayClose = new Date(newStart);
-  dayClose.setHours(closeH, closeM, 0, 0);
-  if (newStart < dayOpen || newEnd > dayClose) {
+    .eq("business_id", booking.business_id);
+  if (!isWithinBusinessHoursInTimezone({
+    startAt: newStart,
+    endAt: newEnd,
+    hours: hoursRows ?? [],
+    timeZone: booking.businesses.timezone ?? "America/New_York",
+  })) {
     return NextResponse.json({ error: "That time is outside open hours." }, { status: 400 });
   }
 
@@ -208,6 +200,12 @@ export async function POST(request: NextRequest) {
     })
     .eq("id", booking.id);
   if (updErr) {
+    if (isBookingConflictDbError(updErr)) {
+      return NextResponse.json(
+        { error: "That time was just booked. Please pick another." },
+        { status: 409 },
+      );
+    }
     console.error("Reschedule update failed:", updErr);
     return NextResponse.json({ error: "Couldn't save the new time." }, { status: 500 });
   }

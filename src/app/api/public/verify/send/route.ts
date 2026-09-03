@@ -23,8 +23,8 @@ export async function POST(request: NextRequest) {
   // Each SMS Twilio sends costs real money. Cap by IP and by phone number so
   // an attacker can't loop through numbers from one IP or hammer one number.
   const ip = ipFromRequest(request);
-  const ipCheck = rateLimit(`verify:ip:${ip}`, 5, 60_000);
-  const phoneCheck = rateLimit(`verify:p:${phone}`, 3, 10 * 60_000);
+  const ipCheck = await rateLimit(`verify:ip:${ip}`, 5, 60_000);
+  const phoneCheck = await rateLimit(`verify:p:${phone}`, 3, 10 * 60_000);
   if (!ipCheck.ok || !phoneCheck.ok) {
     return NextResponse.json(
       { error: "Too many verification requests — please wait a few minutes." },

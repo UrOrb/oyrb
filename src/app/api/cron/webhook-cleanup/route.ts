@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { requireCronAuth } from "@/lib/cron-auth";
 
 /**
  * Daily cleanup of the Stripe webhook idempotency ledger.
@@ -11,14 +12,9 @@ import { createAdminClient } from "@/lib/supabase/server";
  * indefinitely so we always have a forensic trail of unsuccessful
  * processing attempts.
  */
-export async function GET(request: NextRequest) {
-  // Same CRON_SECRET gate as every other cron — without it, anyone who
-  // finds the URL can delete webhook-ledger rows (the idempotency trail).
-  const cronSecret = process.env.CRON_SECRET;
-  const auth = request.headers.get("authorization");
-  if (!cronSecret || auth !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+export async function GET(request: Request) {
+  const unauthorized = requireCronAuth(request);
+  if (unauthorized) return unauthorized;
 
   const start = Date.now();
   const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();

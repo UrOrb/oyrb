@@ -1,9 +1,11 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, Loader2, AlertCircle } from "lucide-react";
 import { ClientAccountOffer } from "../client-account-offer";
+import { trackEvent } from "@/lib/analytics";
 
 type Status = "checking" | "confirmed" | "error";
 
@@ -46,6 +48,9 @@ export function BookingConfirmedClient({
         } else {
           if (typeof data.email === "string") setEmail(data.email);
           setStatus("confirmed");
+          trackEvent("booking_confirmed_viewed", {
+            has_connected_account: Boolean(connectedAccountId),
+          });
         }
       } catch {
         if (!cancelled) {

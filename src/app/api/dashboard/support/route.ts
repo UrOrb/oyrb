@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
   // Per-user hourly cap. Generous enough that a real frustrated user can
   // submit follow-ups, tight enough to neutralise an automated form-spam
   // loop targeting the contact endpoint.
-  const limit = rateLimit(`support:${user.id}`, 5, 60 * 60_000);
+  const limit = await rateLimit(`support:${user.id}`, 5, 60 * 60_000);
   if (!limit.ok) {
     return NextResponse.json(
       {

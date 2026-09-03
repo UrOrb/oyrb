@@ -3,10 +3,17 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { signMagicToken } from "@/lib/client-auth";
 import { resend } from "@/lib/email";
 import { getFromAddress, EmailPurpose, DEFAULT_REPLY_TO } from "@/lib/email-from";
+import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.oyrb.space";
 
 export async function POST(request: NextRequest) {
+  const ip = ipFromRequest(request);
+  const ipCheck = await rateLimit(`client-auth:ip:${ip}`, 6, 60_000);
+  if (!ipCheck.ok) {
+    return NextResponse.json({ error: "Too many sign-in requests — please wait a minute." }, { status: 429 });
+  }
+
   let body: { email?: string };
   try {
     body = await request.json();
@@ -17,6 +24,10 @@ export async function POST(request: NextRequest) {
   const email = (body.email ?? "").trim().toLowerCase().slice(0, 200);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
+  }
+  const emailCheck = await rateLimit(`client-auth:email:${email}`, 3, 10 * 60_000);
+  if (!emailCheck.ok) {
+    return NextResponse.json({ success: true });
   }
 
   const supabase = createAdminClient();

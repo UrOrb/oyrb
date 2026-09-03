@@ -54,6 +54,10 @@ function captureReferralAndPass(request: NextRequest): NextResponse {
     request.nextUrl.searchParams.get("utm_campaign"),
   );
   const referrer_url = normalizeReferrerUrl(request.headers.get("referer"));
+  const influencer_code =
+    sanitizeReferralValue(request.nextUrl.searchParams.get("ref")) ??
+    sanitizeReferralValue(request.nextUrl.searchParams.get("creator")) ??
+    sanitizeReferralValue(request.nextUrl.searchParams.get("influencer"));
 
   // Phase 5 closer — preserve session_id across last-touch overwrites.
   // The proxy rotates utm/referrer fields per visit (strict last-touch
@@ -71,6 +75,7 @@ function captureReferralAndPass(request: NextRequest): NextResponse {
     utm_medium,
     utm_campaign,
     referrer_url,
+    influencer_code,
     session_id,
     captured_at: new Date().toISOString(),
   });

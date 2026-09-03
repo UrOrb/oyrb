@@ -125,8 +125,8 @@ export async function POST(request: NextRequest) {
   // Per-user rate limits, not per-IP. Two pros sharing an office can
   // each ask their own questions; one runaway tab from one pro can't
   // drain the budget for the rest.
-  const minute = rateLimit(`helpchat:m:${user.id}`, 20, 60_000);
-  const hour = rateLimit(`helpchat:h:${user.id}`, 100, 60 * 60_000);
+  const minute = await rateLimit(`helpchat:m:${user.id}`, 20, 60_000);
+  const hour = await rateLimit(`helpchat:h:${user.id}`, 100, 60 * 60_000);
   if (!minute.ok || !hour.ok) {
     return NextResponse.json(
       { error: "You're sending messages too quickly — wait a minute and try again." },

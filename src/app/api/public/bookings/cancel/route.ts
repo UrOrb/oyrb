@@ -11,7 +11,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.oyrb.space";
 // the token itself — the token IS the auth, scoped to this booking only.
 export async function POST(request: NextRequest) {
   const ip = ipFromRequest(request);
-  const limit = rateLimit(`cancel:${ip}`, 10, 60_000);
+  const limit = await rateLimit(`cancel:${ip}`, 10, 60_000);
   if (!limit.ok) {
     return NextResponse.json({ error: "Too many attempts. Wait a minute." }, { status: 429 });
   }

@@ -22,7 +22,7 @@ const HOLD_MS = 24 * 60 * 60 * 1000;
  */
 export async function POST(request: NextRequest) {
   const ip = ipFromRequest(request);
-  const hit = rateLimit(`review:${ip}`, 6, 60_000);
+  const hit = await rateLimit(`review:${ip}`, 6, 60_000);
   if (!hit.ok) {
     return NextResponse.json(
       { error: "Too many attempts — slow down." },

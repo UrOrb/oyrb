@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { snapshotAllUsersForPreviousMonth } from "@/lib/goal-tracking";
+import { requireCronAuth } from "@/lib/cron-auth";
 
 /**
  * Monthly-reset cron for the income goal meter.
@@ -12,14 +13,9 @@ import { snapshotAllUsersForPreviousMonth } from "@/lib/goal-tracking";
  * The snapshot worker uses the service-role admin client and iterates
  * all users, so it only needs to run once per month (not per-user).
  */
-export async function GET(request: NextRequest) {
-  // Same CRON_SECRET gate as every other cron — without it, anyone who
-  // finds the URL can overwrite goal_history snapshot rows at will.
-  const cronSecret = process.env.CRON_SECRET;
-  const auth = request.headers.get("authorization");
-  if (!cronSecret || auth !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+export async function GET(request: Request) {
+  const unauthorized = requireCronAuth(request);
+  if (unauthorized) return unauthorized;
 
   const start = Date.now();
   try {

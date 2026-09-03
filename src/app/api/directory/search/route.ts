@@ -8,7 +8,7 @@ import { searchPublicListings } from "@/lib/directory";
  */
 export async function GET(request: NextRequest) {
   const ip = ipFromRequest(request);
-  const rl = rateLimit(`directory:search:${ip}`, 60, 60_000);
+  const rl = await rateLimit(`directory:search:${ip}`, 60, 60_000);
   if (!rl.ok) {
     return NextResponse.json({ error: "Rate limited" }, { status: 429 });
   }

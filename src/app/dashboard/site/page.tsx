@@ -5,6 +5,7 @@ import { SiteBuilder } from "./site-builder";
 import type { Business, BusinessHours } from "@/lib/types";
 import { getCurrentBusiness } from "@/lib/current-site";
 import { PersistActiveSite } from "./persist-active-site";
+import { loadTemplateUnlocks } from "@/lib/template-access-server";
 
 interface Props {
   searchParams: Promise<{ siteId?: string }>;
@@ -38,6 +39,7 @@ export default async function SitePage({ searchParams }: Props) {
       .eq("active", true)
       .order("price_cents", { ascending: true }),
   ]);
+  const templateUnlocks = await loadTemplateUnlocks(supabase, user.id, business.id);
 
   const h = await headers();
   const host = h.get("host") ?? "oyrb.space";
@@ -52,6 +54,7 @@ export default async function SitePage({ searchParams }: Props) {
         hours={(hours ?? []) as BusinessHours[]}
         services={services ?? []}
         origin={origin}
+        templateUnlocks={templateUnlocks}
       />
     </>
   );

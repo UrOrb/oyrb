@@ -5,9 +5,11 @@ import { revalidatePath } from "next/cache";
 import { getCurrentBusiness } from "@/lib/current-site";
 import { sanitizeStatLabel, STAT_TYPES } from "@/lib/pro-stats-types";
 import { isHeadingFontId, isBodyFontId } from "@/lib/fonts";
+import { ALL_LAYOUT_IDS, fallbackThemeForAccess } from "@/lib/template-access";
+import { loadTemplateUnlocks } from "@/lib/template-access-server";
 
-const STARTER_THEMES = ["aura", "minimal", "bold"];
 const VALID_STAT_TYPES = new Set<string>(STAT_TYPES);
+const VALID_LAYOUTS = new Set<string>(ALL_LAYOUT_IDS);
 // Labels on the stats strip go through sanitizeStatLabel (strips digits,
 // %, ★, decimals, etc.) before persistence, so crafted input can't imply
 // false data.
@@ -48,6 +50,10 @@ export async function updateSite(formData: FormData) {
     slug = newSlug;
   }
 
+  const requestedLayout = (formData.get("template_layout") as string) || "studio";
+  const templateLayout = VALID_LAYOUTS.has(requestedLayout) ? requestedLayout : "studio";
+  const templateUnlocks = await loadTemplateUnlocks(supabase, user.id, business.id);
+
   const update = {
     business_name: businessName || "My Studio",
     slug,
@@ -59,15 +65,13 @@ export async function updateSite(formData: FormData) {
     city: (formData.get("city") as string) || null,
     state: (formData.get("state") as string) || null,
     service_category: (formData.get("service_category") as string) || "hair",
-    template_layout: (formData.get("template_layout") as string) || "studio",
-    template_theme: (() => {
-      const requestedTheme = (formData.get("template_theme") as string) || "aura";
-      // Starter tier: only allow 3 starter themes. If they try to pick a locked one, default to aura.
-      if (business.subscription_tier === "starter" && !STARTER_THEMES.includes(requestedTheme)) {
-        return "aura";
-      }
-      return requestedTheme;
-    })(),
+    template_layout: templateLayout,
+    template_theme: fallbackThemeForAccess(
+      business.subscription_tier,
+      templateLayout,
+      (formData.get("template_theme") as string) || "aura",
+      templateUnlocks,
+    ),
     // Font slugs — validated against the catalog in src/lib/fonts.ts.
     //   "" / missing / unknown id  → NULL (use the active theme's font)
     //   valid catalog slug          → save the slug, overrides the theme

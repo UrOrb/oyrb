@@ -28,6 +28,21 @@ export type OverlapResult =
           };
     };
 
+/**
+ * Database-level conflict guard errors raised by migration 057.
+ * Keep this narrow: we only translate the known trigger message/code,
+ * not every Postgres constraint failure.
+ */
+export function isBookingConflictDbError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const e = error as { code?: string; message?: string; details?: string };
+  return (
+    e.code === "23P01" ||
+    e.message === "booking time conflicts with an existing booking" ||
+    !!e.details?.includes("conflicting_booking_id=")
+  );
+}
+
 export async function checkBookingOverlap(
   supabase: SupabaseClient,
   businessId: string,

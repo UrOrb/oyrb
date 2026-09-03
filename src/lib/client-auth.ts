@@ -14,6 +14,7 @@ const SESSION_EXP = "7d";
 
 type MagicPayload = { email: string; kind: "magic" };
 type SessionPayload = { email: string; kind: "session" };
+type PhoneVerificationPayload = { phone: string; kind: "phone_verified" };
 
 function key() {
   if (!SECRET || SECRET.length < 32) {
@@ -56,6 +57,28 @@ export async function verifySessionToken(token: string | null | undefined): Prom
     return ((payload as SessionPayload).email ?? "").toLowerCase() || null;
   } catch {
     return null;
+  }
+}
+
+export async function signPhoneVerificationToken(phone: string): Promise<string> {
+  return new SignJWT({ phone, kind: "phone_verified" } satisfies PhoneVerificationPayload)
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("30m")
+    .sign(key());
+}
+
+export async function verifyPhoneVerificationToken(
+  token: string | null | undefined,
+  phone: string | null | undefined,
+): Promise<boolean> {
+  if (!token || !phone) return false;
+  try {
+    const { payload } = await jwtVerify(token, key());
+    const verified = payload as PhoneVerificationPayload;
+    return verified.kind === "phone_verified" && verified.phone === phone;
+  } catch {
+    return false;
   }
 }
 

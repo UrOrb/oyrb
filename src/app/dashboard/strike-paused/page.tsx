@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 import { redirect } from "next/navigation";
 import { AlertCircle, Mail, Download } from "lucide-react";
 import { createClient, createAdminClient } from "@/lib/supabase/server";

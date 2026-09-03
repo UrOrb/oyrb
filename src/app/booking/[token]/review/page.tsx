@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/purity */
 import Link from "next/link";
 import { resolveToken } from "@/lib/booking-tokens";
 import { createAdminClient } from "@/lib/supabase/server";

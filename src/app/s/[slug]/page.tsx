@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { notFound } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getStockImages } from "@/lib/stock-images";
@@ -542,6 +543,7 @@ export default async function PublicSitePage({ params, searchParams }: Props) {
         slotsOpenThisWeek={slotsOpenThisWeek}
         slug={slug}
         phoneVerificationEnabled={!!process.env.TWILIO_VERIFY_SERVICE_SID}
+        providerTimezone={biz.timezone ?? "America/New_York"}
         clientPaymentsEnabled={clientPaymentsEnabled()}
         proConnectReady={connectReady({
           stripe_connect_account_id: biz.stripe_connect_account_id,

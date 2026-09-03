@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/purity */
 import { BentoTile } from "../../../_components/bento-tile";
 
 /**

@@ -6,9 +6,52 @@ import { notifyBookingConfirmed } from "@/lib/booking-notify";
 import { formatCents } from "@/lib/types";
 import { sanitizeReferralValue } from "@/lib/referrer-classifier";
 import { sanitizeSurveyResponse } from "@/lib/survey-options";
-import { checkBookingOverlap } from "@/lib/booking-overlap";
+import { checkBookingOverlap, isBookingConflictDbError } from "@/lib/booking-overlap";
 import type { DailyBreakBlock } from "@/lib/booking-slots";
 import { fillEmptyClientFields } from "@/lib/clients/fill-empty";
+import { isWithinBusinessHoursInTimezone } from "@/lib/timezone";
+import { reportError } from "@/lib/monitoring";
+
+async function refundDepositAfterBookingFailure(params: {
+  paymentIntentId: string | null;
+  connectedAccountId: string | null;
+  sessionId: string;
+  reason: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!params.paymentIntentId) {
+    return { ok: false, error: "Missing payment intent for refund." };
+  }
+
+  try {
+    await stripe.refunds.create(
+      {
+        payment_intent: params.paymentIntentId,
+        reason: "requested_by_customer",
+        metadata: {
+          oyrb_reason: "booking_creation_failed",
+          oyrb_detail: params.reason.slice(0, 200),
+          checkout_session_id: params.sessionId,
+        },
+      },
+      {
+        ...(params.connectedAccountId ? { stripeAccount: params.connectedAccountId } : {}),
+        idempotencyKey: `booking-failed-refund-${params.paymentIntentId}`,
+      },
+    );
+    return { ok: true };
+  } catch (err) {
+    reportError("deposit_refund_failed_after_booking_failure", err, {
+      session_id: params.sessionId,
+      has_payment_intent: Boolean(params.paymentIntentId),
+      has_connected_account: Boolean(params.connectedAccountId),
+      reason: params.reason,
+    });
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Refund failed",
+    };
+  }
+}
 
 // Called by the booking-confirmed page after Stripe redirects back.
 // Verifies the Checkout Session was paid, then creates the booking + client.
@@ -90,7 +133,7 @@ export async function POST(request: NextRequest) {
   const { data: business } = await supabase
     .from("businesses")
     .select(
-      "id, business_name, slug, contact_email, owner_id, subscription_tier, stripe_connect_account_id, break_between_appointments_minutes, daily_break_blocks",
+      "id, business_name, slug, contact_email, owner_id, subscription_tier, stripe_connect_account_id, timezone, break_between_appointments_minutes, daily_break_blocks",
     )
     .eq("id", businessId)
     .maybeSingle();
@@ -138,6 +181,32 @@ export async function POST(request: NextRequest) {
 
   const endAt = new Date(startAt.getTime() + service.duration_minutes * 60_000);
 
+  const { data: hoursRows } = await supabase
+    .from("business_hours")
+    .select("day_of_week, is_open, open_time, close_time")
+    .eq("business_id", businessId);
+  if (!isWithinBusinessHoursInTimezone({
+    startAt,
+    endAt,
+    hours: hoursRows ?? [],
+    timeZone: (business as { timezone?: string | null }).timezone ?? "America/New_York",
+  })) {
+    const refund = await refundDepositAfterBookingFailure({
+      paymentIntentId,
+      connectedAccountId,
+      sessionId: session_id,
+      reason: "outside_business_hours_at_confirm",
+    });
+    return NextResponse.json(
+      {
+        error: refund.ok
+          ? "That time is no longer available, so your deposit has been automatically refunded. Please pick another time."
+          : "That time is no longer available. Your deposit needs manual refund review — please contact support@oyrb.space.",
+      },
+      { status: 409 },
+    );
+  }
+
   const businessRules = business as {
     break_between_appointments_minutes?: number;
     daily_break_blocks?: DailyBreakBlock[] | null;
@@ -159,8 +228,18 @@ export async function POST(request: NextRequest) {
     dailyBreakBlocks,
   );
   if (!overlapResult.ok) {
+    const refund = await refundDepositAfterBookingFailure({
+      paymentIntentId,
+      connectedAccountId,
+      sessionId: session_id,
+      reason: "slot_conflict_before_insert",
+    });
     return NextResponse.json(
-      { error: "That time was booked while you were paying. Please contact us for a refund." },
+      {
+        error: refund.ok
+          ? "That time was booked while you were paying, so your deposit has been automatically refunded. Please pick another time."
+          : "That time was booked while you were paying. Your deposit needs manual refund review — please contact support@oyrb.space.",
+      },
       { status: 409 }
     );
   }
@@ -229,6 +308,7 @@ export async function POST(request: NextRequest) {
   const utmMedium = sanitizeReferralValue(metadata.utm_medium) || null;
   const utmCampaign = sanitizeReferralValue(metadata.utm_campaign) || null;
   const referrerUrl = sanitizeReferralValue(metadata.referrer_url) || null;
+  const influencerCode = sanitizeReferralValue(metadata.influencer_code) || null;
   // Phase 5 closer — survey response from Stripe metadata. Re-validated
   // against the allowlist (defense in depth — empty string from
   // deposit-checkout becomes NULL).
@@ -264,7 +344,9 @@ export async function POST(request: NextRequest) {
       ? resolvedReferrer.id
       : null;
 
-  // Create booking with deposit_paid=true
+  // Create booking with deposit_paid=true. Migration 057 adds a final
+  // database-level conflict guard, so even concurrent post-payment
+  // confirmations cannot double-book the same provider/time.
   const { data: booking, error: bookingErr } = await supabase
     .from("bookings")
     .insert({
@@ -286,6 +368,7 @@ export async function POST(request: NextRequest) {
       utm_medium: utmMedium,
       utm_campaign: utmCampaign,
       referrer_url: referrerUrl,
+      influencer_code: influencerCode,
       // Phase 5 — Pass the Torch attribution.
       referrer_business_id: referrerBusinessId,
       // Phase 5 closer — "How did you hear about us?" survey response.
@@ -308,6 +391,29 @@ export async function POST(request: NextRequest) {
   // retry from the booking-confirmed page inflates it again, since the
   // idempotency lookup only matches once a booking row exists).
   if (bookingErr || !booking) {
+    if (isBookingConflictDbError(bookingErr)) {
+      const refund = await refundDepositAfterBookingFailure({
+        paymentIntentId,
+        connectedAccountId,
+        sessionId: session_id,
+        reason: "slot_conflict_at_insert",
+      });
+      return NextResponse.json(
+        {
+          error: refund.ok
+            ? "That time was booked while you were paying, so your deposit has been automatically refunded. Please pick another time."
+            : "That time was booked while you were paying. Your deposit needs manual refund review — please contact support@oyrb.space.",
+        },
+        { status: 409 },
+      );
+    }
+    reportError("deposit_booking_insert_failed", bookingErr, {
+      business_id: businessId,
+      service_id: service.id,
+      session_id,
+      has_payment_intent: Boolean(paymentIntentId),
+      has_connected_account: Boolean(connectedAccountId),
+    });
     return NextResponse.json(
       { error: bookingErr?.message ?? "Failed to create booking" },
       { status: 500 }
@@ -315,7 +421,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Create future series bookings (no additional deposit)
-  if (booking?.series_id) {
+  if (booking.series_id) {
     const n = parseInt(session.metadata?.series_occurrences ?? "1", 10);
     const w = booking.series_interval_weeks as number;
     for (let i = 1; i < n && i < 12; i++) {
@@ -334,7 +440,7 @@ export async function POST(request: NextRequest) {
         dailyBreakBlocks,
       );
       if (!seriesOverlap.ok) continue;
-      await supabase.from("bookings").insert({
+      const { error: seriesErr } = await supabase.from("bookings").insert({
         business_id: businessId,
         client_id: clientId,
         service_id: service.id,
@@ -349,11 +455,20 @@ export async function POST(request: NextRequest) {
         utm_medium: utmMedium,
         utm_campaign: utmCampaign,
         referrer_url: referrerUrl,
+        influencer_code: influencerCode,
         referrer_business_id: referrerBusinessId,
         survey_response: surveyResponse,
         series_id: booking.series_id,
         series_interval_weeks: w,
       });
+      if (seriesErr) {
+        reportError("deposit_booking_series_insert_failed", seriesErr, {
+          business_id: businessId,
+          service_id: service.id,
+          session_id,
+        });
+        continue;
+      }
     }
   }
 

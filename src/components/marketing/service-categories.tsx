@@ -2,45 +2,41 @@
 
 import Image from "next/image";
 
-// Each category can use a full URL (uploaded to Supabase Storage) or an Unsplash ID
-const unsplashUrl = (id: string) =>
-  `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=500&q=80`;
-
 const CATEGORIES = [
   {
     id: "hair",
     label: "Hair",
-    src: "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/hair-1776531705.jpg",
+    src: "/bold-hero.avif",
   },
   {
     id: "brows",
     label: "Brows",
-    src: "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/brows-1776532399.jpg",
+    src: "/minimal-hero.avif",
   },
   {
     id: "nails",
     label: "Nails",
-    src: "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/nails-1776531946.jpg",
+    src: "/candy-hero.avif",
   },
   {
     id: "lashes",
     label: "Lashes",
-    src: "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/lashes-1776532085.jpg",
+    src: "/aura-hero.jpeg",
   },
   {
     id: "cuts",
     label: "Cuts",
-    src: "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/cuts-1776532624.jpg",
+    src: "/street-hero.avif",
   },
   {
     id: "skin",
     label: "Skin",
-    src: "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/skin-1776532829.jpg",
+    src: "/earth-hero.avif",
   },
   {
     id: "makeup",
     label: "MUA",
-    src: "https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/mua-1776532917.jpg",
+    src: "/luxe-hero.avif",
   },
 ];
 

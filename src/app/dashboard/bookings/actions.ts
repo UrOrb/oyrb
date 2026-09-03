@@ -3,12 +3,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { getCurrentBusiness } from "@/lib/current-site";
-import { checkBookingOverlap } from "@/lib/booking-overlap";
+import { checkBookingOverlap, isBookingConflictDbError } from "@/lib/booking-overlap";
 import type { DailyBreakBlock } from "@/lib/booking-slots";
 import { notifyBookingConfirmed } from "@/lib/booking-notify";
 import { formatCents } from "@/lib/types";
 import { fillEmptyClientFields } from "@/lib/clients/fill-empty";
 import { normalizeToE164 } from "@/lib/sms";
+import { zonedDateTimeToUtc } from "@/lib/timezone";
 
 /**
  * Returned by createManualBooking when the booking saved successfully
@@ -59,7 +60,7 @@ export async function createManualBooking(formData: FormData): Promise<ActionRes
   const { data: businessRow } = await supabase
     .from("businesses")
     .select(
-      "id, business_name, slug, contact_email, owner_id, subscription_tier, break_between_appointments_minutes, daily_break_blocks",
+      "id, business_name, slug, contact_email, owner_id, subscription_tier, timezone, break_between_appointments_minutes, daily_break_blocks",
     )
     .eq("id", business.id)
     .maybeSingle();
@@ -74,11 +75,8 @@ export async function createManualBooking(formData: FormData): Promise<ActionRes
     .maybeSingle();
   if (!service) return { error: "Service not found." };
 
-  // Browser submits date + time in the user's local interpretation; treating
-  // it as a naive ISO local string lets JS parse into a Date in the server's
-  // resolved timezone. Cross-TZ correctness would need an explicit business
-  // timezone — punted to a future phase.
-  const startAt = new Date(`${date}T${time}`);
+  const providerTimezone = (businessRow as { timezone?: string | null }).timezone ?? "America/New_York";
+  const startAt = zonedDateTimeToUtc(date, time, providerTimezone);
   if (isNaN(startAt.getTime())) return { error: "Invalid date or time." };
 
   const endAt = new Date(startAt.getTime() + service.duration_minutes * 60_000);
@@ -219,6 +217,9 @@ export async function createManualBooking(formData: FormData): Promise<ActionRes
     .select("id")
     .single();
   if (bookingErr || !booking) {
+    if (isBookingConflictDbError(bookingErr)) {
+      return { error: "That time conflicts with an existing booking or required break. Please pick another." };
+    }
     return { error: bookingErr?.message ?? "Failed to create booking" };
   }
 

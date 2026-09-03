@@ -2,8 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { resend } from "@/lib/email";
 import { getFromAddress, EmailPurpose } from "@/lib/email-from";
+import { rateLimit, ipFromRequest } from "@/lib/rate-limit";
+import { escapeHtml, safeHttpUrl } from "@/lib/html";
 
 export async function POST(request: NextRequest) {
+  const ip = ipFromRequest(request);
+  const ipCheck = await rateLimit(`inquiry:ip:${ip}`, 5, 60_000);
+  const hourCheck = await rateLimit(`inquiry:h:${ip}`, 20, 60 * 60_000);
+  if (!ipCheck.ok || !hourCheck.ok) {
+    return NextResponse.json({ error: "Too many inquiries — please wait a minute." }, { status: 429 });
+  }
+
   let body: {
     slug?: string;
     name?: string;
@@ -23,7 +32,13 @@ export async function POST(request: NextRequest) {
   const email = (body.email ?? "").trim().slice(0, 150);
   const phone = (body.phone ?? "").trim().slice(0, 30);
   const message = (body.message ?? "").trim().slice(0, 1200);
-  const photos = Array.isArray(body.photos) ? body.photos.filter((x) => typeof x === "string").slice(0, 3) : [];
+  const photos = Array.isArray(body.photos)
+    ? body.photos
+        .filter((x) => typeof x === "string")
+        .map((x) => safeHttpUrl(x))
+        .filter((x): x is string => Boolean(x))
+        .slice(0, 3)
+    : [];
 
   if (!slug || !name || !email || !message) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -31,6 +46,10 @@ export async function POST(request: NextRequest) {
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: "Invalid email" }, { status: 400 });
+  }
+  const senderCheck = await rateLimit(`inquiry:email:${email}`, 5, 60 * 60_000);
+  if (!senderCheck.ok) {
+    return NextResponse.json({ error: "Too many inquiries from this email — please try later." }, { status: 429 });
   }
 
   const supabase = createAdminClient();
@@ -72,9 +91,14 @@ export async function POST(request: NextRequest) {
 
   // Email the pro
   if (resend && toEmail) {
+    const safeName = escapeHtml(name);
+    const safeEmail = escapeHtml(email);
+    const safePhone = escapeHtml(phone);
+    const safeMessage = escapeHtml(message);
+    const safeBusinessName = escapeHtml(biz.business_name);
     const photoHtml = photos.length
       ? `<div style="margin:16px 0;"><p style="margin:0 0 6px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Attached photos</p>${photos
-          .map((u) => `<img src="${u}" alt="" style="max-width:180px;max-height:180px;border-radius:8px;margin:4px;border:1px solid #E7E5E4;" />`)
+          .map((u) => `<img src="${escapeHtml(u)}" alt="" style="max-width:180px;max-height:180px;border-radius:8px;margin:4px;border:1px solid #E7E5E4;" />`)
           .join("")}</div>`
       : "";
     try {
@@ -86,14 +110,15 @@ export async function POST(request: NextRequest) {
         html: `
           <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#0A0A0A;">
             <p style="color:#B8896B;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">New inquiry</p>
-            <h1 style="font-size:22px;font-weight:600;margin:0 0 8px;">${name} has a question</h1>
-            <p style="color:#525252;font-size:14px;margin:0 0 16px;">They sent you a pre-booking question. Reply to this email to respond — it goes straight to ${name}.</p>
+            <h1 style="font-size:22px;font-weight:600;margin:0 0 8px;">${safeName} has a question</h1>
+            <p style="color:#525252;font-size:14px;margin:0 0 16px;">They sent you a pre-booking question. Reply to this email to respond — it goes straight to ${safeName}.</p>
             <div style="background:#FAFAF9;border:1px solid #E7E5E4;border-radius:10px;padding:16px;margin:16px 0;">
               <p style="margin:0 0 4px;color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">Message</p>
-              <p style="margin:0;font-size:14px;white-space:pre-wrap;">${message.replace(/</g, "&lt;")}</p>
+              <p style="margin:0;font-size:14px;white-space:pre-wrap;">${safeMessage}</p>
             </div>
             ${photoHtml}
-            <p style="color:#737373;font-size:13px;margin:16px 0 0;"><strong>Name:</strong> ${name}<br><strong>Email:</strong> ${email}${phone ? `<br><strong>Phone:</strong> ${phone}` : ""}</p>
+            <p style="color:#737373;font-size:13px;margin:16px 0 0;"><strong>Name:</strong> ${safeName}<br><strong>Email:</strong> ${safeEmail}${phone ? `<br><strong>Phone:</strong> ${safePhone}` : ""}</p>
+            <p style="color:#A3A3A3;font-size:11px;margin:12px 0 0;">Business: ${safeBusinessName}</p>
           </div>
         `,
       });

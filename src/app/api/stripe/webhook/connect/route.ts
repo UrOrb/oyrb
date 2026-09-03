@@ -11,6 +11,7 @@ import {
 import { resend } from "@/lib/email";
 import { getFromAddress, EmailPurpose } from "@/lib/email-from";
 import { formatCents } from "@/lib/types";
+import { reportError, reportWarning } from "@/lib/monitoring";
 import type Stripe from "stripe";
 
 /**
@@ -48,6 +49,7 @@ export async function POST(request: Request) {
 
   const secret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET;
   if (!secret) {
+    reportError("connect_webhook_secret_missing", new Error("STRIPE_CONNECT_WEBHOOK_SECRET not configured"));
     console.error("STRIPE_CONNECT_WEBHOOK_SECRET not configured");
     return NextResponse.json(
       { error: "Connect webhook not configured" },
@@ -59,6 +61,7 @@ export async function POST(request: Request) {
   try {
     event = stripe.webhooks.constructEvent(body, sig, secret);
   } catch (err) {
+    reportWarning("connect_webhook_signature_verification_failed", err instanceof Error ? err.message : "signature verification failed");
     console.error("Connect webhook signature verification failed:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
@@ -91,6 +94,11 @@ export async function POST(request: Request) {
       event.data.object,
     );
   } catch (err) {
+    reportError("connect_webhook_reservation_failed", err, {
+      event_id: event.id,
+      event_type: event.type,
+      account_id: accountId,
+    });
     console.error(
       `[connect-webhook] reservation failed for ${event.id}:`,
       err,
@@ -128,7 +136,8 @@ export async function POST(request: Request) {
           await handleGiftCardCompleted(supabase, session, accountId);
         }
         // deposit / unknown → handled elsewhere (or ignored). Either way the
-        // stripe_connect_events row already captured the payload for audit.
+        // stripe_connect_events row already
+        // captured the payload for audit.
         break;
       }
 
@@ -236,6 +245,12 @@ export async function POST(request: Request) {
         `[connect-webhook] failed to mark ${event.id} as failed:`,
         e,
       );
+    });
+    reportError("connect_webhook_processing_failed", err, {
+      event_id: event.id,
+      event_type: event.type,
+      account_id: accountId,
+      duration_ms: Date.now() - t0,
     });
     console.error(
       `[connect-webhook] ${event.id} (${event.type}) FAILED in ${Date.now() - t0}ms:`,
