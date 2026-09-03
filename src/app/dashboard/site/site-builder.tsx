@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { Check, ExternalLink, RotateCcw, Save } from "lucide-react";
+import { Check, ChevronDown, ExternalLink, Monitor, RotateCcw, Save, Smartphone } from "lucide-react";
 import { DAY_NAMES, type Business, type BusinessHours } from "@/lib/types";
 import { ImageUpload, GalleryUpload } from "@/components/dashboard/image-upload";
 import { StockPicker } from "@/components/dashboard/stock-picker";
@@ -341,11 +341,23 @@ const inputCls =
 
 function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-[#E7E5E4] bg-white p-5">
-      <h2 className="text-base font-semibold">{title}</h2>
-      {subtitle && <p className="mt-0.5 text-xs text-[#737373]">{subtitle}</p>}
-      <div className="mt-4 space-y-3">{children}</div>
-    </div>
+    <details
+      open
+      className="group rounded-xl border border-[#E7E5E4] bg-[#FFFCF8] shadow-[0_14px_40px_rgba(10,10,10,0.035)]"
+    >
+      <summary className="flex cursor-pointer list-none items-start justify-between gap-4 rounded-xl px-5 py-4 marker:hidden">
+        <span>
+          <span className="block text-base font-semibold">{title}</span>
+          {subtitle && <span className="mt-0.5 block text-xs text-[#737373]">{subtitle}</span>}
+        </span>
+        <ChevronDown
+          size={16}
+          className="mt-1 shrink-0 text-[#A3A3A3] transition-transform group-open:rotate-180"
+          strokeWidth={1.8}
+        />
+      </summary>
+      <div className="space-y-3 border-t border-[#E7E5E4] px-5 py-4">{children}</div>
+    </details>
   );
 }
 
@@ -362,6 +374,48 @@ function Field({ label, optional, children, helper }: { label: string; optional?
   );
 }
 
+function ToggleRow({
+  checked,
+  onChange,
+  label,
+  description,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+  description?: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`flex w-full items-center justify-between gap-4 rounded-xl border p-3 text-left transition-colors ${
+        checked
+          ? "border-[#B8896B]/45 bg-[#F1EFEC]"
+          : "border-[#E7E5E4] bg-white/80 hover:bg-[#FAFAF9]"
+      }`}
+    >
+      <span>
+        <span className="block text-sm font-medium text-[#0A0A0A]">{label}</span>
+        {description && <span className="mt-0.5 block text-xs text-[#737373]">{description}</span>}
+      </span>
+      <span
+        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+          checked ? "bg-[#B8896B]" : "bg-[#D6D3D1]"
+        }`}
+      >
+        <span
+          className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+            checked ? "translate-x-6" : "translate-x-1"
+          }`}
+        />
+      </span>
+    </button>
+  );
+}
+
 // ── Main builder component ───────────────────────────────────────────────────
 export function SiteBuilder({ business, hours, services, origin, templateUnlocks }: Props) {
   const [saved, setSaved] = useState<Draft>(() => businessToDraft(business, hours));
@@ -369,6 +423,7 @@ export function SiteBuilder({ business, hours, services, origin, templateUnlocks
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [pickerMode, setPickerMode] = useState<"hero" | "profile" | "gallery" | null>(null);
+  const [previewMode, setPreviewMode] = useState<"mobile" | "desktop">("mobile");
 
   const isDirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(saved), [draft, saved]);
 
@@ -459,7 +514,7 @@ export function SiteBuilder({ business, hours, services, origin, templateUnlocks
   return (
     <div className="-mx-4 md:-mx-6 lg:-mx-8">
       {/* ── Sticky action bar ── */}
-      <div className="sticky top-0 z-30 border-b border-[#E7E5E4] bg-white/95 px-4 py-3 backdrop-blur md:px-6 lg:px-8">
+      <div className="sticky top-0 z-30 border-b border-[#E7E5E4] bg-white/95 px-4 py-3 shadow-[0_8px_24px_rgba(10,10,10,0.045)] backdrop-blur md:px-6 lg:px-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold">
@@ -937,14 +992,12 @@ export function SiteBuilder({ business, hours, services, origin, templateUnlocks
 
             {/* Loyalty */}
             <Section title="Loyalty rewards" subtitle="Reward repeat clients after a set number of visits.">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={draft.loyalty_enabled}
-                  onChange={(e) => update("loyalty_enabled", e.target.checked)}
-                />
-                Enable loyalty rewards
-              </label>
+              <ToggleRow
+                checked={draft.loyalty_enabled}
+                onChange={(checked) => update("loyalty_enabled", checked)}
+                label="Enable loyalty rewards"
+                description="Show rewards once clients reach your visit threshold."
+              />
               {draft.loyalty_enabled && (
                 <>
                   <Field label="Reward after this many visits">
@@ -1008,18 +1061,15 @@ export function SiteBuilder({ business, hours, services, origin, templateUnlocks
 
             {/* Publish */}
             <Section title="Publish">
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={draft.is_published}
-                  onChange={(e) => update("is_published", e.target.checked)}
-                  className="h-4 w-4"
-                />
-                <span className="text-sm font-medium">Publish my site to the public URL</span>
-              </label>
+              <ToggleRow
+                checked={draft.is_published}
+                onChange={(checked) => update("is_published", checked)}
+                label="Publish my site to the public URL"
+                description={`${origin}/s/${draft.slug || "your-slug"}`}
+              />
             </Section>
 
-            <div className="h-8" />
+            <div className="h-24 md:h-8" />
           </div>
         </div>
 
@@ -1030,11 +1080,35 @@ export function SiteBuilder({ business, hours, services, origin, templateUnlocks
           className="w-full border-b border-[#E7E5E4] bg-[#FAFAF9] md:w-1/2 md:border-b-0 md:bg-transparent lg:w-[45%]"
         >
           <div className="sticky top-[72px]">
-            <div className="flex items-center justify-between px-4 py-2 text-[11px] text-[#737373] md:px-6 md:py-3">
+            <div className="flex items-center justify-between gap-3 px-4 py-2 text-[11px] text-[#737373] md:px-6 md:py-3">
               <span>Live preview · updates as you edit</span>
+              <div className="inline-flex rounded-full border border-[#E7E5E4] bg-white p-1">
+                {(["mobile", "desktop"] as const).map((mode) => {
+                  const active = previewMode === mode;
+                  const Icon = mode === "mobile" ? Smartphone : Monitor;
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      aria-label={`${mode === "mobile" ? "Mobile" : "Desktop"} preview`}
+                      aria-pressed={active}
+                      onClick={() => setPreviewMode(mode)}
+                      className={`inline-flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
+                        active ? "bg-[#0A0A0A] text-white" : "text-[#737373] hover:bg-[#FAFAF9] hover:text-[#0A0A0A]"
+                      }`}
+                    >
+                      <Icon size={14} strokeWidth={1.8} />
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div className="mx-4 overflow-hidden rounded-xl border border-[#E7E5E4] bg-white shadow-sm md:mx-6">
-              <div className="h-[45vh] overflow-auto md:h-[calc(100vh-180px)]">
+            <div
+              className={`mx-4 overflow-hidden rounded-2xl border border-[#E7E5E4] bg-white shadow-[0_18px_48px_rgba(10,10,10,0.08)] md:mx-6 ${
+                previewMode === "mobile" ? "max-w-[390px] md:mx-auto" : ""
+              }`}
+            >
+              <div className="h-[45vh] overflow-auto md:h-[calc(100vh-190px)]">
                 <TemplatePreview
                   draft={draft}
                   services={services}
@@ -1055,6 +1129,28 @@ export function SiteBuilder({ business, hours, services, origin, templateUnlocks
           onClose={() => setPickerMode(null)}
         />
       )}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E7E5E4] bg-white/95 px-4 py-3 shadow-[0_-10px_30px_rgba(10,10,10,0.08)] backdrop-blur md:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-xs font-medium text-[#0A0A0A]">
+              {isDirty ? "Unsaved site changes" : "Site changes saved"}
+            </p>
+            {msg && (
+              <p className={msg.type === "ok" ? "mt-0.5 truncate text-[11px] text-green-700" : "mt-0.5 truncate text-[11px] text-red-600"}>
+                {msg.text}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={pending || !isDirty}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#0A0A0A] px-4 py-2 text-xs font-medium text-white transition-opacity hover:opacity-85 disabled:opacity-50"
+          >
+            <Save size={13} /> {pending ? "Saving..." : "Save changes"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
