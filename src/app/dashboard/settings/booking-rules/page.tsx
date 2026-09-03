@@ -28,10 +28,10 @@ export default async function BookingRulesPage({ searchParams }: Props) {
   // were applied at migration time so existing pros have safe values.
   const b = business as unknown as {
     id: string;
-    booking_interval_minutes: number;
-    allow_last_minute_booking: boolean;
-    last_minute_cutoff_hours: number;
-    break_between_appointments_minutes: number;
+    booking_interval_minutes: number | null;
+    allow_last_minute_booking: boolean | null;
+    last_minute_cutoff_hours: number | null;
+    break_between_appointments_minutes: number | null;
     daily_break_blocks: DailyBreakBlock[] | null;
   };
 
@@ -46,10 +46,10 @@ export default async function BookingRulesPage({ searchParams }: Props) {
       <BookingRulesForm
         businessId={b.id}
         initial={{
-          intervalMinutes: b.booking_interval_minutes,
-          allowLastMinute: b.allow_last_minute_booking,
-          lastMinuteCutoffHours: b.last_minute_cutoff_hours,
-          breakBetweenMinutes: b.break_between_appointments_minutes,
+          intervalMinutes: b.booking_interval_minutes ?? 30,
+          allowLastMinute: b.allow_last_minute_booking ?? true,
+          lastMinuteCutoffHours: b.last_minute_cutoff_hours ?? 2,
+          breakBetweenMinutes: b.break_between_appointments_minutes ?? 0,
           dailyBreakBlocks: b.daily_break_blocks ?? [],
         }}
       />

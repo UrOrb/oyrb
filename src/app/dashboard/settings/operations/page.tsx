@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, CalendarDays, Download, MailPlus } from "lucide-react";
+import { ArrowRight, CalendarDays, Download } from "lucide-react";
 import { getCurrentBusiness } from "@/lib/current-site";
 import { createClient } from "@/lib/supabase/server";
 
@@ -50,6 +50,7 @@ export default async function OperationsSettingsPage({ searchParams }: Props) {
 
   const { siteId } = await searchParams;
   const business = await getCurrentBusiness(siteId);
+  const siteQuery = siteId ? `?siteId=${encodeURIComponent(siteId)}` : "";
 
   if (!business) {
     return (
@@ -67,7 +68,7 @@ export default async function OperationsSettingsPage({ searchParams }: Props) {
       <LinkCard
         title="Booking rules"
         description="Control slot intervals, last-minute cutoff, break time, and recurring daily blocks. Applies to new bookings only."
-        href="/dashboard/settings/booking-rules"
+        href={`/dashboard/settings/booking-rules${siteQuery}`}
         cta="Edit rules"
         icon={CalendarDays}
       />
@@ -75,17 +76,9 @@ export default async function OperationsSettingsPage({ searchParams }: Props) {
       <LinkCard
         title="Exports"
         description="Download contacts, bookings, and income as portable files. Reachable even if billing lapses or your storefront is paused."
-        href="/dashboard/settings/exports"
+        href={`/dashboard/settings/exports${siteQuery}`}
         cta="Open exports"
         icon={Download}
-      />
-
-      <LinkCard
-        title="Rebook reminders"
-        description="Tune how long OYRB waits after a visit before prompting clients to book their next hair, nail, lash, brow, or skin appointment."
-        href="/dashboard/settings/rebook"
-        cta="Edit reminders"
-        icon={MailPlus}
       />
     </div>
   );
