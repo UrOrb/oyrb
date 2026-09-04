@@ -9,7 +9,9 @@ type Section = {
   heading: string;
   body: string;
   visual: string;
-  image?: string;
+  image: string;
+  alt: string;
+  imagePosition?: string;
   tier?: string;
 };
 
@@ -19,21 +21,25 @@ const SECTIONS: Section[] = [
     heading: "A site that actually looks like your brand.",
     body: "150 professionally designed templates across 5 layouts and 30 themes — built specifically for beauty professionals. Customize your colors, fonts, and content. Switch templates anytime without losing your data.",
     visual: "#EDE8E3",
-    image: "/chrome-hero.avif",
+    image: "/marketing/feature-02.webp",
+    alt: "Beauty professional working on a laptop",
   },
   {
     label: "Booking",
     heading: "Bookings that work around your schedule.",
     body: "Set your hours, block off time, add buffer between appointments. Clients book directly from your site through a 3-step confirmation flow that prevents chargebacks. You get notified. No back-and-forth, no double-bookings.",
     visual: "#F5F5F4",
-    image: "/bold-hero.avif",
+    image: "/marketing/feature-01.webp",
+    alt: "Beauty professional managing bookings on a phone",
+    imagePosition: "center 35%",
   },
   {
     label: "No-Show Protection",
     heading: "Kill no-shows with SMS + Waitlist.",
     body: "Studio and Scale tiers get automated 24-hour SMS reminders (on top of email) plus a Waitlist system — when a client cancels last-minute, waitlisters are instantly texted. One recovered appointment a month more than covers the subscription.",
     visual: "#FFE5D1",
-    image: "/neon-hero.avif",
+    image: "/marketing/lashes.webp",
+    alt: "Close-up lash service detail",
     tier: "Studio / Scale",
   },
   {
@@ -41,7 +47,8 @@ const SECTIONS: Section[] = [
     heading: "Collect deposits. Get paid. Move on.",
     body: "Studio tier adds deposit collection at booking time to protect your time. Clients pay via Stripe — all major cards, Apple Pay, Google Pay. Funds land in your bank directly. No per-booking fees, no middlemen.",
     visual: "#1A1A1A",
-    image: "/luxe-hero.avif",
+    image: "/marketing/feature-03.webp",
+    alt: "Salon counter with card payment terminal",
     tier: "Studio / Scale",
   },
   {
@@ -49,14 +56,17 @@ const SECTIONS: Section[] = [
     heading: "Bring past clients back.",
     body: "Send email campaigns to your client list with one click. Win-back segments (30 / 60 / 90 days) automatically target clients who haven't booked recently. Ship announcements, discount codes, and new service launches — all from your dashboard.",
     visual: "#D4E5D4",
-    image: "/earth-hero.avif",
+    image: "/marketing/cta-1.jpg",
+    alt: "Beauty tools arranged on a white surface",
   },
   {
     label: "Dashboard",
     heading: "Everything you need, nothing you don't.",
     body: "See your upcoming bookings, revenue, and client history at a glance. Manage services, update your site, handle your schedule, and view your waitlist — all from one clean dashboard.",
     visual: "#E7E5E4",
-    image: "/minimal-hero.avif",
+    image: "/marketing/feature-04.webp",
+    alt: "Salon shampoo service in progress",
+    imagePosition: "center 35%",
   },
 ];
 
@@ -106,15 +116,14 @@ export default function FeaturesPage() {
                   className={`relative aspect-[4/3] w-full overflow-hidden rounded-lg ${i % 2 === 1 ? "md:order-1" : ""}`}
                   style={{ backgroundColor: section.visual }}
                 >
-                  {section.image && (
-                    <Image
-                      src={section.image}
-                      alt={section.heading}
-                      fill
-                      className="object-contain p-4"
-                      sizes="(max-width: 768px) 100vw, 600px"
-                    />
-                  )}
+                  <Image
+                    src={section.image}
+                    alt={section.alt}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 600px"
+                    style={{ objectPosition: section.imagePosition ?? "center" }}
+                  />
                 </div>
               </div>
             </div>
