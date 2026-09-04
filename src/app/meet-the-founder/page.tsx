@@ -451,8 +451,8 @@ export default function AboutPage() {
           <div className="grid items-start gap-16 md:grid-cols-[440px_1fr] md:gap-20">
             <div className="relative">
               <Image
-                src="/aura-hero.jpeg"
-                alt="OYRB brand portrait"
+                src="https://hytwjzhgxybxobihqshd.supabase.co/storage/v1/object/public/photos/marketing/oyrb%20founder.jpg"
+                alt="Halania, founder of OYRB"
                 width={440}
                 height={550}
                 className="block h-auto w-full rounded-lg object-cover"
